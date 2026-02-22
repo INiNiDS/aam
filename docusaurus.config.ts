@@ -96,6 +96,13 @@ const config: Config = {
     },
     footer: {
       style: 'dark',
+      logo: {
+        alt: 'AAM Format Logo',
+        src: 'img/logo.svg',
+        href: 'https://github.com/ininids/aam',
+        width: 160,
+        height: 51,
+      },
       links: [
         {
           title: 'Docs',
@@ -103,6 +110,14 @@ const config: Config = {
             {
               label: 'Tutorial',
               to: '/docs/intro',
+            },
+            {
+              label: 'Спецификация',
+              to: '/docs/spec/format-layout',
+            },
+            {
+              label: 'Rust / C API',
+              to: '/docs/api/integration',
             },
           ],
         },
@@ -121,6 +136,10 @@ const config: Config = {
               label: 'Telegram',
               href: 'https://t.me/ininids',
             },
+            {
+              label: 'Discussions',
+              href: 'https://github.com/ininids/aam/discussions',
+            },
           ]
         },
         {
@@ -133,6 +152,10 @@ const config: Config = {
             {
               label: 'GitHub',
               href: 'https://github.com/ininids/aam',
+            },
+            {
+              label: 'Contributing',
+              href: 'https://github.com/ininids/aam/blob/main/CONTRIBUTING.md',
             },
           ],
         },
