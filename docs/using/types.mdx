@@ -1,0 +1,25 @@
+---
+sidebar_position: 2
+---
+
+# Types
+## Primitive types
+AAM have some built-in primitive types, such as `string`, `i32`, `f64`. `bool`, and `color` (accepts hex color codes like `#ff0000` or `#00ff00`).
+```aam
+schema User {
+    name: string
+    age: i32
+    isAdmin: bool
+    profileColor: color
+}
+```
+## Other Built-in Types
+AAM also have other built-in types.
+### Physics Types
+To get to the physics types, you need to write `types::physics::type`, for example:
+```aam
+schema PhysicsObject {
+    meters: types::physics::meter
+}
+```
+All physics types you can check in the [Extra types](https://aam-lang.org/docs/types/physics).

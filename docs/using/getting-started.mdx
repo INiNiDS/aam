@@ -1,0 +1,22 @@
+---
+sidebar_position: 1
+---
+
+# Getting Started
+This is a quick introduction to AAM. It covers the basics of AAM, and how to use it to create a simple bidirectional mapping between two variables. It's needs to know how **only** use AAM in your project.
+## MVP
+The **Minimum Viable Product** (MVP) of AAM is just a
+```aam
+a = b
+```
+syntax that creates a bidirectional mapping between `a` and `b`. You can look up `a` to get `b`, and look up `b` to get `a`. It's concise, clear, and eliminates the boilerplate.
+## Schemas
+AAM supports schemas, you can create schema for parameters, that needs to use:
+```aam
+schema User {
+    name: string
+    age: i32
+    isAdmin: bool
+    profileColor: color
+}
+```
