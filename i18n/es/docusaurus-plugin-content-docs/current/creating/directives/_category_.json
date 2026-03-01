@@ -1,0 +1,8 @@
+{
+    "label": "Directivas",
+    "position": 3,
+    "link": {
+        "type": "generated-index",
+        "description": "Cómo implementar cada directiva AAM en tu biblioteca."
+    }
+}

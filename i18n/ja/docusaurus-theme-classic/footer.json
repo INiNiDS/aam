@@ -1,0 +1,54 @@
+{
+  "link.title.Docs": {
+    "message": "Docs",
+    "description": "The title of the footer links column with title=Docs in the footer"
+  },
+  "link.title.Connect": {
+    "message": "Connect",
+    "description": "The title of the footer links column with title=Connect in the footer"
+  },
+  "link.title.More": {
+    "message": "More",
+    "description": "The title of the footer links column with title=More in the footer"
+  },
+  "link.item.label.Tutorial": {
+    "message": "Tutorial",
+    "description": "The label of footer link with label=Tutorial linking to /docs/intro"
+  },
+  "link.item.label.First Email": {
+    "message": "First Email",
+    "description": "The label of footer link with label=First Email linking to mailto:ininids@ininids.in.rs"
+  },
+  "link.item.label.Second Email": {
+    "message": "Second Email",
+    "description": "The label of footer link with label=Second Email linking to mailto:ask@ininids.in.rs"
+  },
+  "link.item.label.Telegram": {
+    "message": "Telegram",
+    "description": "The label of footer link with label=Telegram linking to https://t.me/ininids"
+  },
+  "link.item.label.Discussions": {
+    "message": "Discussions",
+    "description": "The label of footer link with label=Discussions linking to https://github.com/ininids/aam/discussions"
+  },
+  "link.item.label.Blog": {
+    "message": "Blog",
+    "description": "The label of footer link with label=Blog linking to /blog"
+  },
+  "link.item.label.GitHub": {
+    "message": "GitHub",
+    "description": "The label of footer link with label=GitHub linking to https://github.com/ininids/aam"
+  },
+  "link.item.label.Contributing": {
+    "message": "Contributing",
+    "description": "The label of footer link with label=Contributing linking to https://github.com/ininids/aam/blob/main/CONTRIBUTING.md"
+  },
+  "copyright": {
+    "message": "Copyright © 2026 INiNiDS, Inc. Built with Docusaurus.",
+    "description": "The footer copyright"
+  },
+  "logo.alt": {
+    "message": "AAM Format Logo",
+    "description": "The alt text of footer logo"
+  }
+}

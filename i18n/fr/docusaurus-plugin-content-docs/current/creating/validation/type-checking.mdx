@@ -1,0 +1,96 @@
+---
+sidebar_position: 1
+title: Vérification des Types
+description: Comment valider les valeurs AAM analysées contre le système de types, mapper les primitives et gérer les types natifs complexes.
+---
+
+# Vérification des Types
+
+Pendant la phase d'analyse, un Moteur Loader de haute qualité doit confirmer que **chaque valeur est compatible avec son type déclaré**. Cette page décrit comment effectuer cette vérification pour chaque catégorie de type AAM avant de finaliser la map `AAML`.
+
+---
+
+## Vue d'ensemble
+
+La vérification des types se déroule en deux phases :
+
+1. **Résoudre** — développer tout alias `@type` vers son type canonique (voir [`@type`](../directives/type)).
+2. **Vérifier** — comparer le nœud de runtime analysé avec le type canonique.
+
+---
+
+## Types Primitifs
+
+Les types primitifs sont le cas le plus simple — vérifier que la variante `PrimitiveTypes` correspond à l'étiquette de type attendue :
+
+| Type AAM | Variante `AamValue` | Exemples de littéraux acceptés |
+|----------|---------------------|-------------------------------|
+| `i32`    | `PrimitiveTypes::I32`    | `42`, `-7`, `0`           |
+| `f64`    | `PrimitiveTypes::F64`    | `3.14`, `-0.5`, `1.0`     |
+| `string` | `PrimitiveTypes::Str`    | `"bonjour"`, `""`          |
+| `bool`   | `PrimitiveTypes::Bool`   | `true`, `false`            |
+| `color`  | `PrimitiveTypes::Color`  | `#ff0000`, `#0a0b0c`       |
+
+:::tip Coercition numérique
+AAM **ne coerce pas** silencieusement `i32` en `f64` ou vice-versa. `42` est toujours `i32` ; `42.0` est toujours `f64`. N'ajoutez pas de coercitions implicites.
+:::
+
+---
+
+## Types Complexes avec Namespace
+
+Les types complexes vivent sous trois namespaces : `types::physics::`, `types::math::` et `types::time::`. Au niveau du texte AAM, ils sont tous stockés comme `AamValue::Complex`.
+
+### Types Physiques (`types::physics::*`)
+
+Tous les types physiques représentent une quantité scalaire avec une unité SI. Mappez la magnitude vers un `f64` et attachez l'unité comme métadonnées.
+
+### Types Mathématiques (`types::math::*`)
+
+Les valeurs mathématiques sont des structures multi-composants. Chaque composant est un `f64` :
+
+| Type AAM | Mapping natif |
+|----------|-------------|
+| `types::math::vector2` | `{ x: f64, y: f64 }` |
+| `types::math::vector3` | `{ x: f64, y: f64, z: f64 }` |
+| `types::math::quaternion` | `{ x: f64, y: f64, z: f64, w: f64 }` |
+
+### Types Temporels (`types::time::*`)
+
+Les valeurs temporelles utilisent **ISO 8601** comme représentation textuelle :
+
+| Type AAM | Format texte | Mapping natif suggéré |
+|----------|-------------|----------------------|
+| `types::time::datetime` | `"2024-06-01T12:00:00Z"` | `DateTime` |
+| `types::time::duration` | `"PT1H30M"` | `Duration` |
+| `types::time::year` | `2024` | `u32` |
+| `types::time::hour` | `0`–`23` | `u8` |
+| `types::time::minute` | `0`–`59` | `u8` |
+
+---
+
+## Types Liste
+
+Une valeur `list<T>` est valide si et seulement si **chaque élément** satisfait le type `T`. Les listes imbriquées (`list<list<i32>>`) doivent être traitées récursivement.
+
+---
+
+## Types Schéma
+
+Lorsque le type d'un champ est le nom d'un `@schema`, validez la valeur comme un **objet imbriqué** par rapport à ce schéma récursivement.
+
+---
+
+## Liste de Vérification de Validation
+
+| Vérification | Requis |
+|-------------|--------|
+| La valeur primitive correspond au type primitif déclaré | ✅ |
+| Le `type_key` de la valeur complexe correspond à l'unité attendue | ✅ |
+| `time::datetime` peut être analysé comme un ISO 8601 valide | ✅ |
+| Chaque élément de `list<T>` correspond à `T` | ✅ |
+| Alias `@type` résolus avant la comparaison | ✅ |
+| Champs de schéma obligatoires présents | ✅ |
+| Aucun champ de schéma inconnu (mode strict) | ✅ |
+| Objets de schéma imbriqués validés récursivement | ✅ |
+| Aucune coercition numérique implicite (`i32` ↔ `f64`) | ✅ |

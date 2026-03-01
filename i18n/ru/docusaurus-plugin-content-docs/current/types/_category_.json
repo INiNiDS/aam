@@ -1,8 +1,8 @@
 {
-  "label": "Using in your projects",
-  "position": 2,
+  "label": "Доп. Типы",
+  "position": 4,
   "link": {
     "type": "generated-index",
-    "description": "Learn how to use AAM in your projects"
+    "description": "Используйте дополнительные типы для расширения функциональности библиотеки и обеспечения более строгой типизации в ваших проектах."
   }
 }

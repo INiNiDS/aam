@@ -1,0 +1,74 @@
+---
+sidebar_position: 2
+title: "@derive"
+description: Cómo implementar la directiva @derive, semántica Child-Wins-on-Conflict y protección contra ciclos de derivación.
+---
+
+# La Directiva `@derive`
+
+La directiva `@derive` permite que un fichero **herede** todos los campos declarados en un `@schema` de otro fichero `.aam`. Es el mecanismo principal para la reutilización basada en schema en AAM.
+
+```aam
+@derive ruta/a/fichero.aam::NombreSchema
+```
+
+---
+
+## Sintaxis
+
+`@derive` siempre toma una **ruta calificada** de la forma `"<fichero>::<NombreSchema>"`:
+
+```aam
+@derive entities/base.aam::Entity
+```
+
+- `"entities/base.aam"` — ruta al fichero que contiene el schema (resuelto igual que [`@import`](./import)).
+- `Entity` — el nombre del bloque `@schema` del que heredar.
+
+:::note
+A diferencia de `@import`, que fusiona un fichero completo, `@derive` apunta a un **schema específico con nombre**. No puedes derivar de un fichero completo sin nombrar un schema.
+:::
+
+---
+
+## Qué hace `@derive`
+
+Cuando el parser encuentra `@derive "fichero.aam::Schema"`:
+
+1. **Carga `fichero.aam`** (o lo recupera de la caché) y localiza el schema llamado `Schema`.
+2. **Copia las declaraciones de campo del schema** (nombre, tipo, flag obligatorio/opcional) en el contexto de schema activo del documento actual.
+3. **Aplica los valores del fichero actual** por encima — cualquier clave definida en el fichero actual sobrescribe el valor heredado.
+
+---
+
+## Child-Wins-on-Conflict
+
+**Child-Wins-on-Conflict** es la regla semántica principal de `@derive`: si tanto el schema padre como el fichero actual definen un valor para el mismo campo, **el valor del fichero actual siempre gana**.
+
+---
+
+## Múltiples Declaraciones `@derive`
+
+Un fichero puede contener más de un `@derive`. Se aplican en orden de declaración — el último en declarar una definición de campo gana en los conflictos a nivel de schema, pero los valores del documento hijo aún tienen precedencia final.
+
+---
+
+## Protección contra Ciclos de Derivación
+
+:::warning Anti-Ciclo — Esta sección es obligatorio implementar
+`@derive` carga internamente otro fichero `.aam`, que puede contener a su vez directivas `@derive`. Sin detección de ciclos, esto causará recursión infinita.
+:::
+
+El mecanismo de protección es idéntico al usado para [`@import`](./import#cyclic-dependency-protection): mantén un conjunto `visited` de rutas canónicas de ficheros y compruébalo antes de procesar cada `@derive`.
+
+---
+
+## `@derive` vs `@import`
+
+| Característica | `@import` | `@derive` |
+|----------------|-----------|-----------|
+| Objetivo | Fichero completo | Un `@schema` específico |
+| Aplicación de schema | No | Sí — valida contra el schema heredado |
+| Resolución de conflictos | Child-Wins | Child-Wins |
+| Protección contra ciclos | Obligatorio | Obligatorio |
+| Caso de uso típico | Valores de config compartidos | Contratos de datos basados en schema |

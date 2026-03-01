@@ -1,0 +1,425 @@
+---
+sidebar_position: 3
+description: "Полный справочник API для структур AAML, FoundValue и AamlError"
+---
+
+# Справочник API aam-rs
+
+`aam-rs` — официальная Rust-библиотека для разбора, валидации и создания конфигурационных файлов AAM. Библиотека Python `aam-py` предоставляет тот же API — для каждого примера показаны оба языка.
+
+> **Примечание:** Добавьте `aam` в ваш `Cargo.toml` (Rust) или выполните `pip install aam-py` (Python) перед использованием этого API. Подробности см. на странице [Установка](./installing).
+
+---
+
+## `AAML`
+
+Основная точка входа для всех операций AAM. `AAML` хранит разобранную карту ключ-значение, зарегистрированные определения типов и схем. Все директивы (`@derive`, `@schema`, `@import`, `@type`) обрабатываются автоматически во время разбора.
+
+### Конструкторы
+
+#### `AAML::new`
+
+Создаёт новый пустой экземпляр `AAML` со всеми зарегистрированными по умолчанию обработчиками директив (`@import`, `@derive`, `@schema`, `@type`).
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::new();
+```
+
+```python
+from aam import AAML
+
+cfg = AAML()
+```
+
+---
+
+#### `AAML::with_capacity`
+
+Создаёт новый экземпляр `AAML`, предварительно выделенный для заданного числа пар ключ-значение. Используйте это, когда знаете приблизительный размер конфигурации, чтобы уменьшить повторное выделение памяти.
+
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `capacity` | `usize` | Ожидаемое число пар ключ-значение для хранения. |
+
+**Возвращает:** `AAML`
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::with_capacity(64);
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.with_capacity(64)
+```
+
+---
+
+#### `AAML::parse`
+
+Разбирает строку AAM и возвращает новый, полностью заполненный экземпляр `AAML`. Все директивы, найденные в строке, обрабатываются до возврата метода.
+
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `content` | `&str` | Исходный текст AAM для разбора. |
+
+**Возвращает:** `Result<AAML, AamlError>`
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("host = localhost\nport = 8080").unwrap();
+assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse("host = localhost\nport = 8080")
+assert cfg.find_obj("host") == "localhost"
+```
+
+---
+
+#### `AAML::load`
+
+Читает файл AAM с диска и возвращает новый экземпляр `AAML`. Эквивалентно ручному чтению файла и вызову `AAML::parse`.
+
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `file_path` | `impl AsRef<Path>` | Путь к файлу `.aam`. |
+
+**Возвращает:** `Result<AAML, AamlError>`
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::load("config.aam").unwrap();
+println!("{}", cfg.find_obj("host").unwrap());
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.load("config.aam")
+print(cfg.find_obj("host"))
+```
+
+---
+
+### Слияние
+
+Эти методы добавляют содержимое в **существующий** экземпляр `AAML`, а не создают новый. Они полезны для составления конфигураций из нескольких источников во время выполнения.
+
+#### `merge_content`
+
+Разбирает исходный текст AAM и сливает полученные пары ключ-значение и определения схем в текущий экземпляр. Существующие ключи перезаписываются входящими значениями.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let mut cfg = AAML::new();
+cfg.merge_content("host = localhost").unwrap();
+cfg.merge_content("port = 8080").unwrap();
+```
+
+```python
+from aam import AAML
+
+cfg = AAML()
+cfg.merge_content("host = localhost")
+cfg.merge_content("port = 8080")
+```
+
+---
+
+#### `merge_file`
+
+Читает файл с диска и сливает его содержимое в текущий экземпляр.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let mut cfg = AAML::new();
+cfg.merge_file("base.aam").unwrap();
+cfg.merge_file("overrides.aam").unwrap();
+```
+
+```python
+from aam import AAML
+
+cfg = AAML()
+cfg.merge_file("base.aam")
+cfg.merge_file("overrides.aam")
+```
+
+---
+
+### Объединение экземпляров
+
+Два экземпляра `AAML` можно объединить с помощью операторов `+` и `+=`. Ключи и типы правого экземпляра сливаются в левый; при конфликтах ключей побеждает правый.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let base = AAML::parse("host = localhost\nport = 80").unwrap();
+let overrides = AAML::parse("port = 443").unwrap();
+
+let combined = base + overrides;
+assert_eq!(combined.find_obj("port").unwrap().as_str(), "443");
+```
+
+```python
+from aam import AAML
+
+base = AAML.parse("host = localhost\nport = 80")
+overrides = AAML.parse("port = 443")
+
+combined = base + overrides
+assert combined.find_obj("port") == "443"
+```
+
+---
+
+### Поиск
+
+#### `find_obj`
+
+Основной метод поиска. Ищет `key` в карте. Если соответствующий ключ не найден, выполняется автоматический **обратный поиск** — поиск записи, *значение* которой равно `key`.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("a = b").unwrap();
+
+// Прямой поиск
+assert_eq!(cfg.find_obj("a").unwrap().as_str(), "b");
+
+// Обратный поиск (поиск по значению)
+assert_eq!(cfg.find_obj("b").unwrap().as_str(), "a");
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse("a = b")
+
+# Прямой поиск
+assert cfg.find_obj("a") == "b"
+
+# Обратный поиск (поиск по значению)
+assert cfg.find_obj("b") == "a"
+```
+
+---
+
+#### `find_key`
+
+Явный обратный поиск. Находит **ключ**, отображаемое значение которого равно `value`.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("player_score = current_points").unwrap();
+let key = cfg.find_key("current_points").unwrap();
+assert_eq!(key.as_str(), "player_score");
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse("player_score = current_points")
+key = cfg.find_key("current_points")
+assert key == "player_score"
+```
+
+---
+
+#### `find_deep`
+
+Следует цепочке поисков `key → value → key` до достижения терминального значения или обнаружения цикла. Полезно для обхода цепочек отображений.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("a = b\nb = c").unwrap();
+// Следует: a → b → c  (c терминальное — ключа "c" не существует)
+assert_eq!(cfg.find_deep("a").unwrap().as_str(), "c");
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse("a = b\nb = c")
+# Следует: a → b → c
+assert cfg.find_deep("a") == "c"
+```
+
+---
+
+### Валидация схем
+
+#### `get_schema`
+
+Возвращает `SchemaDef` зарегистрированную под именем `name`, или `None`.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("@schema Player { name: string, id: i32 }").unwrap();
+let schema = cfg.get_schema("Player").unwrap();
+println!("{:?}", schema.fields);
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse("@schema Player { name: string, id: i32 }")
+schema = cfg.get_schema("Player")
+print(schema.fields)
+```
+
+---
+
+#### `apply_schema`
+
+Валидирует карту `data` по именованной схеме.
+
+```rust
+use aam_rs::aaml::AAML;
+use std::collections::HashMap;
+
+let cfg = AAML::parse("@schema Player { name: string, id: i32 }").unwrap();
+
+let mut data = HashMap::new();
+data.insert("name".to_string(), "Alice".to_string());
+data.insert("id".to_string(), "1".to_string());
+
+cfg.apply_schema("Player", &data).unwrap();
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse("@schema Player { name: string, id: i32 }")
+
+data = {"name": "Alice", "id": "1"}
+cfg.apply_schema("Player", data)
+```
+
+---
+
+#### `validate_schemas_completeness`
+
+Проверяет каждое **обязательное** поле каждой зарегистрированной схемы по текущей карте ключ-значение.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse(
+    "@schema Server { host: string, port: i32 }\nhost = localhost\nport = 8080"
+).unwrap();
+
+cfg.validate_schemas_completeness().unwrap();
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse(
+    "@schema Server { host: string, port: i32 }\nhost = localhost\nport = 8080"
+)
+cfg.validate_schemas_completeness()
+```
+
+---
+
+## `FoundValue`
+
+Тип, возвращаемый всеми методами поиска в `AAML`. Оборачивает строковое значение и предоставляет вспомогательные функции для распространённых преобразований.
+
+### Методы
+
+#### `as_str`
+
+Возвращает внутреннее значение как срез строки.
+
+```rust
+use aam_rs::found_value::FoundValue;
+
+let v = FoundValue::new("42");
+println!("{}", v.as_str());
+```
+
+---
+
+#### `as_list`
+
+Разбирает значение как литерал списка AAM `[item, item, ...]` и возвращает элементы как `Vec<String>`.
+
+```rust
+use aam_rs::found_value::FoundValue;
+
+let v = FoundValue::new("[rust, aam, config]");
+let items = v.as_list().unwrap();
+assert_eq!(items, vec!["rust", "aam", "config"]);
+```
+
+```python
+from aam import FoundValue
+
+v = FoundValue("[rust, aam, config]")
+items = v.as_list()
+assert items == ["rust", "aam", "config"]
+```
+
+---
+
+## `AamlError`
+
+Все ошибки, создаваемые конвейером разбора и валидации, реализуют `std::error::Error` и `Display`.
+
+### Варианты
+
+| Вариант | Описание |
+|---------|----------|
+| `IoError(io::Error)` | Произошла ошибка ввода-вывода при чтении файла. |
+| `ParseError { line, content, details }` | Строка источника не может быть разобрана как допустимый оператор AAML. |
+| `NotFound(String)` | Ключ или имя типа не найдено в реестре или карте. |
+| `InvalidValue(String)` | Значение не соответствует базовому (несхемному) ограничению типа. |
+| `InvalidType { type_name, details }` | Значение не прошло валидацию по зарегистрированному или встроенному типу. |
+| `DirectiveError(String, String)` | Директива столкнулась с ошибкой в своих аргументах. |
+| `SchemaValidationError { schema, field, type_name, details }` | Ограничение схемы было нарушено при разборе или валидации. |
+
+### Пример обработки ошибок
+
+```rust
+use aam_rs::aaml::AAML;
+use aam_rs::error::AamlError;
+
+match AAML::load("config.aam") {
+    Ok(cfg) => println!("Загружено: {:?}", cfg),
+    Err(AamlError::IoError(e)) => eprintln!("Не удалось прочитать файл: {e}"),
+    Err(AamlError::ParseError { line, content, details }) => {
+        eprintln!("Ошибка разбора в строке {line}: '{content}' — {details}");
+    }
+    Err(AamlError::SchemaValidationError { schema, field, type_name, details }) => {
+        eprintln!("Схема '{schema}': поле '{field}' ({type_name}) — {details}");
+    }
+    Err(e) => eprintln!("Ошибка: {e}"),
+}
+```
+
+```python
+from aam import AAML, AamlError
+
+try:
+    cfg = AAML.load("config.aam")
+    print("Загружено:", cfg)
+except AamlError as e:
+    print(f"Ошибка: {e}")
+```

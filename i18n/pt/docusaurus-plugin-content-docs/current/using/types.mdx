@@ -1,0 +1,91 @@
+---
+sidebar_position: 2
+description: "Aprenda a usar tipos no seu projeto"
+---
+
+# Tipos
+
+## Tipos Primitivos
+O AAM tem vários tipos primitivos integrados, como `string`, `i32`, `f64`, `bool` e `color` (que aceita códigos de cores hexadecimais como `#ff0000` ou `#00ff00`).
+
+```aam
+@schema User {
+    name: string
+    age: i32
+    is_admin: bool
+    profile_color: color
+}
+```
+
+## Outros Tipos Integrados
+O AAM também fornece tipos integrados estendidos para casos de uso específicos.
+
+### Tipos de Física
+
+Para aceder a tipos relacionados com física, precisa de usar o namespace `types::physics`. Por exemplo:
+
+```aam
+@schema PhysicsObject {
+    length: types::physics::meter
+}
+```
+
+Pode encontrar uma lista completa de tipos de física na [documentação de tipos extras](../types/physics).
+### Tipos Matemáticos
+Para obter tipos matemáticos, precisa de usar o namespace `types::math`, por exemplo:
+```aam
+@schema MathObjects {
+    vector: types::math::vector2
+}
+```
+Todos os tipos matemáticos podem ser encontrados na [documentação de tipos extras](../types/math).
+### Tempo
+O AAM suporta tipos relacionados com tempo. Para datetime e duration, o formato ISO 8601 é usado:
+```aam
+@schema TimeObjects {
+    timestamp: types::time::datetime # ex: "2024-01-01T12:00:00Z"
+    cooldown: types::time::duration # ex: "PT1H30M" para 1 hora e 30 minutos
+    units: types::time::hour
+}
+```
+Para uma lista completa de tipos de tempo disponíveis, visite a [documentação de tipos extras](../types/time).
+### Listas
+O AAM também suporta tipos de lista, que permitem definir uma lista de elementos de um tipo específico. Por exemplo:
+```aam
+@schema Inventory {
+    items: list<string>
+}
+```
+e criar uma lista:
+```aam
+items = ["Hello", "World"]
+```
+## Tipos Próprios
+### Schemas
+Pode usar os seus próprios schemas como tipos. Por exemplo:
+```aam
+@schema User {
+    name: string
+    age: i32
+}
+
+@schema ServerUsers {
+    users: list<User>
+}
+```
+### Tipos Personalizados
+Pode declarar o seu próprio tipo usando a diretiva de tipo (`@type`):
+```aam
+@type Name = string
+```
+Isto permite-lhe criar tipos personalizados que podem ser reutilizados em toda a sua configuração, melhorando a legibilidade e a manutenção.
+Também pode criar novos tipos em tipos não primitivos, por exemplo:
+```aam
+@type FromLast = types::time::duration
+```
+Ou usar os seus próprios tipos em outras declarações de tipo:
+```aam
+@type Name = string
+@type FirstName = Name
+@type LastName = Name
+```

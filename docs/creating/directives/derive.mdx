@@ -1,0 +1,181 @@
+---
+sidebar_position: 2
+title: "@derive"
+description: How to implement the @derive directive, Child-Wins-on-Conflict semantics, and derivation loop protection.
+---
+
+# The `@derive` Directive
+
+The `@derive` directive allows a file to **inherit** all fields declared in a `@schema` from another `.aam` file. It is the primary mechanism for schema-based reuse in AAM.
+
+```aam
+@derive path/to/file.aam::SchemaName
+```
+
+---
+
+## Syntax
+
+`@derive` always takes a **qualified path** in the form `"<file>::<SchemaName>"`:
+
+```aam
+@derive entities/base.aam::Entity
+```
+
+- `"entities/base.aam"` — path to the file that contains the schema (resolved the same way as [`@import`](./import)).
+- `Entity` — the name of the `@schema` block to inherit from.
+
+:::note
+Unlike `@import`, which merges an entire file, `@derive` targets a **specific named schema**. You cannot derive from an entire file without naming a schema.
+:::
+
+---
+
+## What `@derive` Does
+
+When the parser encounters `@derive "file.aam::Schema"`:
+
+1. **Loads `file.aam`** (or retrieves it from cache) and locates the schema named `Schema`.
+2. **Copies the schema's field declarations** (name, type, required/optional flag) into the current document's active schema context.
+3. **Applies the current file's values** on top — any key defined in the current file overwrites the inherited value.
+
+The end result is that the current document is validated against the full inherited schema, but the child's values take priority wherever there is a conflict.
+
+---
+
+## Child-Wins-on-Conflict
+
+**Child-Wins-on-Conflict** is the core semantic rule of `@derive`: if both the parent schema and the current file define a value for the same field, the **current file's value always wins**.
+
+```aam
+# vehicles/base.aam
+@schema Vehicle {
+    name: string
+    max_speed: physics::meterpersecond
+    color*: color
+}
+
+name = "Generic Vehicle"
+max_speed = 28.0
+color = #808080
+```
+
+```aam
+# car.aam
+@derive "vehicles/base.aam::Vehicle"
+
+# These override the parent values
+name = "Sports Car"
+max_speed = 83.3
+
+# 'color' is not specified — the parent value (#808080) is inherited
+```
+
+After parsing `car.aam`:
+
+| Key | Source | Final Value |
+|-----|--------|-------------|
+| `name` | child | `"Sports Car"` |
+| `max_speed` | child | `83.3 m/s` |
+| `color` | parent | `#808080` |
+
+### Implementation
+
+```rust
+fn apply_derive(
+    current_doc: &mut AAML,
+    parent_schema: &Schema,
+    parent_values: &HashMap<String, String>,
+) {
+    // 1. Register all inherited field declarations in the current document
+    for (field_name, field_def) in &parent_schema.fields {
+        current_doc.schemas.insert(field_name.clone(), field_def.clone());
+    }
+
+    // 2. Merge parent values — only for fields NOT already in the child
+    for (key, value) in parent_values {
+        current_doc.elements
+            .entry(key.clone())
+            .or_insert_with(|| value.clone()); // child wins: do NOT overwrite
+    }
+}
+```
+
+---
+
+## Multiple `@derive` Declarations
+
+A file may contain more than one `@derive`. They are applied in declaration order — the last one to declare a field definition wins on schema-level conflicts, but the child document's own values still take final precedence.
+
+```aam
+@derive "base.aam::Base"
+@derive "mixin.aam::Logging"   # adds extra fields to the schema context
+
+name = "My Service"
+log_level = "info"
+```
+
+---
+
+## Derivation Loop Protection
+
+:::warning Anti-Loop — This section is mandatory to implement
+`@derive` internally loads another `.aam` file, which may itself contain `@derive` directives. Without cycle detection this will cause infinite recursion.
+:::
+
+The protection mechanism is identical to the one used for [`@import`](./import#cyclic-dependency-protection): maintain a `visited` set of canonical file paths and check it before processing each `@derive`.
+
+```rust
+fn resolve_derive(
+    file_path: &Path,
+    schema_name: &str,
+    visited: &mut HashSet<PathBuf>,
+) -> Result<(Schema, HashMap<String, String>), AamlError> {
+
+    let canonical = file_path.canonicalize()?;
+
+    if visited.contains(&canonical) {
+        return Err(AamlError::CyclicDerivation {
+            path: canonical,
+            schema: schema_name.to_string(),
+        });
+    }
+
+    visited.insert(canonical.clone());
+    let doc = load_recursive(&canonical, visited)?;
+    visited.remove(&canonical);
+
+    let schema = doc.schemas
+        .get(schema_name)
+        .ok_or_else(|| AamlError::SchemaNotFound {
+            name: schema_name.to_string(),
+            file: canonical.clone(),
+        })?;
+
+    Ok((schema.clone(), doc.elements.clone()))
+}
+```
+
+### Error reporting
+
+```
+Error: cyclic derivation detected
+  --> player.aam
+   |
+ 1 | @derive "character.aam::Character"
+   |
+   = note: derivation chain: player.aam → character.aam → entity.aam → player.aam
+```
+
+---
+
+## `@derive` vs `@import`
+
+| Feature | `@import` | `@derive` |
+|---------|-----------|-----------|
+| Targets | Entire file | A specific `@schema` |
+| Schema enforcement | No | Yes — validates against inherited schema |
+| Conflict resolution | Child-Wins | Child-Wins |
+| Cycle protection | Required | Required |
+| Typical use case | Shared config values | Schema-based data contracts |
+

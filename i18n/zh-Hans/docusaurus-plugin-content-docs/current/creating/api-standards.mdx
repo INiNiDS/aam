@@ -1,0 +1,81 @@
+---
+sidebar_position: 6
+title: "API标准"
+description: "所有AAM库必须遵循的跨语言标准，以确保互操作性和一致的开发者体验。"
+---
+
+# API标准
+
+本页定义了每个AAM库必须遵守的**跨语言标准**。遵循这些标准确保为一个库编写的AAM文件与另一个库正确工作，并且在语言之间切换的开发者遇到熟悉的API。我们以参考引擎（`aam-rs`）为基准。
+
+---
+
+## 标准API方法
+
+为提供一致的"配置引擎"体验，库必须实现以下核心方法（或目标语言中最接近的惯用等效项）。
+
+### 1. 核心加载器API
+
+| 通用方法 | 描述 |
+|---------|------|
+| `parse(content: String)` | 将原始字符串解析为内存对象。 |
+| `load(file_path: Path)` | 从磁盘加载并解析文件，自动解析 `@import` 指令。 |
+| `merge_content(content: String)` | 解析字符串并将其合并到*当前*对象中，覆盖现有键。 |
+| `merge_file(file_path: Path)` | 加载文件并将其合并到当前对象中。 |
+
+### 2. 查询API
+
+| 通用方法 | 描述 |
+|---------|------|
+| `find_obj(key: String)` | 智能双向查找。如果 `key` 存在，返回其值。如果不存在，返回值为 `key` 的键。 |
+| `find_deep(key: String)` | 递归搜索。跟随值链直到达到不是键的终端值。必须包含循环检测！ |
+| `find_key(value: String)` | 严格反向查找。查找保存给定值的第一个键。 |
+
+### 3. 构建器API
+
+| 通用方法 | 描述 |
+|---------|------|
+| `add_line(key, value)` | 添加标准 `key = value` 对。 |
+| `comment(text)` | 添加以 `# ` 开头的行。 |
+| `schema(name, fields[])` | 生成内联 `@schema` 指令。 |
+| `schema_multiline(...)` | 生成多行 `@schema` 指令。 |
+| `derive(path, schemas[])` | 生成 `@derive` 指令。 |
+| `type_alias(alias, type)` | 生成 `@type` 指令。 |
+| `to_file(path)` / `to_string()` | 将确定性构建器刷新到磁盘或内存。 |
+
+---
+
+## 版本控制
+
+库应遵循[语义版本控制](https://semver.org/)：
+
+- **补丁**发布（`1.0.x`）可以修复错误而不更改行为。
+- **次要**发布（`1.x.0`）可以添加新的可选功能。
+- **主要**发布（`x.0.0`）可能引入破坏性API更改。
+
+---
+
+## 错误处理
+
+所有可能失败的公共方法必须返回结构化的结果类型，**绝不**在用户错误时恐慌或抛出无类型异常：
+
+| 语言 | 期望的模式 |
+|------|-----------|
+| Rust | `Result<T, AamlError>` |
+| Go | `(T, error)` |
+| Python | 抛出 `AamlError`（`Exception` 的子类） |
+| TypeScript | 抛出 `AamlError`（`Error` 的子类） |
+| Java/Kotlin | 抛出 `AamlException`（已检查或有文档） |
+
+---
+
+## 测试套件
+
+每个库必须附带覆盖以下内容的测试套件：
+
+- [ ] 每种原始类型的基本 `key = value` 解析
+- [ ] `@import` 文件解析和追加
+- [ ] `@schema` 格式正确性
+- [ ] `find_obj` 正确识别反向键
+- [ ] `find_deep` 防止 `A -> A` 依赖关系上的无限循环
+- [ ] 序列化器往返：`parse(builder.to_string()) == parsed_state`

@@ -1,0 +1,241 @@
+---
+sidebar_position: 1
+title: Type Checking
+description: How to validate parsed AAM values against the type system, map primitives, and handle complex native types.
+---
+
+# Type Checking
+
+During the parsing phase, a high-quality Loader Engine must confirm that **every value is compatible with its declared type**. This page describes how to perform that check for each category of AAM type before finalizing the `AAML` map.
+
+---
+
+## Overview
+
+Type checking proceeds in two phases:
+
+1. **Resolve** — expand any `@type` aliases to their canonical type (see [`@type`](../directives/type)).
+2. **Check** — compare the parsed runtime node against the canonical type.
+
+```rust
+fn check_value(
+    key: &str,
+    value: &ParsedValue, // Represents internal node before saving to AAML
+    declared_ty: &String,
+    registry: &HashMap<String, String>,
+) -> Result<(), AamlError> {
+    let canonical = resolve_type(declared_ty, registry)?;
+    check_value_canonical(key, value, &canonical)
+}
+```
+
+---
+
+## Primitive Types
+
+Primitive types are the simplest case — check that the `PrimitiveTypes` variant matches the expected type tag:
+
+| AAM type | `AamValue` variant       | Accepted literal examples |
+|----------|--------------------------|---------------------------|
+| `i32`    | `PrimitiveTypes::I32`    | `42`, `-7`, `0`           |
+| `f64`    | `PrimitiveTypes::F64`    | `3.14`, `-0.5`, `1.0`     |
+| `string` | `PrimitiveTypes::Str`    | `"hello"`, `""`           |
+| `bool`   | `PrimitiveTypes::Bool`   | `true`, `false`           |
+| `color`  | `PrimitiveTypes::Color`  | `#ff0000`, `#0a0b0c`      |
+
+```rust
+fn check_value_canonical(
+    key: &str,
+    value: &ParsedValue,
+    ty: &String, // Or internal enum representing primitive type
+) -> Result<(), AamlError> {
+    let ok = match (ty.as_str(), value) {
+        ("i32",    ParsedValue::I32(_))   => true,
+        ("f64",    ParsedValue::F64(_))   => true,
+        ("string", ParsedValue::Str(_))   => true,
+        ("bool",   ParsedValue::Bool(_))  => true,
+        ("color",  ParsedValue::Color(_)) => true,
+        _ => false,
+    };
+
+    if !ok {
+        return Err(AamlError::TypeMismatch {
+            key: key.to_string(),
+            expected: ty.to_string(),
+            found: value.type_name(),
+        });
+    }
+    Ok(())
+}
+```
+
+:::tip Numeric coercion
+AAM does **not** silently coerce `i32` to `f64` or vice-versa. `42` is always `i32`; `42.0` is always `f64`. Do not add implicit coercions.
+:::
+
+---
+
+## Complex Namespaced Types
+
+Complex types live under three namespaces: `types::physics::`, `types::math::`, and `types::time::`. At the AAM text level they are all stored as `AamValue::Complex`, which wraps the raw scalar value together with a unit tag.
+
+### Representation
+
+```rust
+pub struct ComplexValue {
+    /// The scalar magnitude, always stored as f64 internally.
+    pub magnitude: f64,
+    /// The fully-qualified type key, e.g. "physics::kilogram".
+    pub type_key: String,
+}
+
+pub enum AamValue {
+    // ...primitives...
+    Complex(ComplexValue),
+    MathValue(MathValue),   // vectors, matrices, quaternions
+    TimeValue(TimeValue),   // datetime, duration, time units
+}
+```
+
+### Physics types (`types::physics::*`)
+
+All physics types represent a scalar quantity with an SI unit. In your language's native types, map the magnitude to a `f64` (or equivalent) and attach the unit as metadata:
+
+| AAM type | Suggested native mapping |
+|----------|--------------------------|
+| `types::physics::kilogram` | `f64` (mass in kg) |
+| `types::physics::meter` | `f64` (length in m) |
+| `types::physics::meterpersecond` | `f64` (speed in m/s) |
+| `types::physics::newton` | `f64` (force in N) |
+| `types::physics::kelvin` | `f64` (temperature in K) |
+| … | `f64` + unit tag |
+
+Validation check: the `type_key` field of `ComplexValue` must exactly match the expected physics type key.
+
+```rust
+(AamType::Physics(expected_unit), AamValue::Complex(v)) => {
+    v.type_key == expected_unit.key()
+}
+```
+
+### Math types (`types::math::*`)
+
+Math values are multi-component structures. Each component is a `f64`:
+
+| AAM type | Native mapping |
+|----------|---------------|
+| `types::math::vector2` | `{ x: f64, y: f64 }` |
+| `types::math::vector3` | `{ x: f64, y: f64, z: f64 }` |
+| `types::math::vector4` | `{ x: f64, y: f64, z: f64, w: f64 }` |
+| `types::math::quaternion` | `{ x: f64, y: f64, z: f64, w: f64 }` |
+| `types::math::matrix3x3` | `[[f64; 3]; 3]` |
+| `types::math::matrix4x4` | `[[f64; 4]; 4]` |
+
+Validation check: confirm the `AamValue::MathValue` variant matches the expected math subtype and that the component count is correct.
+
+### Time types (`types::time::*`)
+
+Time values use **ISO 8601** as their text representation. Map them to the closest native type in your target language:
+
+| AAM type | Text format | Suggested native mapping |
+|----------|-------------|--------------------------|
+| `types::time::datetime` | `"2024-06-01T12:00:00Z"` | `DateTime` / `chrono::DateTime` |
+| `types::time::duration` | `"PT1H30M"` | `Duration` / `chrono::Duration` |
+| `types::time::year` | `2024` | `u32` |
+| `types::time::day` | `1`–`365` | `u16` |
+| `types::time::hour` | `0`–`23` | `u8` |
+| `types::time::minute` | `0`–`59` | `u8` |
+
+```rust
+// Example: validating time::datetime
+(AamType::Time(TimeType::DateTime), AamValue::TimeValue(TimeValue::DateTime(dt))) => {
+    // dt is already a parsed DateTime — no further check needed
+    true
+}
+(AamType::Time(TimeType::DateTime), AamValue::Str(s)) => {
+    // Fallback: parse the string as ISO 8601 and store the result
+    DateTime::parse_from_rfc3339(s).is_ok()
+}
+```
+
+:::note
+If the target language lacks a native `DateTime` type (e.g. plain C), store the ISO 8601 string directly and expose a helper function to parse it. Document this limitation clearly in your library's README.
+:::
+
+---
+
+## List Types
+
+A `list<T>` value is valid if and only if **every element** satisfies type `T`:
+
+```rust
+(AamType::List(inner_ty), AamValue::List(items)) => {
+    for (i, item) in items.iter().enumerate() {
+        check_value_canonical(
+            &format!("{key}[{i}]"),
+            item,
+            inner_ty,
+        )?;
+    }
+    Ok(())
+}
+```
+
+Nested lists (`list<list<i32>>`) must be handled recursively.
+
+---
+
+## Schema Types
+
+When a field's type is the name of a `@schema`, validate the value as a **nested object** against that schema:
+
+```rust
+(AamlType::Schema(schema_name), ParsedValue::Object(obj)) => {
+    let schema = registry
+        .schemas
+        .get(schema_name)
+        .ok_or_else(|| AamlError::UnknownSchema { name: schema_name.clone() })?;
+    validate_against_schema(obj, schema, registry)?;
+    Ok(())
+}
+```
+
+---
+
+## Error Reporting
+
+All type errors must include:
+
+- The **key** (or field path, e.g. `players[0].name`) that failed.
+- The **expected type** as a human-readable string.
+- The **actual value** that was found.
+- The **source location** (line, column) if your parser tracks spans.
+
+```
+Error: type mismatch
+  key:      `spawn_point`
+  expected: math::vector3
+  found:    string ("0.0, 1.0, 2.0")
+  --> level.aam:12:14
+
+hint: use the structured form: spawn_point = {x: 0.0, y: 1.0, z: 2.0}
+```
+
+Collect **all** errors before returning — do not short-circuit on the first mismatch. This lets the user fix every problem in a single edit cycle.
+
+---
+
+## Validation Checklist
+
+| Check | Required |
+|-------|---------|
+| Primitive value matches declared primitive type | ✅ |
+| Complex value `type_key` matches expected unit | ✅ |
+| `time::datetime` parses as valid ISO 8601 | ✅ |
+| Every element of `list<T>` matches `T` | ✅ |
+| `@type` aliases resolved before comparison | ✅ |
+| Required schema fields present | ✅ |
+| No unknown schema fields (strict mode) | ✅ |
+| Nested schema objects validated recursively | ✅ |
+| No implicit numeric coercion (`i32` ↔ `f64`) | ✅ |
+

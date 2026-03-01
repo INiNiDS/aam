@@ -1,0 +1,29 @@
+---
+sidebar-position: 2
+title: "检查必填键"
+description: "如何验证解析的AAML映射中存在所有必填键，并优雅地处理缺失键。"
+---
+
+# 检查必填键
+在最终确定解析的AAML映射之前，我们需要确认**所有必填键都存在**。本页描述如何执行该检查并优雅地处理任何缺失键。
+必填字段用 `:` 定义，如 ```a: b```。此语法表示键 `a` 是必填的，且必须有类型 `b` 的值。如果必填键在解析的AAML映射中缺失，我们应返回错误，指明哪个键缺失及期望的类型。
+
+```rust
+fn check_required_keys(
+    parsed_map: &HashMap<String, AamValue>,
+    schema: &Schema, // 包含字段定义和必填标志
+) -> Result<(), AamlError> {
+    for (field_name, field_def) in &schema.fields {
+        if field_def.required && !parsed_map.contains_key(field_name) {
+            return Err(AamlError::MissingRequiredField {
+                field: field_name.clone(),
+                schema: schema.name.clone(),
+            });
+        }
+    }
+    Ok(())
+}
+```
+可选字段用 `*:` 定义，如 ```a*: b```。此语法表示键 `a` 是可选的，可以有类型 `b` 的值。如果可选键在解析的AAML映射中缺失，我们可以简单地忽略它，而不返回错误。
+检查必填键应在解析AAML文档之后、最终确定 `AAML` 映射之前执行。这确保我们在加载过程的早期捕获任何缺失的必填键，并向用户提供清晰的反馈关于什么缺失。
+必须在派生模式的文件中进行检查。

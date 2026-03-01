@@ -1,0 +1,130 @@
+---
+sidebar_position: 6
+title: Standards d'API
+description: Standards inter-langages que toutes les bibliothèques AAM doivent respecter pour garantir l'interopérabilité et une expérience développeur cohérente.
+---
+
+# Standards d'API
+
+Cette page définit les **standards inter-langages** que chaque bibliothèque AAM doit respecter. Suivre ces standards garantit que les fichiers AAM écrits pour une bibliothèque fonctionnent correctement avec une autre, et que les développeurs qui changent de langage trouvent une API familière. Nous utilisons le Moteur de Référence (`aam-rs`) comme base.
+
+---
+
+## Méthodes d'API Standard
+
+Pour fournir une expérience cohérente de "Moteur de Configuration", les bibliothèques doivent implémenter les méthodes principales suivantes (ou leurs équivalents idiomatiques les plus proches dans le langage cible).
+
+### 1. API Loader Principale
+
+Ces méthodes gèrent l'analyse et la fusion de texte brut dans la structure `AAML` :
+
+| Méthode Générique | Description |
+|---|---|
+| `parse(content: String)` | Analyse une chaîne brute dans l'objet en mémoire. |
+| `load(file_path: Path)` | Charge et analyse un fichier depuis le disque, en résolvant les directives `@import` automatiquement. |
+| `merge_content(content: String)` | Analyse une chaîne et la fusionne dans l'objet *actuel*, en écrasant les clés existantes. |
+| `merge_file(file_path: Path)` | Charge un fichier et le fusionne dans l'objet actuel. |
+
+### 2. API de Requête
+
+Ces méthodes régissent la façon dont les développeurs lisent depuis l'arbre :
+
+| Méthode Générique | Description |
+|---|---|
+| `find_obj(key: String)` | Recherche bidirectionnelle intelligente. Si `key` existe, retourne sa valeur. Sinon, retourne la clé dont la valeur est `key`. |
+| `find_deep(key: String)` | Recherche récursive. Suit la chaîne de valeurs jusqu'à atteindre une valeur terminale qui n'est pas une clé. Doit inclure la détection de boucles ! |
+| `find_key(value: String)` | Recherche inversée stricte. Trouve la première clé contenant la valeur donnée. |
+
+### 3. API du Constructeur
+
+Le constructeur `AAMBuilder` doit fournir :
+
+| Méthode Générique | Description |
+|---|---|
+| `add_line(key, value)` | Ajoute une paire `key = value` standard. |
+| `comment(text)` | Ajoute une ligne commençant par `# `. |
+| `schema(name, fields[])` | Produit une directive `@schema` inline. |
+| `schema_multiline(...)` | Produit une directive `@schema` multiligne. |
+| `derive(path, schemas[])` | Produit une directive `@derive`. |
+| `type_alias(alias, type)` | Produit une directive `@type`. |
+| `to_file(path)` / `to_string()` | Vide le constructeur déterministe sur le disque ou en mémoire. |
+
+---
+
+## Versionnage
+
+Les bibliothèques doivent suivre le [Versionnage Sémantique](https://semver.org/) :
+
+- Une version **patch** (`1.0.x`) peut corriger des bugs sans changer le comportement.
+- Une version **mineure** (`1.x.0`) peut ajouter de nouvelles fonctionnalités optionnelles.
+- Une version **majeure** (`x.0.0`) peut introduire des changements d'API avec rupture.
+
+Le `README` de la bibliothèque doit clairement indiquer quelle **version de spécification AAM** elle implémente (p. ex. `AAM 1.0`).
+
+---
+
+## Gestion des Erreurs
+
+Toutes les méthodes publiques pouvant échouer doivent retourner un type de résultat structuré, **jamais** paniquer ou lancer une exception non typée sur une erreur utilisateur :
+
+| Langage | Modèle attendu |
+|-------------|----------------------------------------------|
+| Rust        | `Result<T, AamlError>`                       |
+| Go          | `(T, error)`                                 |
+| Python      | lever `AamlError` (sous-classe d'`Exception`)|
+| TypeScript  | lever `AamlError` (sous-classe d'`Error`)    |
+| Java/Kotlin | lever `AamlException` (vérifiée ou documentée)|
+
+Les variantes d'erreur doivent être documentées. Au minimum, distinguer entre :
+
+- **Erreurs d'E/S** (fichier introuvable, permission refusée)
+- **Erreurs d'analyse** (syntaxe invalide), incluant les numéros de ligne et de colonne
+- **Contraintes de recherche** (clé introuvable)
+
+---
+
+## Sortie Déterministe
+
+La sortie de sérialisation doit être **déterministe** pour une entrée donnée. Exécuter `builder.to_string()` deux fois sur le même document en mémoire doit produire un texte identique octet par octet. Cela permet aux outils de faire des diffs de fichiers `.aam` de manière fiable.
+
+---
+
+## Espaces Blancs et Formatage
+
+Lors de la sérialisation, les constructeurs doivent produire une sortie conforme aux règles de formatage d'AAM :
+
+- Exactement **un espace** de chaque côté de `=`.
+- Les directives (`@import`, `@schema`, etc.) apparaissent **avant** les entrées clé-valeur.
+- Les corps de schéma inline utilisent des virgules ; les corps multilignes utilisent des sauts de ligne.
+- Aucun espace en fin de ligne.
+- Le fichier se termine par exactement **un caractère de nouvelle ligne**.
+
+---
+
+## Encodage
+
+Tous les fichiers `.aam` sont encodés en **UTF-8**. Les bibliothèques doivent :
+
+- Lire les fichiers en UTF-8 et retourner une erreur claire si le fichier n'est pas un UTF-8 valide.
+- Écrire les fichiers en UTF-8 sans BOM.
+
+---
+
+## Sécurité des Threads
+
+Les objets `AAML` analysés doivent être **sûrs en lecture pour plusieurs threads**. Si le langage le permet, marquez le type comme `Send + Sync` (Rust) ou équivalent, afin que les documents puissent être partagés entre threads sans verrouillage.
+
+Si votre bibliothèque expose un constructeur mutable (`AAMBuilder`), il **n'a pas** besoin d'être sûr pour les threads par défaut, mais documentez-le clairement.
+
+---
+
+## Suite de Tests
+
+Chaque bibliothèque doit être accompagnée d'une suite de tests couvrant :
+
+- [ ] Analyse basique de `key = value` pour chaque type primitif
+- [ ] Résolution de fichier `@import` et annexion
+- [ ] Correction du formatage `@schema`
+- [ ] `find_obj` identifie correctement les clés inverses
+- [ ] `find_deep` prévient les boucles infinies sur les dépendances `A -> A`
+- [ ] Aller-retour du sérialiseur : `parse(builder.to_string()) == état_analysé`

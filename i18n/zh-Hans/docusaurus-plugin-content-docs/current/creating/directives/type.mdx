@@ -1,0 +1,47 @@
+---
+sidebar_position: 4
+title: "@type"
+description: "如何实现@type别名定义并维护内部类型注册表。"
+---
+
+# `@type` 指令
+
+`@type` 指令让用户**为任何现有类型声明命名别名** — 原始类型、复合类型或另一个别名。库必须在解析期间注册这些别名，以便每个后续类型引用（在 `@schema` 字段、键值注释等中）都可以解析为其规范形式。
+
+```aam
+@type PlayerId = i32
+@type SpawnPoint = types::math::vector3
+@type Timeout = types::time::duration
+```
+
+---
+
+## 语法
+
+```
+@type <Name> = <type_expression>
+```
+
+- `Name` 必须是 **PascalCase**（例如 `UserId`、`WorldPosition`）。
+- `type_expression` 是任何有效的AAM类型——原始类型、命名空间复合类型或另一个先前声明的别名。
+- **不允许**自引用或前向引用别名；别名只能引用已注册的类型。
+
+---
+
+## 范围规则
+
+类型别名默认为**文件范围**。当文件通过 `@import` 导入时，其类型别名合并到导入文档的 `type_registry` 中（与键值条目遵循相同的Child-Wins-on-Conflict语义）。
+
+---
+
+## 保留名称
+
+以下名称**不得**用作别名名称——它们是内置类型标识符：
+
+| 保留名称 |
+|---------|
+| `i32`、`f64`、`string`、`bool`、`color` |
+| `list` |
+| `math::`、`physics::`、`time::` 命名空间中的任何名称 |
+
+如果用户尝试覆盖内置类型，返回 `AamlError::ReservedTypeName` 错误。

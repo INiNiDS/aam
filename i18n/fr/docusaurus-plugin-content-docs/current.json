@@ -1,0 +1,26 @@
+{
+    "version.label": {
+        "message": "Prochaine version",
+        "description": "The label for version current"
+    },
+    "sidebar.tutorialSidebar.category.Using in your projects": {
+        "message": "Utiliser dans vos projets",
+        "description": "The label for category 'Using in your projects' in sidebar 'tutorialSidebar'"
+    },
+    "sidebar.tutorialSidebar.category.Using in your projects.link.generated-index.description": {
+        "message": "Apprenez à utiliser la bibliothèque dans vos projets, y compris des exemples de code et des bonnes pratiques.",
+        "description": "The generated-index page description for category 'Using in your projects' in sidebar 'tutorialSidebar'"
+    },
+    "sidebar.tutorialSidebar.category.Tutorial - Extras": {
+        "message": "Types supplémentaires",
+        "description": "The label for category 'Tutorial - Extras' in sidebar 'tutorialSidebar'"
+    },
+    "sidebar.tutorialSidebar.category.Extra Types": {
+        "message": "Types supplémentaires",
+        "description": "The label for category 'Extra Types' in sidebar 'tutorialSidebar'"
+    },
+    "sidebar.tutorialSidebar.category.Extra Types.link.generated-index.description": {
+        "message": "Découvrez les types supplémentaires qui peuvent être utiles lorsque vous travaillez avec la bibliothèque, y compris leurs descriptions et exemples d'utilisation.",
+        "description": "The generated-index page description for category 'Extra Types' in sidebar 'tutorialSidebar'"
+    }
+}

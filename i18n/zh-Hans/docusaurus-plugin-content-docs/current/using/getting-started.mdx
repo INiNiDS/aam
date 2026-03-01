@@ -1,0 +1,72 @@
+---
+sidebar_position: 1
+description: "AAM 入门"
+---
+
+# 入门指南
+这是 AAM 的快速入门教程，涵盖基础知识，展示如何创建简单的双向映射。
+
+## MVP
+AAM 的**最小可行产品**（MVP）只有一行：
+```aam
+a = b
+```
+该语法创建了 `a` 和 `b` 之间的双向映射。简洁、清晰，消除了样板代码。
+## 语法标准
+AAM 遵循简洁的最小化语法，注重可读性和简单性。
+
+### 键值映射
+`=` 运算符两侧各需要一个空格：
+```aam
+a = b
+```
+
+### 语句终止
+语句以**换行符**终止，无需分号：
+```aam
+a = b
+c = d
+e = f
+```
+
+### 注释
+单行注释使用 `#` 前缀：
+```aam
+# 这是一条注释
+a = b
+```
+
+### 指令
+指令使用 `@` 前缀：
+```aam
+@import other-file.aam
+```
+
+### 内联模式
+```aam
+@schema Player {name: string, id: i32}
+```
+
+### 多行模式
+```aam
+@schema Player {
+    name: string
+    id: i32
+}
+```
+
+### 命名规范
+
+* 变量和映射使用 snake_case：
+    ```aam
+    player_score = current_points
+    ```
+
+* 内置类型使用 snake_case（如 i32、string、bool）。
+
+* 用户定义类型和模式使用 PascalCase：
+    ```aam
+    @schema PlayerData { ... }
+    @type UserProfile = string
+    ```
+

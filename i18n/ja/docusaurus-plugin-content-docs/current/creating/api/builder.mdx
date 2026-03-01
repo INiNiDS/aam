@@ -1,0 +1,175 @@
+---
+sidebar_position: 2
+title: Builder API
+description: "コードから.aamファイルを生成するためのプログラム的なBuilder APIの実装方法。"
+---
+
+# Builder API
+
+Builder APIを使用すると、ユーザーは文字列を手動で連結することなく、**有効な`.aam`ファイルをプログラム的に生成**できます。よく実装されたビルダーはシリアライゼーションレイヤーのパブリックインターフェースです。
+
+---
+
+## なぜビルダーが必要か？
+
+小さな設定であれば手書きのAAMテキストで十分ですが、以下の場合にはプログラム的な生成が必要です：
+
+- ツールが自動的に設定ファイルを生成する場合（例：レベルエディター）。
+- テストがファイルシステムに触れることなく最小限のAAMフィクスチャを作成する必要がある場合。
+- 移行スクリプトが別のフォーマット（JSON、TOML、YAML）をAAMに変換する場合。
+
+ビルダーは出力が常に構文的に有効なAAMであることを保証します。
+
+---
+
+## 最小Builder API
+
+ビルダーは**流暢な/メソッドチェーン**デザインに従います。すべての `add_*` メソッドは `&mut Self` を返すため、呼び出しをチェーンできます：
+
+```rust
+use aam_rs::AamBuilder;
+
+let aam_text = AamBuilder::new()
+    .comment("サーバー設定")
+    .import("shared/defaults.aam")
+    .blank_line()
+    .add("host", "localhost")
+    .add("port", 8080i32)
+    .add("debug", false)
+    .build();
+
+println!("{aam_text}");
+```
+
+出力：
+
+```aam
+# サーバー設定
+@import "shared/defaults.aam"
+
+host = "localhost"
+port = 8080
+debug = false
+```
+
+---
+
+## コアメソッド
+
+### `new() → AamBuilder`
+
+エントリーもディレクティブも含まない空のビルダーを作成します。
+
+---
+
+### `comment(text: &str) → &mut Self`
+
+`# …` コメント行を追加します。複数行文字列は複数のコメント行を生成します：
+
+```rust
+builder.comment("これは1行目\nこれは2行目");
+```
+
+```aam
+# これは1行目
+# これは2行目
+```
+
+---
+
+### `blank_line() → &mut Self`
+
+読みやすさのために空行を挿入します。パースされた出力には影響しません；純粋に見た目のためです。
+
+---
+
+### `import(path: &str) → &mut Self`
+
+`@import` ディレクティブを追加します：
+
+```rust
+builder.import("shared/constants.aam");
+```
+
+```aam
+@import "shared/constants.aam"
+```
+
+---
+
+### `derive(path: &str, schema: &str) → &mut Self`
+
+修飾された `file::Schema` パスで `@derive` ディレクティブを追加します：
+
+```rust
+builder.derive("entities/base.aam", "Entity");
+```
+
+```aam
+@derive "entities/base.aam::Entity"
+```
+
+---
+
+### `add(key: &str, value: impl IntoAamValue) → &mut Self`
+
+`key = value` エントリを追加します。`IntoAamValue` トレイトはサポートされているすべてのRust型に対して自動的に実装されます：
+
+| Rust型 | AAM出力 |
+|--------|--------|
+| `&str` / `String` | `key = "value"` |
+| `i32` / `i64` | `key = 42` |
+| `f32` / `f64` | `key = 3.14` |
+| `bool` | `key = true` |
+| `[u8; 4]`（RGBA） | `key = #rrggbb` |
+| `Vec<T>` | `key = ["a", "b"]` |
+
+```rust
+builder
+    .add("name", "Alice")
+    .add("level", 10i32)
+    .add("active", true);
+```
+
+```aam
+name = "Alice"
+level = 10
+active = true
+```
+
+---
+
+### `build() → String`
+
+ビルダーを消費し、最終的なAAMテキストを `String` として返します。出力は常に末尾の改行で終了します。
+
+```rust
+let text: String = builder.build();
+```
+
+---
+
+### `write_to_file(path: &str) → Result<(), AamlError>`
+
+便利なメソッド：`build()` を呼び出し、結果をファイルに書き込みます。必要に応じて親ディレクトリを作成します。
+
+```rust
+builder.write_to_file("output/config.aam")?;
+```
+
+---
+
+## ビルド時のバリデーション
+
+`build()` は**静かに**無効なAAMを生成すべきではありません。スキーマがアクティブ（`derive()` で追加）で必要なフィールドが欠落している場合、`build()` は無効なファイルを書き込む代わりにエラー（または `Result<String, AamlError>`）を返すべきです：
+
+```rust
+pub fn build(self) -> Result<String, AamlError> {
+    let text = self.render();
+    // ローダーを使用して生成されたテキストをパースし、最終的な健全性チェックとして検証します
+    AAML::parse(&text)?;
+    Ok(text)
+}
+```
+
+このラウンドトリップチェックは自身のビルダー実装のバグを捕捉し、必要なフィールドを忘れた場合に早期警告を提供します。

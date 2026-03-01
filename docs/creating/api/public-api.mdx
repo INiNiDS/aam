@@ -1,0 +1,190 @@
+---
+sidebar_position: 1
+title: Public API
+description: A standardised public API design for AAM libraries so different implementations feel consistent.
+---
+
+# Public API Design
+
+A well-designed public API makes your library intuitive for end-users and consistent with other AAM implementations across languages. This page proposes a **minimum standard API surface** that every AAM library should expose.
+
+:::note Naming conventions
+Method names in this document use `snake_case`. Adapt the casing to your target language's idioms — `camelCase` in Java/JavaScript, `PascalCase` for public methods in C#, etc. The behaviour contract must remain the same.
+:::
+
+---
+
+## Core Entry Points
+
+### `parse(source: string) → AAML`
+
+Parses a raw AAM string that is already in memory. Does **not** perform any file I/O.
+
+```rust
+let source = r#"
+    name = "Alice"
+    level = 42
+"#;
+
+let doc = AAML::parse(source)?;
+```
+
+- Resolves inline `@schema` and `@type` directives.
+- Does **not** resolve `@import` or `@derive` (no file paths available). If the source contains these directives, return an `AamlError::DirectiveRequiresFileContext` error.
+- Runs the active schema validation automatically after parsing. Pass `validate: false` to skip.
+
+---
+
+### `load(path: string) → AAML`
+
+Reads a `.aam` file from disk and returns a fully resolved, validated document.
+
+```rust
+let doc = AAML::load("config/server.aam")?;
+```
+
+- Resolves all `@import` and `@derive` directives relative to the file's own directory.
+- Activates [cyclic dependency protection](../directives/import#cyclic-dependency-protection) automatically.
+- Runs the validator automatically after parsing.
+
+This is the **primary method** for most library users.
+
+---
+
+### `load_from_reader<R: Read>(reader: R) → AAML`
+
+Reads from any byte stream. Useful for network resources, in-memory buffers, or test fixtures. Since there is no file path, `@import` and `@derive` must be resolved relative to a **base path** passed as a second argument (or disabled if `None`):
+
+```rust
+let file = File::open("config.aam")?;
+let doc = AAML::load_from_reader(file, Some(Path::new("config/")))?;
+```
+
+---
+
+## Reading Values via the Query Engine
+
+### `find_obj(key: &str) → Option<FoundValue>`
+
+Smart bidirectional lookup. Returns the `FoundValue` (a string wrapper) for the given key. If the key does not exist directly, it assumes the argument was a value and performs a reverse-lookup to find the corresponding key.
+
+```rust
+if let Some(val) = doc.find_obj("debug") {
+    println!("debug = {val}");
+}
+```
+
+---
+
+### `find_deep(key: &str) → Option<FoundValue>`
+
+Recursive deep lookup. Designed to follow AAM alias chains (e.g. `current = base`, `base = /dir`). Must implement anti-loop detection.
+
+```rust
+let final_path = doc.find_deep("current_dir")?;
+```
+
+---
+
+### `find_key(value: &str) → Option<String>`
+
+Strict reverse lookup. Searches the AAML elements to find the first key holding the exact designated value.
+
+```rust
+if let Some(key) = doc.find_key("localhost") {
+    println!("The key holding localhost is {key}");
+}
+```
+
+---
+
+## Schema Introspection
+
+### `schema(name: &str) → Option<&Schema>`
+
+Looks up a parsed schema definition by name.
+
+```rust
+let player_schema = doc.schema("Player")?;
+for (field_name, field_def) in &player_schema.fields {
+    println!("{field_name}: {} (required={})", field_def.ty, field_def.required);
+}
+```
+
+---
+
+### `validate() → Result<(), Vec<AamlError>>`
+
+Re-runs the validator against the document's current state. Normally called automatically by `load()` and `parse()`, but exposed for cases where the document was mutated programmatically after parsing.
+
+Returns **all** validation errors at once, not just the first one.
+
+---
+
+## Error Handling
+
+All fallible methods must return a structured `Result` type, not a panic or a raw string. The error type should be an enum so consumers can pattern-match on the variant:
+
+```rust
+pub enum AamlError {
+    Io(std::io::Error),
+    Parse { line: u32, col: u32, message: String },
+    TypeMismatch { key: String, expected: String, found: String },
+    MissingRequiredField { field: String, schema: String },
+    UnknownField { field: String, schema: String },
+    CyclicImport { path: PathBuf },
+    CyclicDerivation { path: PathBuf, schema: String },
+    SchemaNotFound { name: String, file: PathBuf },
+    UnknownType { name: String },
+    ReservedTypeName { name: String },
+    DirectiveRequiresFileContext { directive: String },
+    TypeAliasCycle,
+}
+```
+
+---
+
+## Configuration Options
+
+Expose an `AamlOptions` (or `Config`) struct to let users tune behaviour without breaking the primary API:
+
+```rust
+pub struct AamlOptions {
+    /// Run the validator automatically after parsing. Default: true.
+    pub validate: bool,
+
+    /// Reject fields not declared in the active @schema. Default: true.
+    pub strict_schema: bool,
+
+    /// Maximum @import / @derive recursion depth. Default: 64.
+    pub max_depth: usize,
+
+    /// Base directory for resolving relative paths in parse(). Default: None.
+    pub base_dir: Option<PathBuf>,
+}
+
+let doc = AAML::with_options(AamlOptions {
+    strict_schema: false,
+    ..Default::default()
+})
+.load("config.aam")?;
+```
+
+---
+
+## Minimal API Checklist
+
+A compliant AAM library must implement at least:
+
+| Method | Required |
+|--------|---------|
+| `parse(source)` | ✅ |
+| `load(path)` | ✅ |
+| `find_obj(key)` | ✅ |
+| `find_deep(key)` | ✅ |
+| `find_key(value)` | ✅ |
+| `validate()` | ✅ |
+| `schema(name)` | Recommended |
+| `load_from_reader(reader, base_dir)` | Recommended |
+| `AamlOptions` / config struct | Recommended |
+

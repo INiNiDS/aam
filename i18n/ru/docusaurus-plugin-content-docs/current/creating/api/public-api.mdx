@@ -1,0 +1,190 @@
+---
+sidebar_position: 1
+title: "Публичный API"
+description: Стандартизированное публичное API для AAM-библиотек, обеспечивающее единообразие разных реализаций.
+---
+
+# Проектирование публичного API
+
+Хорошо спроектированный публичный API делает вашу библиотеку интуитивной для конечных пользователей и согласованной с другими реализациями AAM на разных языках. На этой странице предлагается **минимальный стандартный API**, который должна предоставлять каждая AAM-библиотека.
+
+:::note Соглашения об именовании
+В этом документе имена методов используют `snake_case`. Адаптируйте регистр к идиомам целевого языка — `camelCase` в Java/JavaScript, `PascalCase` для публичных методов в C# и т. д. Контракт поведения должен оставаться одинаковым.
+:::
+
+---
+
+## Основные точки входа
+
+### `parse(source: string) → AAML`
+
+Разбирает сырую строку AAM, уже находящуюся в памяти. **Не выполняет** никаких файловых операций.
+
+```rust
+let source = r#"
+    name = "Alice"
+    level = 42
+"#;
+
+let doc = AAML::parse(source)?;
+```
+
+- Разрешает встроенные директивы `@schema` и `@type`.
+- **Не** разрешает `@import` или `@derive` (пути к файлам недоступны). При наличии этих директив в источнике возвращает ошибку `AamlError::DirectiveRequiresFileContext`.
+- Автоматически запускает валидацию активной схемы после разбора. Передайте `validate: false`, чтобы пропустить.
+
+---
+
+### `load(path: string) → AAML`
+
+Читает файл `.aam` с диска и возвращает полностью разрешённый и проверенный документ.
+
+```rust
+let doc = AAML::load("config/server.aam")?;
+```
+
+- Разрешает все директивы `@import` и `@derive` относительно собственного каталога файла.
+- Автоматически активирует [защиту от циклических зависимостей](../directives/import#cyclic-dependency-protection).
+- Автоматически запускает валидатор после разбора.
+
+Это **основной метод** для большинства пользователей библиотеки.
+
+---
+
+### `load_from_reader<R: Read>(reader: R) → AAML`
+
+Читает из любого байтового потока. Полезно для сетевых ресурсов, буферов в памяти или тестовых приспособлений. Поскольку путь к файлу отсутствует, `@import` и `@derive` должны разрешаться относительно **базового пути**, передаваемого вторым аргументом (или отключаться, если `None`):
+
+```rust
+let file = File::open("config.aam")?;
+let doc = AAML::load_from_reader(file, Some(Path::new("config/")))?;
+```
+
+---
+
+## Чтение значений через движок запросов
+
+### `find_obj(key: &str) → Option<FoundValue>`
+
+Умный двунаправленный поиск. Возвращает `FoundValue` (обёртку строки) для заданного ключа. Если ключ не существует напрямую, предполагается, что аргумент является значением, и выполняется обратный поиск соответствующего ключа.
+
+```rust
+if let Some(val) = doc.find_obj("debug") {
+    println!("debug = {val}");
+}
+```
+
+---
+
+### `find_deep(key: &str) → Option<FoundValue>`
+
+Рекурсивный глубокий поиск. Предназначен для следования цепочкам псевдонимов AAM (например, `current = base`, `base = /dir`). Должна быть реализована защита от циклов.
+
+```rust
+let final_path = doc.find_deep("current_dir")?;
+```
+
+---
+
+### `find_key(value: &str) → Option<String>`
+
+Строгий обратный поиск. Ищет в элементах AAML первый ключ, содержащий указанное значение.
+
+```rust
+if let Some(key) = doc.find_key("localhost") {
+    println!("Ключ, содержащий localhost: {key}");
+}
+```
+
+---
+
+## Интроспекция схем
+
+### `schema(name: &str) → Option<&Schema>`
+
+Ищет разобранное определение схемы по имени.
+
+```rust
+let player_schema = doc.schema("Player")?;
+for (field_name, field_def) in &player_schema.fields {
+    println!("{field_name}: {} (required={})", field_def.ty, field_def.required);
+}
+```
+
+---
+
+### `validate() → Result<(), Vec<AamlError>>`
+
+Повторно запускает валидатор для текущего состояния документа. Обычно вызывается автоматически в `load()` и `parse()`, но открыт для случаев, когда документ был изменён программно после разбора.
+
+Возвращает **все** ошибки валидации сразу, а не только первую.
+
+---
+
+## Обработка ошибок
+
+Все методы, которые могут завершиться с ошибкой, должны возвращать структурированный тип `Result`, а не паниковать или передавать сырую строку. Тип ошибки должен быть перечислением, чтобы потребители могли выполнять сопоставление с образцом:
+
+```rust
+pub enum AamlError {
+    Io(std::io::Error),
+    Parse { line: u32, col: u32, message: String },
+    TypeMismatch { key: String, expected: String, found: String },
+    MissingRequiredField { field: String, schema: String },
+    UnknownField { field: String, schema: String },
+    CyclicImport { path: PathBuf },
+    CyclicDerivation { path: PathBuf, schema: String },
+    SchemaNotFound { name: String, file: PathBuf },
+    UnknownType { name: String },
+    ReservedTypeName { name: String },
+    DirectiveRequiresFileContext { directive: String },
+    TypeAliasCycle,
+}
+```
+
+---
+
+## Параметры конфигурации
+
+Предоставьте структуру `AamlOptions` (или `Config`), позволяющую пользователям настраивать поведение без нарушения основного API:
+
+```rust
+pub struct AamlOptions {
+    /// Автоматически запускать валидатор после разбора. По умолчанию: true.
+    pub validate: bool,
+
+    /// Отклонять поля, не объявленные в активной @schema. По умолчанию: true.
+    pub strict_schema: bool,
+
+    /// Максимальная глубина рекурсии @import / @derive. По умолчанию: 64.
+    pub max_depth: usize,
+
+    /// Базовый каталог для разрешения относительных путей в parse(). По умолчанию: None.
+    pub base_dir: Option<PathBuf>,
+}
+
+let doc = AAML::with_options(AamlOptions {
+    strict_schema: false,
+    ..Default::default()
+})
+.load("config.aam")?;
+```
+
+---
+
+## Минимальный чек-лист API
+
+Совместимая AAM-библиотека должна реализовывать как минимум:
+
+| Метод | Обязателен |
+|--------|---------|
+| `parse(source)` | ✅ |
+| `load(path)` | ✅ |
+| `find_obj(key)` | ✅ |
+| `find_deep(key)` | ✅ |
+| `find_key(value)` | ✅ |
+| `validate()` | ✅ |
+| `schema(name)` | Рекомендуется |
+| `load_from_reader(reader, base_dir)` | Рекомендуется |
+| `AamlOptions` / структура конфигурации | Рекомендуется |
+

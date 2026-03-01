@@ -1,0 +1,92 @@
+---
+sidebar_position: 2
+description: "プロジェクトで型を使う方法を学ぶ"
+---
+
+# 型
+
+## プリミティブ型
+AAMにはいくつかの組み込みプリミティブ型があります：`string`、`i32`、`f64`、`bool`、および`color`（`#ff0000`や`#00ff00`のような16進カラーコードを受け取ります）。
+
+```aam
+@schema User {
+    name: string
+    age: i32
+    is_admin: bool
+    profile_color: color
+}
+```
+
+## その他の組み込み型
+AAMは特定のユースケース向けに拡張された組み込み型も提供します。
+
+### 物理型
+
+物理関連の型にアクセスするには、`types::physics`名前空間を使います。例：
+
+```aam
+@schema PhysicsObject {
+    length: types::physics::meter
+}
+```
+
+物理型の完全なリストは[追加型のドキュメント](../types/physics)で確認できます。
+### 数学型
+数学型を取得するには`types::math`名前空間を使います。例：
+```aam
+@schema MathObjects {
+    vector: types::math::vector2
+}
+```
+すべての数学型は[追加型のドキュメント](../types/math)に掲載されています。
+### 時間
+AAMは時間関連の型をサポートしています。datetimeとdurationにはISO 8601形式が使われます：
+```aam
+@schema TimeObjects {
+    timestamp: types::time::datetime # 例: "2024-01-01T12:00:00Z"
+    cooldown: types::time::duration # 例: "PT1H30M"（1時間30分）
+    units: types::time::hour
+}
+```
+利用可能な時間型の完全なリストは[追加型のドキュメント](../types/time)を参照してください。
+### リスト
+AAMはリスト型もサポートしており、特定の型の要素のリストを定義できます。例：
+```aam
+@schema Inventory {
+    items: list<string>
+}
+```
+リストの作成：
+```aam
+items = ["Hello", "World"]
+```
+## 独自の型
+### スキーマ
+自分のスキーマを型として使えます。例：
+```aam
+@schema User {
+    name: string
+    age: i32
+}
+
+@schema ServerUsers {
+    users: list<User>
+}
+```
+### カスタム型
+typeディレクティブ（`@type`）を使って独自の型を宣言できます：
+```aam
+@type Name = string
+```
+これにより設定全体で再利用できるカスタム型を作成でき、可読性と保守性が向上します。
+非プリミティブ型に基づいた新しい型を作成することもできます：
+```aam
+@type FromLast = types::time::duration
+```
+または自分の型を他の型宣言で使うこともできます：
+```aam
+@type Name = string
+@type FirstName = Name
+@type LastName = Name
+```
+

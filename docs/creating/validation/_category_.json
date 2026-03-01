@@ -1,0 +1,9 @@
+{
+  "label": "Validation",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "How to validate parsed AAM data against the type system and schemas."
+  }
+}
+

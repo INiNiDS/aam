@@ -1,0 +1,29 @@
+---
+sidebar-position: 2
+title: "Check for Required Keys"
+description: "How to validate that all required keys are present in the parsed AAML map, and handle missing keys gracefully."
+---
+
+# Check for Required Keys
+We need to confirm that **all required keys are present** in the parsed AAML map before finalizing it. This page describes how to perform that check and handle any missing keys gracefully.
+Required fields are defined as `:` like ```a: b```. This syntax indicates that the key `a` is required and must have a value of type `b`. If a required key is missing from the parsed AAML map, we should return an error indicating which key is missing and what type was expected.
+
+```rust
+fn check_required_keys(
+    parsed_map: &HashMap<String, AamValue>,
+    schema: &Schema, // Contains field definitions and required flags
+) -> Result<(), AamlError> {
+    for (field_name, field_def) in &schema.fields {
+        if field_def.required && !parsed_map.contains_key(field_name) {
+            return Err(AamlError::MissingRequiredField {
+                field: field_name.clone(),
+                schema: schema.name.clone(),
+            });
+        }
+    }
+    Ok(())
+}
+```
+Optional fields are defined as `*:` like ```a*: b```. This syntax indicates that the key `a` is optional and may have a value of type `b`. If an optional key is missing from the parsed AAML map, we can simply ignore it without returning an error.
+Checking for required keys should be performed after parsing the AAML document and before finalizing the `AAML` map. This ensures that we catch any missing required keys early in the loading process and provide clear feedback to the user about what is missing.
+It must be checked in file that derived schema.

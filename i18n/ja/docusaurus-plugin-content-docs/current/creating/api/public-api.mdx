@@ -1,0 +1,126 @@
+---
+sidebar_position: 1
+title: パブリックAPI
+description: "異なる実装が一貫して感じられるようにするためのAAMライブラリの標準化されたパブリックAPI設計。"
+---
+
+# パブリックAPI設計
+
+よく設計されたパブリックAPIはライブラリをエンドユーザーにとって直感的にし、他の言語でのAAM実装と一貫性を保ちます。このページは、すべてのAAMライブラリが公開すべき**最小標準APIサーフェス**を提案します。
+
+:::note 命名規則
+このドキュメントのメソッド名は `snake_case` を使用します。対象言語のイディオムに合わせてケーシングを適応させてください — Java/JavaScriptでは `camelCase`、C#のパブリックメソッドでは `PascalCase` など。動作コントラクトは同じでなければなりません。
+:::
+
+---
+
+## コアエントリーポイント
+
+### `parse(source: string) → AAML`
+
+すでにメモリ内にある生のAAM文字列をパースします。ファイルI/Oを**実行しません**。
+
+```rust
+let source = r#"
+    name = "Alice"
+    level = 42
+"#;
+
+let doc = AAML::parse(source)?;
+```
+
+- インライン `@schema` と `@type` ディレクティブを解決します。
+- `@import` や `@derive` は解決**しません**（ファイルパスが利用できません）。ソースにこれらのディレクティブが含まれる場合は `AamlError::DirectiveRequiresFileContext` エラーを返します。
+- パース後に自動的にアクティブなスキーマバリデーションを実行します。スキップするには `validate: false` を渡します。
+
+---
+
+### `load(path: string) → AAML`
+
+`.aam` ファイルをディスクから読み取り、完全に解決され検証されたドキュメントを返します。
+
+```rust
+let doc = AAML::load("config/server.aam")?;
+```
+
+- ファイル独自のディレクトリに対して相対的にすべての `@import` および `@derive` ディレクティブを解決します。
+- 自動的に[循環依存保護](../directives/import#cyclic-dependency-protection)を有効にします。
+- パース後に自動的にバリデーターを実行します。
+
+これはほとんどのライブラリユーザーにとっての**主要メソッド**です。
+
+---
+
+### `load_from_reader<R: Read>(reader: R) → AAML`
+
+任意のバイトストリームから読み取ります。ネットワークリソース、インメモリバッファ、またはテストフィクスチャに便利です。ファイルパスがないため、`@import` と `@derive` は第2引数として渡される**ベースパス**に対して相対的に解決する必要があります（またはNoneの場合は無効化）：
+
+```rust
+let file = File::open("config.aam")?;
+let doc = AAML::load_from_reader(file, Some(Path::new("config/")))?;
+```
+
+---
+
+## クエリエンジンによる値の読み取り
+
+### `find_obj(key: &str) → Option<FoundValue>`
+
+スマートな双方向ルックアップ。指定されたキーの `FoundValue`（文字列ラッパー）を返します。キーが直接存在しない場合、引数が値であると仮定して対応するキーを見つけるための逆引きルックアップを実行します。
+
+```rust
+if let Some(val) = doc.find_obj("debug") {
+    println!("debug = {val}");
+}
+```
+
+---
+
+### `find_deep(key: &str) → Option<FoundValue>`
+
+再帰的な深いルックアップ。AAMエイリアスチェーン（例：`current = base`、`base = /dir`）をたどるように設計されています。アンチループ検出を実装する必要があります。
+
+```rust
+let final_path = doc.find_deep("current_dir")?;
+```
+
+---
+
+## `AamlError`
+
+すべてのフォールブルメソッドはパニックや型なしの例外ではなく、構造化された `Result` 型を返す必要があります。エラー型はコンシューマがバリアントに対してパターンマッチできるように列挙型にする必要があります：
+
+```rust
+pub enum AamlError {
+    Io(std::io::Error),
+    Parse { line: u32, col: u32, message: String },
+    TypeMismatch { key: String, expected: String, found: String },
+    MissingRequiredField { field: String, schema: String },
+    UnknownField { field: String, schema: String },
+    CyclicImport { path: PathBuf },
+    CyclicDerivation { path: PathBuf, schema: String },
+    SchemaNotFound { name: String, file: PathBuf },
+    UnknownType { name: String },
+    ReservedTypeName { name: String },
+    DirectiveRequiresFileContext { directive: String },
+    TypeAliasCycle,
+}
+```
+
+---
+
+## 最小APIチェックリスト
+
+準拠したAAMライブラリは少なくとも以下を実装する必要があります：
+
+| メソッド | 必須 |
+|---------|------|
+| `parse(source)` | ✅ |
+| `load(path)` | ✅ |
+| `find_obj(key)` | ✅ |
+| `find_deep(key)` | ✅ |
+| `find_key(value)` | ✅ |
+| `validate()` | ✅ |
+| `schema(name)` | 推奨 |
+| `load_from_reader(reader, base_dir)` | 推奨 |
+| `AamlOptions` / 設定構造体 | 推奨 |

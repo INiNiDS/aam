@@ -1,0 +1,8 @@
+{
+    "label": "Validação",
+    "position": 4,
+    "link": {
+        "type": "generated-index",
+        "description": "Como validar dados AAM analisados contra o sistema de tipos e schemas."
+    }
+}

@@ -1,0 +1,70 @@
+---
+sidebar_position: 3
+description: "学习如何在 AAM 中定义模式"
+---
+
+# 模式
+在 AAM 中，模式是定义结构化数据的强大方式，可用于定义数据形状、验证输入或生成代码。
+
+## 定义模式
+使用 `@schema` 指令：
+```aam
+@schema Player {
+    name: string
+    id: i32
+}
+```
+也可以内联定义：
+```aam
+@schema Player {name: string, id: i32}
+```
+
+## 使用模式
+使用 `@derive` 指令创建实例：
+```aam
+# file.aam
+@schema Player {
+    name: string
+    id: i32
+}
+```
+```aam
+# main.aam
+@derive file.aam::Player
+name = "Alice"
+id = 1
+```
+
+## 模式字段必填性
+默认所有字段必填。省略必填字段会报错：
+```aam
+@derive file.aam::Player
+name = "Alice"  # 错误：'id' 是必填字段但未提供
+```
+字段名后加 `*` 变为可选：
+```aam
+@schema Player {
+    name: string
+    id*: i32
+}
+```
+```aam
+@derive file.aam::Player
+name = "Alice"  # 有效：'id' 是可选的
+```
+
+## 检查
+
+### 类型检查
+```aam
+@derive file.aam::SchemaName
+name = 123  # 错误：'name' 为 string 类型
+id = "abc"  # 错误：'id' 为 i32 类型
+```
+
+### 必填字段检查
+```aam
+@derive file.aam::SchemaName
+name = "Alice"  # 错误：'id' 是必填字段但未提供
+```
+

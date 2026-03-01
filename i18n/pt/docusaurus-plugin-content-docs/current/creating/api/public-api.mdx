@@ -1,0 +1,111 @@
+---
+sidebar_position: 1
+title: API Pública
+description: Um design de API pública normalizado para bibliotecas AAM para que diferentes implementações se sintam consistentes.
+---
+
+# Design de API Pública
+
+Uma API pública bem concebida torna a sua biblioteca intuitiva para os utilizadores finais e consistente com outras implementações AAM entre linguagens. Esta página propõe uma **superfície de API padrão mínima** que cada biblioteca AAM deve expor.
+
+:::note Convenções de nomenclatura
+Os nomes dos métodos neste documento usam `snake_case`. Adapte a capitalização aos idiomas da sua linguagem alvo — `camelCase` em Java/JavaScript, `PascalCase` para métodos públicos em C#, etc. O contrato de comportamento deve permanecer o mesmo.
+:::
+
+---
+
+## Pontos de Entrada Principais
+
+### `parse(source: string) → AAML`
+
+Analisa uma string AAM bruta que já está em memória. **Não** realiza nenhuma I/O de ficheiro.
+
+- Resolve diretivas `@schema` e `@type` inline.
+- **Não** resolve `@import` ou `@derive` (sem caminhos de ficheiro disponíveis). Se a fonte contiver estas diretivas, retorna um erro `AamlError::DirectiveRequiresFileContext`.
+- Executa a validação de schema ativo automaticamente após a análise.
+
+---
+
+### `load(path: string) → AAML`
+
+Lê um ficheiro `.aam` do disco e retorna um documento totalmente resolvido e validado.
+
+- Resolve todas as diretivas `@import` e `@derive` relativas ao próprio diretório do ficheiro.
+- Ativa automaticamente a proteção de dependências cíclicas.
+- Executa o validador automaticamente após a análise.
+
+Este é o **método principal** para a maioria dos utilizadores da biblioteca.
+
+---
+
+## Ler Valores via Motor de Consulta
+
+### `find_obj(key: &str) → Option<FoundValue>`
+
+Pesquisa bidirecional inteligente. Retorna o `FoundValue` (um wrapper de string) para a chave dada. Se a chave não existir diretamente, assume que o argumento era um valor e realiza uma pesquisa inversa para encontrar a chave correspondente.
+
+---
+
+### `find_deep(key: &str) → Option<FoundValue>`
+
+Pesquisa profunda recursiva. Concebida para seguir cadeias de alias AAM (por exemplo, `current = base`, `base = /dir`). Deve implementar deteção anti-ciclo.
+
+---
+
+### `find_key(value: &str) → Option<String>`
+
+Pesquisa inversa estrita. Procura nos elementos AAML para encontrar a primeira chave que contém o valor designado exato.
+
+---
+
+## Introspecção de Schema
+
+### `schema(name: &str) → Option<&Schema>`
+
+Procura uma definição de schema analisada pelo nome.
+
+---
+
+### `validate() → Result<(), Vec<AamlError>>`
+
+Re-executa o validador no estado atual do documento. Normalmente chamado automaticamente por `load()` e `parse()`, mas exposto para casos em que o documento foi mutado programaticamente após a análise.
+
+Retorna **todos** os erros de validação de uma vez, não apenas o primeiro.
+
+---
+
+## Tratamento de Erros
+
+Todos os métodos que podem falhar devem retornar um tipo `Result` estruturado, não um pânico ou string bruta. O tipo de erro deve ser um enum para que os consumidores possam fazer pattern-match nas variantes:
+
+```rust
+pub enum AamlError {
+    Io(std::io::Error),
+    Parse { line: u32, col: u32, message: String },
+    TypeMismatch { key: String, expected: String, found: String },
+    MissingRequiredField { field: String, schema: String },
+    UnknownField { field: String, schema: String },
+    CyclicImport { path: PathBuf },
+    SchemaNotFound { name: String, file: PathBuf },
+    UnknownType { name: String },
+    TypeAliasCycle,
+}
+```
+
+---
+
+## Checklist Mínima de API
+
+Uma biblioteca AAM compatível deve implementar pelo menos:
+
+| Método | Obrigatório |
+|--------| ------------|
+| `parse(source)` | ✅ |
+| `load(path)` | ✅ |
+| `find_obj(key)` | ✅ |
+| `find_deep(key)` | ✅ |
+| `find_key(value)` | ✅ |
+| `validate()` | ✅ |
+| `schema(name)` | Recomendado |
+| `load_from_reader(reader, base_dir)` | Recomendado |
+| `AamlOptions` / struct de configuração | Recomendado |

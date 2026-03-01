@@ -1,0 +1,29 @@
+---
+sidebar-position: 2
+title: "Vérifier les Clés Obligatoires"
+description: "Comment valider que toutes les clés obligatoires sont présentes dans la map AAML analysée et gérer les clés manquantes de manière élégante."
+---
+
+# Vérifier les Clés Obligatoires
+Nous devons confirmer que **toutes les clés obligatoires sont présentes** dans la map AAML analysée avant de la finaliser. Cette page décrit comment effectuer cette vérification et gérer les clés manquantes de manière élégante.
+Les champs obligatoires sont définis avec `:` comme ```a: b```. Cette syntaxe indique que la clé `a` est obligatoire et doit avoir une valeur de type `b`. Si une clé obligatoire est absente de la map AAML analysée, nous devons retourner une erreur indiquant quelle clé est manquante et quel type était attendu.
+
+```rust
+fn check_required_keys(
+    parsed_map: &HashMap<String, AamValue>,
+    schema: &Schema, // Contains field definitions and required flags
+) -> Result<(), AamlError> {
+    for (field_name, field_def) in &schema.fields {
+        if field_def.required && !parsed_map.contains_key(field_name) {
+            return Err(AamlError::MissingRequiredField {
+                field: field_name.clone(),
+                schema: schema.name.clone(),
+            });
+        }
+    }
+    Ok(())
+}
+```
+Les champs optionnels sont définis avec `*:` comme ```a*: b```. Cette syntaxe indique que la clé `a` est optionnelle et peut avoir une valeur de type `b`. Si une clé optionnelle est absente de la map AAML analysée, nous pouvons simplement l'ignorer sans retourner d'erreur.
+La vérification des clés obligatoires doit être effectuée après l'analyse du document AAML et avant la finalisation de la map `AAML`. Cela garantit que nous détectons tôt dans le processus de chargement toute clé obligatoire manquante et fournissons un retour clair à l'utilisateur sur ce qui manque.
+Doit être vérifié dans le fichier qui a dérivé le schéma.

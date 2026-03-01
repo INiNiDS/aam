@@ -1,0 +1,104 @@
+---
+sidebar_position: 2
+title: "解析"
+description: "如何在项目中解析AAM文件"
+---
+
+# 解析
+
+本页涵盖使用 `aam-rs`（Rust）或 `aam-py`（Python）将AAM内容加载和解析到应用程序的所有方法。
+
+## 从文件
+
+最常见的入口点是 `AAML::load`，它从磁盘读取 `.aam` 文件，处理所有指令，并返回可立即使用的 `AAML` 实例。
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::load("config.aam").unwrap();
+println!("{}", cfg.find_obj("host").unwrap());
+```
+
+```python
+from aam_py import AAML
+
+cfg = AAML.load("config.aam")
+print(cfg.find_obj("host"))
+```
+
+## 从字符串
+
+使用 `AAML::parse` 解析已作为字符串在内存中的AAM内容。这对于内联配置、单元测试或从远程来源获取的内容非常有用。
+
+```rust
+use aam_rs::aaml::AAML;
+
+let source = "host = localhost\nport = 8080";
+let cfg = AAML::parse(source).unwrap();
+
+assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+```
+
+```python
+from aam_py import AAML
+
+source = "host = localhost\nport = 8080"
+cfg = AAML.parse(source)
+
+assert cfg.find_obj("host") == "localhost"
+```
+
+## 合并多个来源
+
+有时配置来自多个文件或字符串。使用 `merge_content` 和 `merge_file` 将额外内容加载到现有 `AAML` 实例中。当键在现有实例和合并源中都出现时，**传入值获胜**。
+
+```rust
+use aam_rs::aaml::AAML;
+
+let mut cfg = AAML::new();
+cfg.merge_file("base.aam").unwrap();
+cfg.merge_content("debug = true").unwrap(); // 添加或覆盖 'debug'
+```
+
+---
+
+## 解析时处理的指令
+
+所有AAM指令在解析期间自动解析——您不需要在 `load` 或 `parse` 后调用任何其他方法：
+
+| 指令 | 效果 |
+|------|------|
+| `@import` | 内联加载并合并另一个 `.aam` 文件。 |
+| `@derive` | 从另一个文件继承键值对；键冲突时child获胜。 |
+| `@schema` | 注册命名模式并启用自动按字段类型检查。 |
+| `@type` | 注册用于模式字段声明的自定义类型别名。 |
+
+## 错误处理
+
+```rust
+use aam_rs::aaml::AAML;
+use aam_rs::error::AamlError;
+
+match AAML::load("config.aam") {
+    Ok(cfg) => {
+        println!("host = {}", cfg.find_obj("host").unwrap());
+    }
+    Err(AamlError::IoError(e)) => {
+        eprintln!("无法读取文件: {e}");
+    }
+    Err(AamlError::ParseError { line, content, details }) => {
+        eprintln!("第 {line} 行解析错误: '{content}' — {details}");
+    }
+    Err(e) => eprintln!("意外错误: {e}"),
+}
+```
+
+```python
+from aam_py import AAML, AamlError
+
+try:
+    cfg = AAML.load("config.aam")
+    print("host =", cfg.find_obj("host"))
+except AamlError as e:
+    print(f"错误: {e}")
+```

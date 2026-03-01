@@ -1,0 +1,139 @@
+---
+sidebar_position: 2
+title: API do Construtor
+description: Como implementar uma API de Construtor programática para gerar ficheiros .aam a partir de código.
+---
+
+# API do Construtor
+
+A API do Construtor permite aos utilizadores **gerar ficheiros `.aam` válidos programaticamente** — sem concatenar strings manualmente. Um construtor bem implementado é a face pública da camada de serialização.
+
+---
+
+## Porquê um Construtor?
+
+Escrever texto AAM à mão é bom para configurações pequenas, mas a geração programática é necessária quando:
+
+- Uma ferramenta gera automaticamente ficheiros de configuração (por exemplo, um editor de níveis).
+- Os testes precisam de criar fixtures AAM mínimas sem tocar no sistema de ficheiros.
+- Um script de migração converte outro formato (JSON, TOML, YAML) para AAM.
+
+O construtor garante que a saída é sempre AAM sintaticamente válido.
+
+---
+
+## API Mínima do Construtor
+
+O construtor segue um design **fluente / encadeamento de métodos**. Todos os métodos `add_*` retornam `&mut Self` para que as chamadas possam ser encadeadas:
+
+```rust
+use aam_rs::AamBuilder;
+
+let aam_text = AamBuilder::new()
+    .comment("Configuração do servidor")
+    .import("shared/defaults.aam")
+    .blank_line()
+    .add("host", "localhost")
+    .add("port", 8080i32)
+    .add("debug", false)
+    .build();
+
+println!("{aam_text}");
+```
+
+Saída:
+
+```aam
+# Configuração do servidor
+@import "shared/defaults.aam"
+
+host = "localhost"
+port = 8080
+debug = false
+```
+
+---
+
+## Métodos Principais
+
+### `new() → AamBuilder`
+
+Cria um construtor vazio sem entradas ou diretivas.
+
+---
+
+### `comment(text: &str) → &mut Self`
+
+Acrescenta uma linha de comentário `# …`. Strings de múltiplas linhas produzem múltiplas linhas de comentário:
+
+```rust
+builder.comment("Esta é a linha 1\nEsta é a linha 2");
+```
+
+```aam
+# Esta é a linha 1
+# Esta é a linha 2
+```
+
+---
+
+### `blank_line() → &mut Self`
+
+Insere uma linha vazia para legibilidade. Não tem efeito na saída analisada; puramente cosmético.
+
+---
+
+### `import(path: &str) → &mut Self`
+
+Adiciona uma diretiva `@import`:
+
+```rust
+builder.import("shared/constants.aam");
+```
+
+```aam
+@import "shared/constants.aam"
+```
+
+---
+
+### `add(key: &str, value: impl IntoAamValue) → &mut Self`
+
+Acrescenta uma entrada `key = value`. O trait `IntoAamValue` é automaticamente implementado para todos os tipos Rust suportados:
+
+| Tipo Rust | Saída AAM |
+|-----------| -----------|
+| `&str` / `String` | `key = "value"` |
+| `i32` / `i64` | `key = 42` |
+| `f32` / `f64` | `key = 3.14` |
+| `bool` | `key = true` |
+| `Vec<T>` | `key = ["a", "b"]` |
+
+---
+
+### `build() → String`
+
+Consome o construtor e retorna o texto AAM final como uma `String`. A saída é sempre terminada por uma nova linha.
+
+---
+
+### `write_to_file(path: &str) → Result<(), AamlError>`
+
+Método de conveniência: chama `build()` e escreve o resultado num ficheiro, criando diretórios pai se necessário.
+
+---
+
+## Validação na Build
+
+`build()` **não deve** silenciosamente produzir AAM inválido. Se um schema estiver ativo (adicionado via `derive()`) e campos obrigatórios estiverem em falta, `build()` deve retornar um erro em vez de escrever um ficheiro inválido:
+
+```rust
+pub fn build(self) -> Result<String, AamlError> {
+    let text = self.render();
+    // Use the Loader to parse and validate the generated text as a final sanity check
+    AAML::parse(&text)?;
+    Ok(text)
+}
+```
+
+Esta verificação de ida e volta deteta bugs na sua própria implementação do construtor e dá aos utilizadores um aviso antecipado caso se tenham esquecido de um campo obrigatório.

@@ -1,0 +1,91 @@
+---
+sidebar_position: 2
+description: "Apprenez à utiliser les types dans votre projet"
+---
+
+# Types
+
+## Types Primitifs
+AAM possède plusieurs types primitifs intégrés, tels que `string`, `i32`, `f64`, `bool` et `color` (qui accepte des codes couleur hexadécimaux comme `#ff0000` ou `#00ff00`).
+
+```aam
+@schema User {
+    name: string
+    age: i32
+    is_admin: bool
+    profile_color: color
+}
+```
+
+## Autres Types Intégrés
+AAM fournit également des types intégrés étendus pour des cas d'utilisation spécifiques.
+
+### Types de Physique
+
+Pour accéder aux types liés à la physique, vous devez utiliser le namespace `types::physics`. Par exemple :
+
+```aam
+@schema PhysicsObject {
+    length: types::physics::meter
+}
+```
+
+Vous pouvez trouver une liste complète des types de physique dans la [documentation des types supplémentaires](../types/physics).
+### Types Mathématiques
+Pour obtenir des types mathématiques, vous devez utiliser le namespace `types::math`, par exemple :
+```aam
+@schema MathObjects {
+    vector: types::math::vector2
+}
+```
+Tous les types mathématiques se trouvent dans la [documentation des types supplémentaires](../types/math).
+### Temps
+AAM supporte les types liés au temps. Pour datetime et duration, le format ISO 8601 est utilisé :
+```aam
+@schema TimeObjects {
+    timestamp: types::time::datetime # ex : "2024-01-01T12:00:00Z"
+    cooldown: types::time::duration # ex : "PT1H30M" pour 1 heure et 30 minutes
+    units: types::time::hour
+}
+```
+Pour une liste complète des types de temps disponibles, consultez la [documentation des types supplémentaires](../types/time).
+### Listes
+AAM supporte également les types liste, qui vous permettent de définir une liste d'éléments d'un type spécifique. Par exemple :
+```aam
+@schema Inventory {
+    items: list<string>
+}
+```
+et créer une liste :
+```aam
+items = ["Hello", "World"]
+```
+## Types Personnels
+### Schémas
+Vous pouvez utiliser vos propres schémas comme types. Par exemple :
+```aam
+@schema User {
+    name: string
+    age: i32
+}
+
+@schema ServerUsers {
+    users: list<User>
+}
+```
+### Types Personnalisés
+Vous pouvez déclarer votre propre type en utilisant la directive de type (`@type`) :
+```aam
+@type Name = string
+```
+Cela vous permet de créer des types personnalisés réutilisables dans toute votre configuration, améliorant la lisibilité et la maintenabilité.
+Vous pouvez également créer de nouveaux types sur des types non primitifs, par exemple :
+```aam
+@type FromLast = types::time::duration
+```
+Ou utiliser vos propres types dans d'autres déclarations de type :
+```aam
+@type Name = string
+@type FirstName = Name
+@type LastName = Name
+```

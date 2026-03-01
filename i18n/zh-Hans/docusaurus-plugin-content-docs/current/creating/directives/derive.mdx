@@ -1,0 +1,75 @@
+---
+sidebar_position: 2
+title: "@derive"
+description: "如何实现@derive指令、Child-Wins-on-Conflict语义和派生循环保护。"
+---
+
+# `@derive` 指令
+
+`@derive` 指令允许文件**继承**另一个 `.aam` 文件中的 `@schema` 中声明的所有字段。这是AAM中基于模式的重用的主要机制。
+
+```aam
+@derive path/to/file.aam::SchemaName
+```
+
+---
+
+## 语法
+
+`@derive` 总是采用 `"<file>::<SchemaName>"` 形式的**限定路径**：
+
+```aam
+@derive entities/base.aam::Entity
+```
+
+---
+
+## Child-Wins-on-Conflict
+
+**Child-Wins-on-Conflict** 是 `@derive` 的核心语义规则：如果父模式和当前文件都为同一字段定义了值，**当前文件的值始终获胜**。
+
+```aam
+# vehicles/base.aam
+@schema Vehicle {
+    name: string
+    max_speed: physics::meterpersecond
+    color*: color
+}
+
+name = "Generic Vehicle"
+max_speed = 28.0
+color = #808080
+```
+
+```aam
+# car.aam
+@derive "vehicles/base.aam::Vehicle"
+
+# 这些覆盖父值
+name = "Sports Car"
+max_speed = 83.3
+
+# 'color' 未指定 — 继承父值 (#808080)
+```
+
+---
+
+## 派生循环保护
+
+:::warning 防循环——此部分是实现的强制要求
+`@derive` 在内部加载另一个 `.aam` 文件，该文件本身可能包含 `@derive` 指令。没有循环检测将导致无限递归。
+:::
+
+保护机制与 [`@import`](./import#cyclic-dependency-protection) 使用的相同：维护规范文件路径的 `visited` 集合，并在处理每个 `@derive` 之前检查它。
+
+---
+
+## `@derive` vs `@import`
+
+| 功能 | `@import` | `@derive` |
+|------|-----------|-----------|
+| 目标 | 整个文件 | 特定的 `@schema` |
+| 模式强制 | 否 | 是——根据继承的模式验证 |
+| 冲突解决 | Child-Wins | Child-Wins |
+| 循环保护 | 必需 | 必需 |
+| 典型用例 | 共享配置值 | 基于模式的数据契约 |

@@ -1,0 +1,176 @@
+---
+sidebar_position: 2
+title: API конструктора
+description: Как реализовать программный Builder API для генерации файлов .aam из кода.
+---
+
+# API конструктора
+
+Builder API позволяет пользователям **программно генерировать валидные файлы `.aam`** — без ручной конкатенации строк. Хорошо реализованный конструктор — публичное лицо слоя сериализации.
+
+---
+
+## Зачем нужен конструктор?
+
+Писать AAM-текст вручную нормально для небольших конфигов, но программная генерация необходима когда:
+
+- Инструмент автоматически генерирует конфигурационные файлы (например, редактор уровней).
+- Тестам нужно создавать минимальные AAM-фикстуры без работы с файловой системой.
+- Скрипт миграции конвертирует другой формат (JSON, TOML, YAML) в AAM.
+
+Конструктор гарантирует, что вывод всегда является синтаксически валидным AAM.
+
+---
+
+## Минимальный Builder API
+
+Конструктор следует дизайну **fluent / method-chaining**. Все методы `add_*` возвращают `&mut Self`, чтобы вызовы можно было цеплять:
+
+```rust
+use aam_rs::AamBuilder;
+
+let aam_text = AamBuilder::new()
+    .comment("Конфигурация сервера")
+    .import("shared/defaults.aam")
+    .blank_line()
+    .add("host", "localhost")
+    .add("port", 8080i32)
+    .add("debug", false)
+    .build();
+
+println!("{aam_text}");
+```
+
+Вывод:
+
+```aam
+# Конфигурация сервера
+@import "shared/defaults.aam"
+
+host = "localhost"
+port = 8080
+debug = false
+```
+
+---
+
+## Основные методы
+
+### `new() → AamBuilder`
+
+Создаёт пустой конструктор без записей или директив.
+
+---
+
+### `comment(text: &str) → &mut Self`
+
+Добавляет строку комментария `# …`. Многострочные строки создают несколько строк комментариев:
+
+```rust
+builder.comment("Это строка 1\nЭто строка 2");
+```
+
+```aam
+# Это строка 1
+# Это строка 2
+```
+
+---
+
+### `blank_line() → &mut Self`
+
+Вставляет пустую строку для читаемости. Не влияет на разобранный вывод; чисто косметическое.
+
+---
+
+### `import(path: &str) → &mut Self`
+
+Добавляет директиву `@import`.
+
+---
+
+### `derive(path: &str, schema: &str) → &mut Self`
+
+Добавляет директиву `@derive` с квалифицированным путём `file::Schema`.
+
+---
+
+### `add(key: &str, value: impl IntoAamValue) → &mut Self`
+
+Добавляет запись `key = value`. Трейт `IntoAamValue` автоматически реализован для всех поддерживаемых типов Rust.
+
+---
+
+### `schema(name: &str, fields: &[(&str, &str, bool)]) → &mut Self`
+
+Добавляет блок `@schema`. Каждый кортеж поля — `(field_name, type_str, required)`.
+
+---
+
+### `type_alias(name: &str, ty: &str) → &mut Self`
+
+Добавляет директиву `@type`.
+
+---
+
+### `build() → String`
+
+Потребляет конструктор и возвращает итоговый AAM-текст в виде `String`. Вывод всегда заканчивается переносом строки.
+
+---
+
+### `write_to_file(path: &str) → Result<(), AamlError>`
+
+Удобный метод: вызывает `build()` и записывает результат в файл, создавая родительские каталоги при необходимости.
+
+---
+
+## Внутренняя реализация
+
+Конструктор опирается на `Vec<AamNode>`, записывающий узлы в порядке вставки:
+
+```rust
+pub enum BuilderNode {
+    Comment(String),
+    BlankLine,
+    Import(String),
+    Derive { file: String, schema: String },
+    Schema(Schema),
+    TypeAlias { name: String, ty: String },
+    Entry { key: String, value: String },
+}
+
+pub struct AamBuilder {
+    nodes: Vec<BuilderNode>,
+}
+```
+
+---
+
+## Полный пример
+
+```rust
+use aam_rs::AamBuilder;
+
+fn generate_level_config(level_id: u32, title: &str) -> String {
+    AamBuilder::new()
+        .comment(&format!("Автосгенерированный конфиг уровня — Уровень {level_id}"))
+        .comment("Не редактировать вручную.")
+        .blank_line()
+        .import("shared/defaults.aam")
+        .derive("schemas/level.aam", "Level")
+        .blank_line()
+        .add("id",    level_id as i32)
+        .add("title", title)
+        .add("spawn", [0.0f64, 1.0, 0.0].as_slice())
+        .add("tags",  vec!["outdoor", "forest"])
+        .build()
+}
+```
+
+---
+
+## Валидация при сборке
+
+`build()` **не должен** тихо производить невалидный AAM. Если активна схема (добавленная через `derive()`) и обязательные поля отсутствуют, `build()` должен возвращать ошибку (`Result<String, AamlError>`), а не писать невалидный файл.
+

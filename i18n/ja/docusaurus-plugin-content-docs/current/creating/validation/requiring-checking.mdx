@@ -1,0 +1,29 @@
+---
+sidebar-position: 2
+title: "必須キーの確認"
+description: "パースされたAAMLマップに必須キーがすべて存在するかを検証し、欠落したキーを適切に処理する方法。"
+---
+
+# 必須キーの確認
+パースされたAAMLマップを確定する前に**すべての必須キーが存在する**ことを確認する必要があります。このページでは、その確認を実行し、欠落したキーを適切に処理する方法を説明します。
+必須フィールドは `:` で定義されます（例：```a: b```）。この構文はキー `a` が必須であり、型 `b` の値を持つ必要があることを示します。必須キーがパースされたAAMLマップに存在しない場合、どのキーが欠落していてどの型が期待されていたかを示すエラーを返す必要があります。
+
+```rust
+fn check_required_keys(
+    parsed_map: &HashMap<String, AamValue>,
+    schema: &Schema, // フィールド定義と必須フラグを含む
+) -> Result<(), AamlError> {
+    for (field_name, field_def) in &schema.fields {
+        if field_def.required && !parsed_map.contains_key(field_name) {
+            return Err(AamlError::MissingRequiredField {
+                field: field_name.clone(),
+                schema: schema.name.clone(),
+            });
+        }
+    }
+    Ok(())
+}
+```
+任意フィールドは `*:` で定義されます（例：```a*: b```）。この構文はキー `a` が任意で、型 `b` の値を持つ可能性があることを示します。任意キーがパースされたAAMLマップに存在しない場合、エラーを返さずに無視できます。
+必須キーの確認は、AAMLドキュメントのパース後、`AAML` マップの確定前に実行する必要があります。これにより、読み込みプロセスの早い段階で欠落した必須キーを捕捉し、何が欠落しているかについてユーザーに明確なフィードバックを提供します。
+スキーマを派生したファイルで確認する必要があります。

@@ -1,0 +1,854 @@
+---
+sidebar_position: 3
+description: "Full API reference for the AAML struct, FoundValue, and AamlError"
+---
+
+# aam-rs API Reference
+
+`aam-rs` is the official Rust library for parsing, validating, and building AAM configuration files. The Python library `aam-py` exposes the same API — both languages are shown for every example.
+
+> **Note:** Add `aam` to your `Cargo.toml` (Rust) or run `pip install aam-py` (Python) before using this API. See the [Installing](./installing) page for details.
+
+---
+
+## `AAML`
+
+The main entry point for all AAM operations. `AAML` holds the parsed key-value map, registered type definitions, and schema definitions. All directives (`@derive`, `@schema`, `@import`, `@type`) are processed automatically at parse time.
+
+### Constructors
+
+#### `AAML::new`
+
+Creates a new, empty `AAML` instance with all default directive handlers (`@import`, `@derive`, `@schema`, `@type`) registered.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::new();
+```
+
+```python
+from aam import AAML
+
+cfg = AAML()
+```
+
+---
+
+#### `AAML::with_capacity`
+
+Creates a new `AAML` instance pre-allocated for the specified number of key-value entries. Use this when you know the approximate size of the configuration to reduce memory reallocations.
+
+| Parameter  | Type    | Description                                  |
+|------------|---------|----------------------------------------------|
+| `capacity` | `usize` | Expected number of key-value pairs to store. |
+
+**Returns:** `AAML`
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::with_capacity(64);
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.with_capacity(64)
+```
+
+---
+
+#### `AAML::parse`
+
+Parses an AAM string and returns a new, fully populated `AAML` instance. All directives found in the string are processed before the method returns.
+
+| Parameter | Type   | Description               |
+|-----------|--------|---------------------------|
+| `content` | `&str` | AAM source text to parse. |
+
+**Returns:** `Result<AAML, AamlError>`
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("host = localhost\nport = 8080").unwrap();
+assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse("host = localhost\nport = 8080")
+assert cfg.find_obj("host") == "localhost"
+```
+
+---
+
+#### `AAML::load`
+
+Reads an AAM file from disk and returns a new `AAML` instance. Equivalent to reading the file manually and calling `AAML::parse`.
+
+| Parameter   | Type               | Description              |
+|-------------|--------------------|--------------------------|
+| `file_path` | `impl AsRef<Path>` | Path to the `.aam` file. |
+
+**Returns:** `Result<AAML, AamlError>`
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::load("config.aam").unwrap();
+println!("{}", cfg.find_obj("host").unwrap());
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.load("config.aam")
+print(cfg.find_obj("host"))
+```
+
+---
+
+### Merging
+
+These methods add content into an **existing** `AAML` instance rather than creating a new one. They are useful for composing configurations from multiple sources at runtime.
+
+#### `merge_content`
+
+Parses AAM source text and merges the resulting key-value pairs and schema definitions into the current instance. Existing keys are overwritten by incoming values.
+
+| Parameter | Type   | Description               |
+|-----------|--------|---------------------------|
+| `content` | `&str` | AAM source text to parse. |
+
+**Returns:** `Result<(), AamlError>`
+
+```rust
+use aam_rs::aaml::AAML;
+
+let mut cfg = AAML::new();
+cfg.merge_content("host = localhost").unwrap();
+cfg.merge_content("port = 8080").unwrap();
+```
+
+```python
+from aam import AAML
+
+cfg = AAML()
+cfg.merge_content("host = localhost")
+cfg.merge_content("port = 8080")
+```
+
+---
+
+#### `merge_file`
+
+Reads a file from disk and merges its content into the current instance. Equivalent to reading the file and calling `merge_content`.
+
+| Parameter   | Type               | Description              |
+|-------------|--------------------|--------------------------|
+| `file_path` | `impl AsRef<Path>` | Path to the `.aam` file. |
+
+**Returns:** `Result<(), AamlError>`
+
+```rust
+use aam_rs::aaml::AAML;
+
+let mut cfg = AAML::new();
+cfg.merge_file("base.aam").unwrap();
+cfg.merge_file("overrides.aam").unwrap();
+```
+
+```python
+from aam import AAML
+
+cfg = AAML()
+cfg.merge_file("base.aam")
+cfg.merge_file("overrides.aam")
+```
+
+---
+
+### Combining Instances
+
+Two `AAML` instances can be combined using the `+` and `+=` operators. The right-hand instance's keys and types are merged into the left-hand instance; the right-hand side wins on key conflicts.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let base = AAML::parse("host = localhost\nport = 80").unwrap();
+let overrides = AAML::parse("port = 443").unwrap();
+
+let combined = base + overrides;
+assert_eq!(combined.find_obj("port").unwrap().as_str(), "443");
+```
+
+```python
+from aam import AAML
+
+base = AAML.parse("host = localhost\nport = 80")
+overrides = AAML.parse("port = 443")
+
+combined = base + overrides
+assert combined.find_obj("port") == "443"
+```
+
+---
+
+### Lookup
+
+These methods retrieve values from the parsed key-value map. All of them return a [`FoundValue`](#foundvalue) on success.
+
+#### `find_obj`
+
+The primary lookup method. Searches for `key` in the map. If no matching key is found, it performs an automatic **reverse lookup** — searching for any entry whose *value* equals `key`.
+
+| Parameter | Type   | Description           |
+|-----------|--------|-----------------------|
+| `key`     | `&str` | Key or value to find. |
+
+**Returns:** `Option<FoundValue>`
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("a = b").unwrap();
+
+// Forward lookup
+assert_eq!(cfg.find_obj("a").unwrap().as_str(), "b");
+
+// Reverse lookup (searching by value)
+assert_eq!(cfg.find_obj("b").unwrap().as_str(), "a");
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse("a = b")
+
+# Forward lookup
+assert cfg.find_obj("a") == "b"
+
+# Reverse lookup (searching by value)
+assert cfg.find_obj("b") == "a"
+```
+
+---
+
+#### `find_key`
+
+Explicit reverse lookup. Finds the **key** whose mapped value equals `value`.
+
+| Parameter | Type   | Description          |
+|-----------|--------|----------------------|
+| `value`   | `&str` | Value to search for. |
+
+**Returns:** `Option<FoundValue>` — the key as a `FoundValue`, or `None`.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("player_score = current_points").unwrap();
+let key = cfg.find_key("current_points").unwrap();
+assert_eq!(key.as_str(), "player_score");
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse("player_score = current_points")
+key = cfg.find_key("current_points")
+assert key == "player_score"
+```
+
+---
+
+#### `find_deep`
+
+Follows a chain of `key → value → key` lookups until a terminal value is reached or a cycle is detected. Useful for traversing chained mappings.
+
+| Parameter | Type   | Description              |
+|-----------|--------|--------------------------|
+| `key`     | `&str` | Starting key to follow.  |
+
+**Returns:** `Option<FoundValue>` — the final terminal value, or `None`.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("a = b\nb = c").unwrap();
+// Follows: a → b → c  (c is terminal — no key "c" exists)
+assert_eq!(cfg.find_deep("a").unwrap().as_str(), "c");
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse("a = b\nb = c")
+# Follows: a → b → c
+assert cfg.find_deep("a") == "c"
+```
+
+---
+
+### Type Registry
+
+The type registry lets you define custom validation rules that can then be referenced by name inside `@schema` directives.
+
+#### `register_type`
+
+Registers a named type validator. Once registered, the type name can be used as a field type inside any `@schema` definition.
+
+| Parameter  | Type                   | Description                          |
+|------------|------------------------|--------------------------------------|
+| `name`     | `String`               | The type name used in schema fields. |
+| `type_def` | `impl Type + 'static`  | The validator implementation.        |
+
+```rust
+use aam_rs::aaml::AAML;
+// Assuming MyCustomType implements the Type trait:
+// cfg.register_type("my_type".to_string(), MyCustomType);
+```
+
+```python
+from aam import AAML
+
+# cfg.register_type("my_type", MyCustomType())
+```
+
+---
+
+#### `get_type`
+
+Returns the type handler registered under `name`, or `None` if not found.
+
+| Parameter | Type   | Description              |
+|-----------|--------|--------------------------|
+| `name`    | `&str` | The registered type name.|
+
+**Returns:** `Option<&dyn Type>`
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::new();
+let handler = cfg.get_type("my_custom_type"); // None if not yet registered
+```
+
+```python
+from aam import AAML
+
+cfg = AAML()
+handler = cfg.get_type("my_custom_type")
+```
+
+---
+
+#### `unregister_type`
+
+Removes a previously registered type from the registry.
+
+| Parameter | Type   | Description                |
+|-----------|--------|----------------------------|
+| `name`    | `&str` | Name of the type to remove.|
+
+```rust
+use aam_rs::aaml::AAML;
+
+let mut cfg = AAML::new();
+cfg.unregister_type("temp_type");
+```
+
+```python
+from aam import AAML
+
+cfg = AAML()
+cfg.unregister_type("temp_type")
+```
+
+---
+
+#### `check_type`
+
+Validates `value` against a **custom** type that was previously registered with `register_type`. Does **not** resolve built-in types like `i32` or `string`.
+
+| Parameter   | Type   | Description                  |
+|-------------|--------|------------------------------|
+| `type_name` | `&str` | Name of the registered type. |
+| `value`     | `&str` | Value string to validate.    |
+
+**Returns:** `Result<(), AamlError>`
+
+---
+
+#### `validate_value`
+
+Validates `value` against a type by name, resolving both **custom registered types** and **built-in types** (including module paths like `math::vector2`, `physics::kilogram`, `time::datetime`).
+
+| Parameter   | Type   | Description                                   |
+|-------------|--------|-----------------------------------------------|
+| `type_name` | `&str` | Type name (custom or built-in / module path). |
+| `value`     | `&str` | Value string to validate.                     |
+
+**Returns:** `Result<(), AamlError>`
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::new();
+assert!(cfg.validate_value("i32", "42").is_ok());
+assert!(cfg.validate_value("bool", "not_a_bool").is_err());
+```
+
+```python
+from aam import AAML
+
+cfg = AAML()
+assert cfg.validate_value("i32", "42")
+assert not cfg.validate_value("bool", "not_a_bool")
+```
+
+---
+
+### Schema Validation
+
+Schemas defined via `@schema` are automatically applied during parsing. The methods below let you validate data programmatically after the fact.
+
+#### `get_schema`
+
+Returns the [`SchemaDef`](#schemadef) registered under `name`, or `None`.
+
+| Parameter | Type   | Description            |
+|-----------|--------|------------------------|
+| `name`    | `&str` | Schema name to look up.|
+
+**Returns:** `Option<&SchemaDef>`
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("@schema Player { name: string, id: i32 }").unwrap();
+let schema = cfg.get_schema("Player").unwrap();
+println!("{:?}", schema.fields);
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse("@schema Player { name: string, id: i32 }")
+schema = cfg.get_schema("Player")
+print(schema.fields)
+```
+
+---
+
+#### `apply_schema`
+
+Validates a `data` map against a named schema. For every required field declared in the schema the method checks that the key is present in `data` and that its value satisfies the declared type. Optional fields (declared with `*`) are only validated when present.
+
+| Parameter     | Type                       | Description                            |
+|---------------|----------------------------|----------------------------------------|
+| `schema_name` | `&str`                     | Name of the schema to validate against.|
+| `data`        | `&HashMap<String, String>` | Data map to validate.                  |
+
+**Returns:** `Result<(), AamlError>`
+
+```rust
+use aam_rs::aaml::AAML;
+use std::collections::HashMap;
+
+let cfg = AAML::parse("@schema Player { name: string, id: i32 }").unwrap();
+
+let mut data = HashMap::new();
+data.insert("name".to_string(), "Alice".to_string());
+data.insert("id".to_string(), "1".to_string());
+
+cfg.apply_schema("Player", &data).unwrap();
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse("@schema Player { name: string, id: i32 }")
+
+data = {"name": "Alice", "id": "1"}
+cfg.apply_schema("Player", data)
+```
+
+---
+
+#### `validate_schemas_completeness`
+
+Checks every **required** field of every registered schema against the current key-value map. Typically called after all parsing is complete to ensure nothing required is missing.
+
+**Returns:** `Result<(), AamlError>`
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse(
+    "@schema Server { host: string, port: i32 }\nhost = localhost\nport = 8080"
+).unwrap();
+
+cfg.validate_schemas_completeness().unwrap();
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse(
+    "@schema Server { host: string, port: i32 }\nhost = localhost\nport = 8080"
+)
+cfg.validate_schemas_completeness()
+```
+
+---
+
+#### `validate_schemas_completeness_for`
+
+Like `validate_schemas_completeness`, but only checks the named schemas. Useful when you want to verify a subset of schemas — for example, only the schemas defined in a child file after `@derive`.
+
+| Parameter      | Type      | Description                    |
+|----------------|-----------|--------------------------------|
+| `schema_names` | `&[&str]` | Names of the schemas to check. |
+
+**Returns:** `Result<(), AamlError>`
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse(
+    "@schema Server { host: string }\nhost = localhost"
+).unwrap();
+
+cfg.validate_schemas_completeness_for(&["Server"]).unwrap();
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse("@schema Server { host: string }\nhost = localhost")
+cfg.validate_schemas_completeness_for(["Server"])
+```
+
+---
+
+### Utilities
+
+#### `unwrap_quotes`
+
+A static helper that strips surrounding `"…"` or `'…'` quotes from a string. Returns the trimmed string unchanged if it is not quoted.
+
+| Parameter | Type   | Description       |
+|-----------|--------|-------------------|
+| `s`       | `&str` | String to unwrap. |
+
+**Returns:** `&str`
+
+```rust
+use aam_rs::aaml::AAML;
+
+assert_eq!(AAML::unwrap_quotes(r#""hello""#), "hello");
+assert_eq!(AAML::unwrap_quotes("world"),       "world");
+```
+
+```python
+from aam import AAML
+
+assert AAML.unwrap_quotes('"hello"') == "hello"
+assert AAML.unwrap_quotes("world")   == "world"
+```
+
+---
+
+#### `register_command`
+
+Registers a custom directive handler. The handler must implement the `Command` trait. After registration the directive is available as `@<name>` inside any parsed AAM document.
+
+| Parameter | Type                    | Description                    |
+|-----------|-------------------------|--------------------------------|
+| `command` | `impl Command + 'static`| The directive implementation.  |
+
+> **Note:** The default directives (`@import`, `@derive`, `@schema`, `@type`) are registered automatically. You only need this method when adding custom directives.
+
+---
+
+## `FoundValue`
+
+The type returned by all `AAML` lookup methods. It wraps the raw string value and provides helpers for common transformations.
+
+### Constructors
+
+#### `FoundValue::new`
+
+Creates a new `FoundValue` from a string slice.
+
+| Parameter | Type   | Description     |
+|-----------|--------|-----------------|
+| `value`   | `&str` | The raw string. |
+
+**Returns:** `FoundValue`
+
+```rust
+use aam_rs::found_value::FoundValue;
+
+let v = FoundValue::new("hello");
+assert_eq!(v.as_str(), "hello");
+```
+
+```python
+from aam import FoundValue
+
+v = FoundValue("hello")
+assert str(v) == "hello"
+```
+
+---
+
+### Methods
+
+#### `as_str`
+
+Returns the inner value as a string slice.
+
+**Returns:** `&str`
+
+```rust
+use aam_rs::found_value::FoundValue;
+
+let v = FoundValue::new("42");
+println!("{}", v.as_str());
+```
+
+```python
+from aam import FoundValue
+
+v = FoundValue("42")
+print(v.as_str())
+```
+
+---
+
+#### `as_list`
+
+Parses the value as an AAM list literal `[item, item, ...]` and returns the elements as a `Vec<String>`. Returns `None` if the value is not in `[...]` form.
+
+**Returns:** `Option<Vec<String>>`
+
+```rust
+use aam_rs::found_value::FoundValue;
+
+let v = FoundValue::new("[rust, aam, config]");
+let items = v.as_list().unwrap();
+assert_eq!(items, vec!["rust", "aam", "config"]);
+```
+
+```python
+from aam import FoundValue
+
+v = FoundValue("[rust, aam, config]")
+items = v.as_list()
+assert items == ["rust", "aam", "config"]
+```
+
+---
+
+#### `as_object`
+
+Parses the value as an AAM inline object literal `{ k = v, ... }` and returns a `HashMap<String, String>` of its fields. Returns `None` if the value cannot be parsed as an inline object.
+
+**Returns:** `Option<HashMap<String, String>>`
+
+```rust
+use aam_rs::found_value::FoundValue;
+
+let v = FoundValue::new("{ x = 1.0, y = 2.0 }");
+let map = v.as_object().unwrap();
+assert_eq!(map["x"], "1.0");
+assert_eq!(map["y"], "2.0");
+```
+
+```python
+from aam import FoundValue
+
+v = FoundValue("{ x = 1.0, y = 2.0 }")
+obj = v.as_object()
+assert obj["x"] == "1.0"
+assert obj["y"] == "2.0"
+```
+
+---
+
+#### `is_list`
+
+Returns `true` when the inner value is a list literal starting with `[` and ending with `]`.
+
+**Returns:** `bool`
+
+```rust
+use aam_rs::found_value::FoundValue;
+
+assert!(FoundValue::new("[a, b, c]").is_list());
+assert!(!FoundValue::new("hello").is_list());
+```
+
+```python
+from aam import FoundValue
+
+assert FoundValue("[a, b, c]").is_list()
+assert not FoundValue("hello").is_list()
+```
+
+---
+
+#### `is_object`
+
+Returns `true` when the inner value is an inline object literal `{ ... }`.
+
+**Returns:** `bool`
+
+```rust
+use aam_rs::found_value::FoundValue;
+
+assert!(FoundValue::new("{ x = 1 }").is_object());
+assert!(!FoundValue::new("hello").is_object());
+```
+
+```python
+from aam import FoundValue
+
+assert FoundValue("{ x = 1 }").is_object()
+assert not FoundValue("hello").is_object()
+```
+
+---
+
+#### `remove`
+
+Removes **all** occurrences of `target` from the inner string in-place. Returns `&mut Self` for method chaining.
+
+| Parameter | Type   | Description                      |
+|-----------|--------|----------------------------------|
+| `target`  | `&str` | Substring to remove from value.  |
+
+**Returns:** `&mut FoundValue`
+
+```rust
+use aam_rs::found_value::FoundValue;
+
+let mut v = FoundValue::new("[a, b, c]");
+v.remove("[").remove("]");
+assert_eq!(v.as_str(), "a, b, c");
+```
+
+```python
+from aam import FoundValue
+
+v = FoundValue("[a, b, c]")
+v.remove("[").remove("]")
+assert v.as_str() == "a, b, c"
+```
+
+---
+
+### Trait Implementations
+
+`FoundValue` also implements the following standard traits:
+
+| Trait                  | Behaviour                                                              |
+|------------------------|------------------------------------------------------------------------|
+| `Display`              | Prints the raw inner string.                                           |
+| `Deref<Target=String>` | Derefs to the inner `String`, giving access to all `String` methods.   |
+| `PartialEq<&str>`      | Allows comparing a `FoundValue` directly to a `&str` literal.         |
+| `Clone`                | Produces an independent copy of the value.                             |
+
+---
+
+## `AamlError`
+
+All errors produced by the parsing and validation pipeline implement `std::error::Error` and `Display`.
+
+### Variants
+
+| Variant                                             | Description                                                           |
+|-----------------------------------------------------|-----------------------------------------------------------------------|
+| `IoError(io::Error)`                                | An I/O error occurred while reading a file.                           |
+| `ParseError { line, content, details }`             | A source line could not be parsed as a valid AAML statement.          |
+| `NotFound(String)`                                  | A key or type name was not found in the registry or map.              |
+| `InvalidValue(String)`                              | A value fails a basic (non-schema) type constraint.                   |
+| `InvalidType { type_name, details }`                | A value failed validation against a registered or built-in type.      |
+| `DirectiveError(String, String)`                    | A directive encountered an error in its arguments.                    |
+| `SchemaValidationError { schema, field, type_name, details }` | A schema constraint was violated during parsing or validation.|
+
+### Error Handling Example
+
+```rust
+use aam_rs::aaml::AAML;
+use aam_rs::error::AamlError;
+
+match AAML::load("config.aam") {
+    Ok(cfg) => println!("Loaded: {:?}", cfg),
+    Err(AamlError::IoError(e)) => eprintln!("Could not read file: {e}"),
+    Err(AamlError::ParseError { line, content, details }) => {
+        eprintln!("Parse error at line {line}: '{content}' — {details}");
+    }
+    Err(AamlError::SchemaValidationError { schema, field, type_name, details }) => {
+        eprintln!("Schema '{schema}': field '{field}' ({type_name}) — {details}");
+    }
+    Err(e) => eprintln!("Error: {e}"),
+}
+```
+
+```python
+from aam import AAML, AamlError
+
+try:
+    cfg = AAML.load("config.aam")
+except AamlError as e:
+    print(f"Error: {e}")
+```
+
+---
+
+## `SchemaDef`
+
+Represents a parsed schema definition. Instances are returned by [`AAML::get_schema`](#get_schema).
+
+| Field             | Type                      | Description                                        |
+|-------------------|---------------------------|----------------------------------------------------|
+| `fields`          | `HashMap<String, String>` | Maps field names to their declared type strings.   |
+| `optional_fields` | `HashSet<String>`         | Set of field names marked optional (`*` suffix).   |
+
+### Methods
+
+#### `is_optional`
+
+Returns `true` when `field` was declared with the `*` suffix in the schema definition.
+
+| Parameter | Type   | Description          |
+|-----------|--------|----------------------|
+| `field`   | `&str` | Field name to check. |
+
+**Returns:** `bool`
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("@schema Player { name: string, id*: i32 }").unwrap();
+let schema = cfg.get_schema("Player").unwrap();
+
+assert!(!schema.is_optional("name"));
+assert!(schema.is_optional("id"));
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse("@schema Player { name: string, id*: i32 }")
+schema = cfg.get_schema("Player")
+
+assert not schema.is_optional("name")
+assert schema.is_optional("id")
+```

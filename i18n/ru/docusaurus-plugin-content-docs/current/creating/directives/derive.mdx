@@ -1,0 +1,180 @@
+---
+sidebar_position: 2
+title: "@derive"
+description: Как реализовать директиву @derive, семантику «победа дочернего элемента при конфликте» и защиту от циклов наследования.
+---
+
+# Директива `@derive`
+
+Директива `@derive` позволяет файлу **наследовать** все поля, объявленные в `@schema` из другого `.aam`-файла. Это основной механизм повторного использования на основе схем в AAM.
+
+```aam
+@derive path/to/file.aam::SchemaName
+```
+
+---
+
+## Синтаксис
+
+`@derive` всегда принимает **квалифицированный путь** вида `"<file>::<SchemaName>"`:
+
+```aam
+@derive entities/base.aam::Entity
+```
+
+- `"entities/base.aam"` — путь к файлу, содержащему схему (разрешается так же, как [`@import`](./import)).
+- `Entity` — имя блока `@schema`, от которого нужно наследоваться.
+
+:::note
+В отличие от `@import`, который сливает целый файл, `@derive` нацелен на **конкретную именованную схему**. Нельзя наследоваться от целого файла, не указав имя схемы.
+:::
+
+---
+
+## Что делает `@derive`
+
+Когда парсер встречает `@derive "file.aam::Schema"`:
+
+1. **Загружает `file.aam`** (или берёт из кэша) и находит схему с именем `Schema`.
+2. **Копирует объявления полей схемы** (имя, тип, флаг обязательности/опциональности) в контекст активной схемы текущего документа.
+3. **Применяет значения текущего файла** сверху — любой ключ, определённый в текущем файле, перезаписывает унаследованное значение.
+
+В результате текущий документ валидируется по унаследованной полной схеме, но значения дочернего элемента имеют приоритет при любом конфликте.
+
+---
+
+## «Победа дочернего элемента при конфликте»
+
+**«Победа дочернего элемента при конфликте»** — основное семантическое правило `@derive`: если и родительская схема, и текущий файл определяют значение для одного и того же поля, **значение текущего файла всегда побеждает**.
+
+```aam
+# vehicles/base.aam
+@schema Vehicle {
+    name: string
+    max_speed: physics::meterpersecond
+    color*: color
+}
+
+name = "Generic Vehicle"
+max_speed = 28.0
+color = #808080
+```
+
+```aam
+# car.aam
+@derive "vehicles/base.aam::Vehicle"
+
+# Эти значения перезаписывают родительские
+name = "Sports Car"
+max_speed = 83.3
+
+# 'color' не указан — наследуется родительское значение (#808080)
+```
+
+После разбора `car.aam`:
+
+| Ключ | Источник | Итоговое значение |
+|------|----------|-------------------|
+| `name` | дочерний | `"Sports Car"` |
+| `max_speed` | дочерний | `83.3 m/s` |
+| `color` | родительский | `#808080` |
+
+### Реализация
+
+```rust
+fn apply_derive(
+    current_doc: &mut AAML,
+    parent_schema: &Schema,
+    parent_values: &HashMap<String, String>,
+) {
+    // 1. Регистрируем все унаследованные объявления полей в текущем документе
+    for (field_name, field_def) in &parent_schema.fields {
+        current_doc.schemas.insert(field_name.clone(), field_def.clone());
+    }
+
+    // 2. Сливаем родительские значения — только для полей, которых ещё нет у дочернего
+    for (key, value) in parent_values {
+        current_doc.elements
+            .entry(key.clone())
+            .or_insert_with(|| value.clone()); // дочерний побеждает: НЕ перезаписываем
+    }
+}
+```
+
+---
+
+## Несколько директив `@derive`
+
+Файл может содержать более одной директивы `@derive`. Они применяются в порядке объявления — последняя в объявлении выигрывает на уровне конфликтов схем, но значения самого дочернего документа всё равно имеют наивысший приоритет.
+
+```aam
+@derive "base.aam::Base"
+@derive "mixin.aam::Logging"   # добавляет дополнительные поля в контекст схемы
+
+name = "My Service"
+log_level = "info"
+```
+
+---
+
+## Защита от циклов наследования
+
+:::warning Защита от циклов — данный раздел обязателен для реализации
+`@derive` внутренне загружает другой `.aam`-файл, который сам может содержать директивы `@derive`. Без обнаружения циклов это приведёт к бесконечной рекурсии.
+:::
+
+Механизм защиты идентичен используемому для [`@import`](./import#cyclic-dependency-protection): храните множество `visited` из канонических путей к файлам и проверяйте его перед обработкой каждого `@derive`.
+
+```rust
+fn resolve_derive(
+    file_path: &Path,
+    schema_name: &str,
+    visited: &mut HashSet<PathBuf>,
+) -> Result<(Schema, HashMap<String, String>), AamlError> {
+
+    let canonical = file_path.canonicalize()?;
+
+    if visited.contains(&canonical) {
+        return Err(AamlError::CyclicDerivation {
+            path: canonical,
+            schema: schema_name.to_string(),
+        });
+    }
+
+    visited.insert(canonical.clone());
+    let doc = load_recursive(&canonical, visited)?;
+    visited.remove(&canonical);
+
+    let schema = doc.schemas
+        .get(schema_name)
+        .ok_or_else(|| AamlError::SchemaNotFound {
+            name: schema_name.to_string(),
+            file: canonical.clone(),
+        })?;
+
+    Ok((schema.clone(), doc.elements.clone()))
+}
+```
+
+### Вывод ошибок
+
+```
+Error: cyclic derivation detected
+  --> player.aam
+   |
+ 1 | @derive "character.aam::Character"
+   |
+   = note: derivation chain: player.aam → character.aam → entity.aam → player.aam
+```
+
+---
+
+## `@derive` vs `@import`
+
+| Функция | `@import` | `@derive` |
+|---------|-----------|-----------|
+| Цель | Весь файл | Конкретный `@schema` |
+| Принудительное применение схемы | Нет | Да — валидация по унаследованной схеме |
+| Разрешение конфликтов | Дочерний побеждает | Дочерний побеждает |
+| Защита от циклов | Обязательна | Обязательна |
+| Типичный сценарий использования | Общие значения конфигурации | Контракты данных на основе схем |

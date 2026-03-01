@@ -1,0 +1,26 @@
+{
+  "version.label": {
+    "message": "Следующая версия AAM",
+    "description": "The label for version current"
+  },
+  "sidebar.tutorialSidebar.category.Using in your projects": {
+    "message": "Использовать в своих проектах",
+    "description": "The label for category 'Using in your projects' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Using in your projects.link.generated-index.description": {
+    "message": "Узнайте, как использовать библиотеку в своих проектах, включая примеры кода и лучшие практики.",
+    "description": "The generated-index page description for category 'Using in your projects' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Tutorial - Extras": {
+    "message": "Дополнительные типы",
+    "description": "The label for category 'Tutorial - Extras' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Extra Types": {
+    "message": "Дополнительные типы",
+    "description": "The label for category 'Extra Types' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Extra Types.link.generated-index.description": {
+    "message": "Узнайте о дополнительных типах, которые могут быть полезны при работе с библиотекой, включая их описание и примеры использования.",
+    "description": "The generated-index page description for category 'Extra Types' in sidebar 'tutorialSidebar'"
+  }
+}

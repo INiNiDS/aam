@@ -1,0 +1,46 @@
+---
+sidebar-position: 1
+description: "Aprenda a instalar bibliotecas AAM no seu projeto"
+---
+
+
+# Instalação
+## O que usar?
+Precisa de escolher a biblioteca para a sua linguagem de programação. Bibliotecas autorizadas:
+| Linguagem | Biblioteca | Descrição |
+|-----------|------------|-----------|
+| Rust | [aam-rs](https://crates.io/crates/aam) | Biblioteca AAM para Rust |
+| Python | aam-py (Em breve) | Biblioteca AAM para Python |
+É tudo por agora.
+## Instalar aam-rs
+Para instalar `aam-rs`, adicione o seguinte ao seu `Cargo.toml`:
+```toml
+[dependencies]
+aam = "1.1.0"
+```
+Depois, pode usá-lo no seu código Rust:
+```rust
+use aam::aaml::AAML;
+
+fn main() {
+    let aaml = AAML::load("config.aam").unwrap();
+    println!("{:#?}", aaml.find_obj("key");
+}
+```
+## Instalar aam-py
+Para instalar `aam-py`, pode usar pip:
+```bash
+pip install aam-py
+```
+Depois, pode usá-lo no seu código Python:
+```python
+from aam import AAML
+
+aaml = AAML.load("config.aam")
+print(aaml.find_obj("key"))
+```
+## Documentação de API
+- [Documentação de API aam-rs](https://docs.rs/aam/latest/aam/)
+- [Documentação de API aam-py](https://aam-py.readthedocs.io/en/latest/)
+As funções de API são maioritariamente iguais entre as bibliotecas, mas pode haver algumas diferenças nas convenções de nomenclatura ou métodos auxiliares adicionais. Consulte sempre a documentação específica da biblioteca para obter detalhes sobre as funções disponíveis e o seu uso.
+Estão escritas aqui

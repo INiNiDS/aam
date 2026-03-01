@@ -1,0 +1,68 @@
+---
+sidebar_position: 3
+description: "Apprenez à définir des schémas en AAM"
+---
+
+# Schémas
+En AAM, les schémas sont un moyen puissant de définir des données structurées. Ils vous permettent de créer des modèles de données complexes avec des types et des relations clairs. Les schémas peuvent être utilisés pour diverses purposes, comme définir la forme des données, valider les entrées ou générer du code.
+## Définir un Schéma
+Pour définir un schéma en AAM, on utilise la directive `@schema` suivie du nom du schéma et d'un bloc contenant les champs et leurs types. Par exemple :
+```aam
+@schema Player {
+    name: string
+    id: i32
+}
+```
+Dans cet exemple, nous définissons un schéma `Player` avec deux champs : `name` de type `string` et `id` de type `i32`. Vous pouvez également définir des schémas inline en utilisant une virgule comme séparateur :
+```aam
+@schema Player {name: string, id: i32}
+```
+Ces deux définitions sont équivalentes et créent un schéma qui peut être utilisé dans toute votre configuration.
+## Utiliser les Schémas
+Une fois que vous avez défini un schéma, vous pouvez utiliser la directive `@derive` pour créer des instances de ce schéma. Par exemple :
+```aam
+# fichier.aam
+@schema Player {
+    name: string
+    id: i32
+}
+```
+```aam
+# main.aam
+@derive fichier.aam::Player
+name = "Alice"
+id = 1
+```
+Dans cet exemple, nous dérivons le schéma `Player` de `fichier.aam` puis nous définissons les champs `name` et `id` pour une instance du schéma `Player`.
+## Obligation du Schéma
+Par défaut, tous les champs d'un schéma sont obligatoires. Cela signifie que lorsque vous créez une instance d'un schéma, vous devez fournir des valeurs pour tous les champs. Si vous essayez de créer une instance sans fournir de valeurs pour tous les champs obligatoires, AAM lèvera une erreur. Par exemple :
+```aam
+@derive fichier.aam::Player
+name = "Alice"  # Cela lèvera une erreur car 'id' est obligatoire mais non fourni
+```
+Mais si nous ajoutons un `*` après le nom du champ, il devient optionnel :
+```aam
+@schema Player {
+    name: string
+    id*: i32
+}
+```
+Dans ce cas, le champ `id` est optionnel, et vous pouvez créer une instance du schéma `Player` sans fournir de valeur pour `id` :
+```aam
+@derive fichier.aam::Player
+name = "Alice"  # C'est valide car 'id' est optionnel
+```
+## Vérification
+### Vérification des Types
+AAM vérifie automatiquement les types des champs lorsque vous créez une instance d'un schéma. Si vous essayez d'affecter une valeur qui ne correspond pas au type défini, AAM lèvera une erreur. Par exemple :
+```aam
+@derive fichier.aam::NomSchema
+name = 123  # Cela lèvera une erreur car 'name' est défini comme string
+id = "abc"  # Cela lèvera une erreur car 'id' est défini comme i32
+```
+### Vérification des Champs Obligatoires
+AAM vérifie également que tous les champs obligatoires sont fournis lors de la création d'une instance d'un schéma. Si vous omettez un champ obligatoire, AAM lèvera une erreur. Par exemple :
+```aam
+@derive fichier.aam::NomSchema
+name = "Alice"  # Cela lèvera une erreur car 'id' est obligatoire mais non fourni
+```

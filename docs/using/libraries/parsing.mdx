@@ -1,0 +1,137 @@
+---
+sidebar_position: 2
+title: "Parsing"
+description: "How to parse AAM files in your projects"
+---
+
+# Parsing
+
+This page covers all the ways you can load and parse AAM content into your application using `aam-rs` (Rust) or `aam-py` (Python).
+
+## From a File
+
+The most common entry point is `AAML::load`, which reads an `.aam` file from disk, processes all directives, and returns a ready-to-use `AAML` instance.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::load("config.aam").unwrap();
+println!("{}", cfg.find_obj("host").unwrap());
+```
+
+```python
+from aam_py import AAML
+
+cfg = AAML.load("config.aam")
+print(cfg.find_obj("host"))
+```
+
+## From a String
+
+Use `AAML::parse` to parse AAM content that is already in memory as a string. This is useful for inline configurations, unit tests, or content fetched from a remote source.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let source = "host = localhost\nport = 8080";
+let cfg = AAML::parse(source).unwrap();
+
+assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+```
+
+```python
+from aam_py import AAML
+
+source = "host = localhost\nport = 8080"
+cfg = AAML.parse(source)
+
+assert cfg.find_obj("host") == "localhost"
+```
+
+## Merging Multiple Sources
+
+Sometimes configuration comes from more than one file or string. Use `merge_content` and `merge_file` to load additional content into an existing `AAML` instance. When a key appears in both the existing instance and the merged source, the **incoming value wins**.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let mut cfg = AAML::new();
+cfg.merge_file("base.aam").unwrap();
+cfg.merge_content("debug = true").unwrap(); // adds or overrides 'debug'
+```
+
+```python
+from aam_py import AAML
+
+cfg = AAML()
+cfg.merge_file("base.aam")
+cfg.merge_content("debug = true")   # adds or overrides 'debug'
+```
+
+You can also merge two `AAML` instances together with the `+` operator:
+
+```rust
+use aam_rs::aaml::AAML;
+
+let base      = AAML::load("base.aam").unwrap();
+let overrides = AAML::load("env.aam").unwrap();
+
+let cfg = base + overrides; // right-hand side wins on conflict
+```
+
+```python
+from aam_py import AAML
+
+base      = AAML.load("base.aam")
+overrides = AAML.load("env.aam")
+
+cfg = base + overrides   # right-hand side wins on conflict
+```
+
+## Directives Processed at Parse Time
+
+All AAM directives are resolved automatically during parsing — you do not need to call any additional method after `load` or `parse`:
+
+| Directive   | Effect                                                                          |
+|-------------|---------------------------------------------------------------------------------|
+| `@import`   | Loads and merges another `.aam` file inline.                                    |
+| `@derive`   | Inherits key-value pairs from another file; child wins on key conflicts.        |
+| `@schema`   | Registers a named schema and enables automatic per-field type checking.         |
+| `@type`     | Registers a custom type alias for use in schema field declarations.             |
+
+## Error Handling
+
+`AAML::load` and `AAML::parse` both return `Result<AAML, AamlError>`. Always handle errors in production code:
+
+```rust
+use aam_rs::aaml::AAML;
+use aam_rs::error::AamlError;
+
+match AAML::load("config.aam") {
+    Ok(cfg) => {
+        println!("host = {}", cfg.find_obj("host").unwrap());
+    }
+    Err(AamlError::IoError(e)) => {
+        eprintln!("Could not read file: {e}");
+    }
+    Err(AamlError::ParseError { line, content, details }) => {
+        eprintln!("Parse error at line {line}: '{content}' — {details}");
+    }
+    Err(AamlError::SchemaValidationError { schema, field, type_name, details }) => {
+        eprintln!("Schema '{schema}': field '{field}' ({type_name}) — {details}");
+    }
+    Err(e) => eprintln!("Unexpected error: {e}"),
+}
+```
+
+```python
+from aam_py import AAML, AamlError
+
+try:
+    cfg = AAML.load("config.aam")
+    print("host =", cfg.find_obj("host"))
+except AamlError as e:
+    print(f"Error: {e}")
+```
+
+> **Note:** For a full description of every `AamlError` variant, see the [aam-rs API Reference](./aam-rs#aamlerror).

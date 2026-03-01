@@ -1,0 +1,8 @@
+{
+    "label": "Documentación de Bibliotecas",
+    "position": 4,
+    "link": {
+        "type": "generated-index",
+        "description": "Aprende a usar las bibliotecas AAM oficiales"
+    }
+}

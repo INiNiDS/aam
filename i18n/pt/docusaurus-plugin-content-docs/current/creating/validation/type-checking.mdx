@@ -1,0 +1,96 @@
+---
+sidebar_position: 1
+title: Verificação de Tipos
+description: Como validar valores AAM analisados contra o sistema de tipos, mapear primitivos e tratar tipos nativos complexos.
+---
+
+# Verificação de Tipos
+
+Durante a fase de análise, um Motor Loader de alta qualidade deve confirmar que **cada valor é compatível com o seu tipo declarado**. Esta página descreve como realizar essa verificação para cada categoria de tipo AAM antes de finalizar o mapa `AAML`.
+
+---
+
+## Visão Geral
+
+A verificação de tipos prossegue em duas fases:
+
+1. **Resolver** — expandir quaisquer aliases `@type` para o seu tipo canónico (ver [`@type`](../directives/type)).
+2. **Verificar** — comparar o nó de runtime analisado com o tipo canónico.
+
+---
+
+## Tipos Primitivos
+
+Os tipos primitivos são o caso mais simples — verificar que a variante `PrimitiveTypes` corresponde à etiqueta de tipo esperada:
+
+| Tipo AAM | Variante `AamValue` | Exemplos de literais aceites |
+|----------|---------------------|------------------------------|
+| `i32`    | `PrimitiveTypes::I32`    | `42`, `-7`, `0`           |
+| `f64`    | `PrimitiveTypes::F64`    | `3.14`, `-0.5`, `1.0`     |
+| `string` | `PrimitiveTypes::Str`    | `"olá"`, `""`              |
+| `bool`   | `PrimitiveTypes::Bool`   | `true`, `false`            |
+| `color`  | `PrimitiveTypes::Color`  | `#ff0000`, `#0a0b0c`       |
+
+:::tip Coerção numérica
+O AAM **não** coage silenciosamente `i32` para `f64` ou vice-versa. `42` é sempre `i32`; `42.0` é sempre `f64`. Não adicione coerções implícitas.
+:::
+
+---
+
+## Tipos Complexos com Namespace
+
+Os tipos complexos vivem sob três namespaces: `types::physics::`, `types::math::` e `types::time::`. A nível de texto AAM, são todos armazenados como `AamValue::Complex`.
+
+### Tipos de Física (`types::physics::*`)
+
+Todos os tipos de física representam uma quantidade escalar com uma unidade SI. Mapeie a magnitude para um `f64` e anexe a unidade como metadados.
+
+### Tipos Matemáticos (`types::math::*`)
+
+Os valores matemáticos são estruturas multicomponentes. Cada componente é um `f64`:
+
+| Tipo AAM | Mapeamento nativo |
+|----------|------------------|
+| `types::math::vector2` | `{ x: f64, y: f64 }` |
+| `types::math::vector3` | `{ x: f64, y: f64, z: f64 }` |
+| `types::math::quaternion` | `{ x: f64, y: f64, z: f64, w: f64 }` |
+
+### Tipos de Tempo (`types::time::*`)
+
+Os valores de tempo usam **ISO 8601** como representação textual:
+
+| Tipo AAM | Formato de texto | Mapeamento nativo sugerido |
+|----------|-----------------|---------------------------|
+| `types::time::datetime` | `"2024-06-01T12:00:00Z"` | `DateTime` |
+| `types::time::duration` | `"PT1H30M"` | `Duration` |
+| `types::time::year` | `2024` | `u32` |
+| `types::time::hour` | `0`–`23` | `u8` |
+| `types::time::minute` | `0`–`59` | `u8` |
+
+---
+
+## Tipos de Lista
+
+Um valor `list<T>` é válido se e somente se **cada elemento** satisfaz o tipo `T`. As listas aninhadas (`list<list<i32>>`) devem ser tratadas recursivamente.
+
+---
+
+## Tipos de Schema
+
+Quando o tipo de um campo é o nome de um `@schema`, valide o valor como um **objeto aninhado** contra esse schema recursivamente.
+
+---
+
+## Checklist de Validação
+
+| Verificação | Obrigatório |
+|-------------|-------------|
+| Valor primitivo corresponde ao tipo primitivo declarado | ✅ |
+| `type_key` do valor complexo corresponde à unidade esperada | ✅ |
+| `time::datetime` é analisável como ISO 8601 válido | ✅ |
+| Cada elemento de `list<T>` corresponde a `T` | ✅ |
+| Aliases `@type` resolvidos antes da comparação | ✅ |
+| Campos de schema obrigatórios presentes | ✅ |
+| Sem campos de schema desconhecidos (modo estrito) | ✅ |
+| Objetos de schema aninhados validados recursivamente | ✅ |
+| Sem coerção numérica implícita (`i32` ↔ `f64`) | ✅ |

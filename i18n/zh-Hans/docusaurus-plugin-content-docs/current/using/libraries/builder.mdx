@@ -1,0 +1,121 @@
+---
+sidebar_position: 4
+description: "AAMBuilder和SchemaField的API参考——以编程方式构建AAM配置"
+---
+
+# Builder API参考
+
+`builder` 模块提供了一个流畅的API，用于以程序方式构建AAM配置内容——无需手写原始 `.aam` 字符串。它对代码生成器、测试夹具和需要在运行时生成配置文件的应用程序非常有用。
+
+---
+
+## `AAMBuilder`
+
+`AAMBuilder` 在内部缓冲区中累积行，并为每个AAM构造公开可链式调用的API。最后调用 `build` 以消耗构建器并检索最终字符串。
+
+### 快速示例
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost");
+let content = b.build();
+assert!(content.contains("host = localhost"));
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder()
+b.add_line("host", "localhost")
+content = b.build()
+assert "host = localhost" in content
+```
+
+---
+
+### 键值赋值
+
+#### `add_line`
+
+将 `key = value` 赋值行追加到缓冲区。
+
+```rust
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost")
+ .add_line("port", "8080")
+ .add_line("debug", "true");
+println!("{}", b.build());
+```
+
+---
+
+### 注释
+
+#### `comment`
+
+将 `# text` 注释行追加到缓冲区。
+
+---
+
+### 指令
+
+#### `schema`
+
+以**内联**（单行）格式追加 `@schema Name { ... }` 指令。
+
+#### `schema_multiline`
+
+以**多行**格式追加 `@schema Name { ... }` 指令——每个字段在自己的缩进行上。
+
+#### `derive`
+
+追加 `@derive path` 或 `@derive path::Schema1::Schema2` 指令。
+
+#### `import`
+
+追加 `@import path` 指令。
+
+#### `type_alias`
+
+追加 `@type alias = type_name` 指令。
+
+---
+
+### 输出
+
+#### `build`
+
+消耗构建器并将累积内容作为 `String` 返回。
+
+#### `to_file`
+
+将累积内容写入 `path` 的文件。
+
+```rust
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost").add_line("port", "8080");
+b.to_file("output.aam").unwrap();
+```
+
+---
+
+## `SchemaField`
+
+表示 `@schema` 块内的单个字段声明。
+
+| 方法 | AAML形式 | 描述 |
+|------|---------|------|
+| `SchemaField::required(name, type_name)` | `name: type` | 数据映射中**必须**存在的字段。 |
+| `SchemaField::optional(name, type_name)` | `name*: type` | **可以**不存在的字段；存在时验证。 |
+
+```rust
+use aam_rs::builder::SchemaField;
+
+let req = SchemaField::required("host", "string");
+assert_eq!(req.to_aaml(), "host: string");
+
+let opt = SchemaField::optional("debug", "bool");
+assert_eq!(opt.to_aaml(), "debug*: bool");
+```

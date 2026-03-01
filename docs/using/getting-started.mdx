@@ -1,22 +1,75 @@
 ---
 sidebar_position: 1
+description: "Getting started with AAM"
 ---
 
 # Getting Started
-This is a quick introduction to AAM. It covers the basics of AAM, and how to use it to create a simple bidirectional mapping between two variables. It's needs to know how **only** use AAM in your project.
-## MVP
-The **Minimum Viable Product** (MVP) of AAM is just a
+This is a quick introduction to AAM. It covers the basics and shows you how to create a simple bidirectional mapping between two variables. This guide provides everything you need to know to start using AAM in your project.
+
+## The MVP
+The **Minimum Viable Product** (MVP) of AAM is just a single line:
 ```aam
 a = b
 ```
 syntax that creates a bidirectional mapping between `a` and `b`. You can look up `a` to get `b`, and look up `b` to get `a`. It's concise, clear, and eliminates the boilerplate.
-## Schemas
-AAM supports schemas, you can create schema for parameters, that needs to use:
+## Syntax Standards
+AAM follows a clean, minimal syntax designed for readability and simplicity
+
+### Key-Value Mapping
+A single space is required on each side of the `=` operator:
 ```aam
-schema User {
+a = b
+```
+
+### Statement Termination
+Statements are terminated by a **newline** (`\n`). You do not need semicolons or commas at the end of a line to complete a statement:
+```aam
+a = b
+c = d
+e = f
+```
+*Note*: While statement termination doesn't use commas, they are used as element separators inside specific inline structures, such as lists (```["Hello", "World"]```) and inline schemas (```{name: string, id: i32}```).
+
+### Comments
+Single-line comments use the `#` prefix:
+```aam
+# This is a comment
+a = b
+```
+
+### Directives
+Directives (such as imports and similar declarations) use the `@` prefix:
+```aam
+@import other-file.aam
+```
+
+### Inline schema
+For inline schemas you can use for separator comma (`,`). For example:
+```aam
+@schema Player {name: string, id: i32}
+```
+
+### Multiline schema
+For multiline schemas use for separator newline (`\n`). For example:
+```aam
+@schema Player {
     name: string
-    age: i32
-    isAdmin: bool
-    profileColor: color
+    id: i32
 }
 ```
+
+### Naming Conventions
+
+To keep your project clean and consistent, AAM uses specific naming conventions for different elements:
+
+* Variables and Mappings: Use snake_case for all variable names and mapping assignments.
+    ```aam
+    player_score = current_points
+    ```
+
+* Built-in Types: All primitive and standard types (like i32, string, or bool) are written in snake_case.
+
+* User-defined Types and Schemas: Use PascalCase for custom types and schemas to clearly distinguish them from built-in primitives.
+    ```aam
+    @schema PlayerData { ... } or @type UserProfile = string
+    ```

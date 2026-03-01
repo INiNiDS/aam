@@ -1,0 +1,72 @@
+---
+sidebar_position: 4
+title: "@type"
+description: Cómo implementar definiciones de alias @type y mantener un registro de tipos interno.
+---
+
+# La Directiva `@type`
+
+La directiva `@type` permite al usuario **declarar un alias con nombre** para cualquier tipo existente — primitivo, complejo u otro alias. Las bibliotecas deben registrar estos alias durante el análisis para que cada referencia de tipo posterior (en campos `@schema`, anotaciones clave-valor, etc.) pueda resolverse a su forma canónica.
+
+```aam
+@type PlayerId = i32
+@type SpawnPoint = types::math::vector3
+@type Timeout = types::time::duration
+```
+
+---
+
+## Sintaxis
+
+```
+@type <Nombre> = <expresión_de_tipo>
+```
+
+- `Nombre` debe estar en **PascalCase** (p. ej., `UserId`, `WorldPosition`).
+- `expresión_de_tipo` es cualquier tipo AAM válido — un primitivo, un tipo complejo con namespace, u otro alias previamente declarado.
+- Los alias autorreferenciales o de referencia anticipada **no** están permitidos; los alias deben referirse solo a tipos ya registrados.
+
+---
+
+## Qué hace `@type`
+
+Cuando el parser encuentra `@type Alias = AlgúnTipo`:
+
+1. Analiza `AlgúnTipo` como expresión de tipo.
+2. Resuelve `AlgúnTipo` a su `AamType` canónico usando el `type_registry` actual.
+3. Registra el mapeo `Alias → AamType canónico` en el `type_registry`.
+4. A partir de este punto, `Alias` puede usarse en cualquier lugar donde se espera un tipo.
+
+---
+
+## Cadenas de Alias
+
+Los alias pueden encadenarse — un alias puede referirse a otro:
+
+```aam
+@type Name = string
+@type FirstName = Name
+@type LastName = Name
+```
+
+Tu función `parse_type_expression` debe buscar recursivamente en el registro hasta encontrar un tipo no-alias.
+
+---
+
+## Reglas de Alcance
+
+Los alias de tipo tienen **alcance de fichero por defecto**. Cuando un fichero se importa mediante `@import`, sus alias de tipo se fusionan en el `type_registry` del documento importador (sujeto a la semántica Child-Wins-on-Conflict, igual que las entradas clave-valor).
+
+---
+
+## Nombres Reservados
+
+Los siguientes nombres **no deben** usarse como nombres de alias — son identificadores de tipo integrados:
+
+| Nombres reservados |
+|-------------------|
+| `i32`, `f64`, `string`, `bool`, `color` |
+| `list` |
+| Cualquier nombre en los namespaces `math::`, `physics::`, `time::` |
+
+Retorna un error `AamlError::ReservedTypeName` si un usuario intenta sombrear un integrado.

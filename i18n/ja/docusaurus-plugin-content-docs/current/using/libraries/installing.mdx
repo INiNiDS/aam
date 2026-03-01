@@ -1,0 +1,45 @@
+---
+sidebar-position: 1
+description: "プロジェクトへのAAMライブラリのインストール方法"
+---
+
+
+# インストール
+## 何を使うか？
+プログラミング言語に合ったライブラリを選択する必要があります。認定ライブラリ：
+| 言語 | ライブラリ | 説明 |
+|------|-----------|------|
+| Rust | [aam-rs](https://crates.io/crates/aam) | Rust用AAMライブラリ |
+| Python | aam-py（近日公開） | Python用AAMライブラリ |
+今のところこれだけです。
+## aam-rsのインストール
+`aam-rs` をインストールするには、`Cargo.toml` に以下を追加してください：
+```toml
+[dependencies]
+aam = "1.1.0"
+```
+その後、RustコードでAPIを使用できます：
+```rust
+use aam::aaml::AAML;
+
+fn main() {
+    let aaml = AAML::load("config.aam").unwrap();
+    println!("{:#?}", aaml.find_obj("key"));
+}
+```
+## aam-pyのインストール
+`aam-py` をインストールするには、pipを使用できます：
+```bash
+pip install aam-py
+```
+その後、PythonコードでAPIを使用できます：
+```python
+from aam import AAML
+
+aaml = AAML.load("config.aam")
+print(aaml.find_obj("key"))
+```
+## APIドキュメント
+- [aam-rs APIドキュメント](https://docs.rs/aam/latest/aam/)
+- [aam-py APIドキュメント](https://aam-py.readthedocs.io/en/latest/)
+API関数はライブラリ間でほぼ同じですが、命名規則や追加のヘルパーメソッドに若干の違いがある場合があります。利用可能な関数とその使い方の詳細については、常に特定のライブラリのドキュメントを参照してください。

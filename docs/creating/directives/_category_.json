@@ -1,0 +1,9 @@
+{
+  "label": "Directives",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "How to implement each AAM directive in your library."
+  }
+}
+

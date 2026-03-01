@@ -1,0 +1,231 @@
+---
+sidebar_position: 3
+title: "@schema"
+description: Как разбирать и применять блоки @schema, обязательные и необязательные поля, а также валидацию схем.
+---
+
+# Директива `@schema`
+
+Директива `@schema` **определяет именованный контракт данных**. Она объявляет, какие поля документ должен (или может) содержать, а также тип каждого поля. Библиотеки должны разбирать эти определения и впоследствии использовать их при валидации.
+
+```aam
+@schema Player {
+    name: string
+    score: i32
+    team*: string
+}
+```
+
+---
+
+## Синтаксис
+
+```
+@schema <Name> {
+    <field>:  <type>   # обязательное поле
+    <field>*: <type>   # необязательное поле
+}
+```
+
+Тело может быть записано в одну строку (через запятую) или в несколько строк (через перенос строки):
+
+```aam
+# Многострочный (предпочтительно для читаемости)
+@schema Config {
+    host: string
+    port: i32
+    debug*: bool
+}
+
+# Инлайн (удобно для небольших схем)
+@schema Point {x: f64, y: f64}
+```
+
+Обе формы семантически идентичны. Ваш парсер должен поддерживать обе.
+
+---
+
+## Модификаторы полей
+
+| Синтаксис | Смысл |
+|-----------|-------|
+| `name: type` | **Обязательное** — поле *должно* присутствовать в любом документе, использующем эту схему |
+| `name*: type` | **Необязательное** — поле *может* отсутствовать; отсутствие не является ошибкой |
+
+---
+
+## Внутреннее представление
+
+Схема должна храниться в вашей библиотеке как именованная коллекция определений полей:
+
+```rust
+pub struct FieldDef {
+    pub name: String,
+    pub ty: String, // Предполагаем строковые представления или разрешённые типы
+    pub required: bool,   // false при наличии модификатора `*`
+}
+
+pub struct Schema {
+    pub name: String,
+    pub fields: IndexMap<String, FieldDef>,
+}
+```
+
+После разбора примера из начала страницы `AamSchema` для `Player` выглядит так:
+
+| Поле | Тип | Обязательное |
+|------|-----|--------------|
+| `name` | `string` | ✅ |
+| `score` | `i32` | ✅ |
+| `team` | `string` | ❌ |
+
+---
+
+## Разбор блока схемы
+
+Когда парсер видит `@schema Name {`:
+
+1. Записывает имя схемы (`Name`).
+2. Сканирует вперёд до закрывающего `}`.
+3. Для каждой строки (или токена, разделённого запятой) внутри блока:
+   - Удаляет начальные/конечные пробелы.
+   - Определяет суффикс `*` у имени поля для определения опциональности.
+   - Разбирает выражение типа после `:`.
+4. Регистрирует завершённую `AamSchema` в `AamDocument.schemas`.
+
+```rust
+fn parse_schema_block(
+    tokens: &mut TokenStream,
+    doc: &mut AAML,
+) -> Result<(), AamlError> {
+    let name = tokens.expect_identifier()?;
+    tokens.expect(Token::LBrace)?;
+
+    let mut fields = IndexMap::new();
+
+    while !tokens.peek_is(Token::RBrace) {
+        tokens.skip_whitespace_and_newlines();
+        if tokens.peek_is(Token::RBrace) { break; }
+
+        // field_name или field_name*
+        let raw_name = tokens.expect_identifier()?;
+        let required = !raw_name.ends_with('*');
+        let field_name = raw_name.trim_end_matches('*').to_string();
+
+        tokens.expect(Token::Colon)?;
+        let ty = parse_type_expression(tokens, &doc.type_registry)?;
+
+        fields.insert(field_name.clone(), FieldDef {
+            name: field_name,
+            ty,
+            required,
+        });
+
+        // Разрешаем запятую или перенос строки как разделитель
+        tokens.skip_one_of(&[Token::Comma, Token::Newline]);
+    }
+
+    tokens.expect(Token::RBrace)?;
+    doc.schemas.insert(name.clone(), Schema { name, fields });
+
+    Ok(())
+}
+```
+
+---
+
+## Использование схемы в том же файле
+
+Схема, определённая в файле, может применяться к этому же файлу, если сразу после определения следуют пары ключ-значение — **без** `@derive`:
+
+```aam
+@schema Server {
+    host: string
+    port: i32
+    tls*: bool
+}
+
+# Значения ниже валидируются по схеме Server
+host = "localhost"
+port = 8080
+```
+
+:::info
+Когда блок `@schema` появляется в том же файле, что и данные ключ-значение, парсер должен автоматически установить эту схему как **активную** для валидации. Валидатор затем проверяет записи документа по ней по завершении разбора.
+:::
+
+---
+
+## Валидация схемы
+
+После завершения разбора валидатор применяет схему. Выполняются три проверки:
+
+### 1 — Наличие обязательных полей
+
+Для каждого поля, где `required == true`, записи документа должны содержать соответствующий ключ.
+
+```rust
+for (field_name, field_def) in &active_schema.fields {
+    if field_def.required && !doc.elements.contains_key(field_name) {
+        errors.push(AamlError::MissingRequiredField {
+            field: field_name.clone(),
+            schema: active_schema.name.clone(),
+        });
+    }
+}
+```
+
+### 2 — Отсутствие неизвестных полей
+
+Если активен строгий режим (рекомендуется), отклоняйте любой ключ, не объявленный в схеме:
+
+```rust
+for key in doc.elements.keys() {
+    if !active_schema.fields.contains_key(key) {
+        errors.push(AamlError::UnknownField {
+            field: key.clone(),
+            schema: active_schema.name.clone(),
+        });
+    }
+}
+```
+
+### 3 — Корректность типов
+
+Для каждой записи, которая *присутствует* в схеме, проверяйте, что значение соответствует объявленному типу (см. [Проверка типов](../validation/type-checking)).
+
+---
+
+## Сообщения об ошибках
+
+Каждая ошибка схемы должна идентифицировать имя схемы и проблемное поле:
+
+```
+Error: missing required field `port`
+  in schema `Server`
+  --> config.aam
+
+Error: unknown field `debug`
+  in schema `Server` (no such field declared)
+  --> config.aam:7:1
+```
+
+---
+
+## Вложенные схемы как типы
+
+Имя схемы может использоваться как тип поля внутри другой схемы. При валидации библиотека должна рекурсивно валидировать вложенное значение по указанной схеме:
+
+```aam
+@schema Address {
+    street: string
+    city: string
+}
+
+@schema User {
+    name: string
+    address: Address
+}
+```
+
+При валидации поля `address` найдите схему `Address` в реестре схем движка `AAML` и валидируйте вложенный объект по ней.

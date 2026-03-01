@@ -1,0 +1,23 @@
+{
+    "editor.fontSize": 22.5,
+    "editor.fontFamily": "'JetBrains Mono', 'Victor Mono', monospace",
+    "editor.minimap.enabled": false,
+    "workbench.activityBar.location": "hidden",
+    "workbench.sideBar.location": "left",
+    "workbench.statusBar.visible": false,
+    "editor.lineHeight": 1.6,
+    "editor.renderLineHighlight": "none",
+    "editor.scrollbar.vertical": "hidden",
+    "editor.scrollbar.horizontal": "hidden",
+    "editor.overviewRulerBorder": false,
+    "editor.hideCursorInOverviewRuler": true,
+    "workbench.editor.showTabs": "single",
+    "editor.glyphMargin": false,
+    "editor.folding": false,
+    "window.menuBarVisibility": "compact",
+    "zenMode.fullScreen": false,
+    "zenMode.hideLineNumbers": false,
+    "zenMode.hideStatusBar": true,
+    "zenMode.hideActivityBar": true,
+    "zenMode.centerLayout": false
+}

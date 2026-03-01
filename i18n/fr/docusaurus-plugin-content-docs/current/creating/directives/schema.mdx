@@ -1,0 +1,107 @@
+---
+sidebar_position: 3
+title: "@schema"
+description: Comment analyser et imposer des blocs @schema, les champs obligatoires vs optionnels et la validation de schéma.
+---
+
+# La Directive `@schema`
+
+La directive `@schema` **définit un contrat de données nommé**. Elle déclare quels champs un document doit (ou peut) contenir, ainsi que le type de chaque champ. Les bibliothèques doivent analyser ces définitions et les utiliser ensuite lors de la validation.
+
+```aam
+@schema Player {
+    name: string
+    score: i32
+    team*: string
+}
+```
+
+---
+
+## Syntaxe
+
+```
+@schema <Nom> {
+    <champ>:  <type>   # champ obligatoire
+    <champ>*: <type>   # champ optionnel
+}
+```
+
+Le corps peut être écrit sur une seule ligne (séparé par des virgules) ou sur plusieurs lignes (séparé par des sauts de ligne) :
+
+```aam
+# Multiligne (préféré pour la lisibilité)
+@schema Config {
+    host: string
+    port: i32
+    debug*: bool
+}
+
+# Inline (pratique pour les petits schémas)
+@schema Point {x: f64, y: f64}
+```
+
+Les deux formes sont sémantiquement identiques. Votre parser doit gérer les deux.
+
+---
+
+## Modificateurs de Champ
+
+| Syntaxe | Signification |
+|--------- |------------- |
+| `name: type` | **Obligatoire** — le champ *doit* être présent dans tout document utilisant ce schéma |
+| `name*: type` | **Optionnel** — le champ *peut* être omis ; son absence n'est pas une erreur |
+
+---
+
+## Utiliser un Schéma dans le Même Fichier
+
+Un schéma défini dans un fichier peut être appliqué à ce même fichier en faisant suivre immédiatement la définition par des paires clé-valeur — **sans** `@derive` :
+
+```aam
+@schema Server {
+    host: string
+    port: i32
+    tls*: bool
+}
+
+# Les valeurs ci-dessous sont validées contre le schéma Server
+host = "localhost"
+port = 8080
+```
+
+---
+
+## Validation de Schéma
+
+Une fois l'analyse terminée, le validateur applique le schéma. Il y a trois vérifications :
+
+### 1 — Champs obligatoires présents
+
+Pour chaque champ où `required == true`, les `entries` du document doivent contenir une clé correspondante.
+
+### 2 — Aucun champ inconnu
+
+Si le mode strict est actif (recommandé), rejetez toute clé qui n'est pas déclarée dans le schéma.
+
+### 3 — Correction de type
+
+Pour chaque entrée qui *apparaît* dans le schéma, vérifiez que la valeur correspond au type déclaré.
+
+---
+
+## Schémas Imbriqués comme Types
+
+Un nom de schéma peut être utilisé comme type de champ dans un autre schéma. Lors de la validation, la bibliothèque doit valider récursivement la valeur imbriquée par rapport au schéma référencé :
+
+```aam
+@schema Address {
+    street: string
+    city: string
+}
+
+@schema User {
+    name: string
+    address: Address
+}
+```

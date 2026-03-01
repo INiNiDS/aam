@@ -1,0 +1,22 @@
+{
+  "title": {
+    "message": "AAM AAM",
+    "description": "The title in the navbar"
+  },
+  "logo.alt": {
+    "message": "AAM Logo AAM",
+    "description": "The alt text of navbar logo"
+  },
+  "item.label.GitHub": {
+    "message": "GitHub AAM",
+    "description": "Navbar item with label GitHub"
+  },
+  "item.label.Tutorial": {
+    "message": "Учебник AAM",
+    "description": "Navbar item with label Tutorial"
+  },
+  "item.label.Blog": {
+    "message": "Блог AAM",
+    "description": "Navbar item with label Blog"
+  }
+}

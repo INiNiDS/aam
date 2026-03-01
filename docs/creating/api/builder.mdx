@@ -1,0 +1,308 @@
+---
+sidebar_position: 2
+title: Builder API
+description: How to implement a programmatic Builder API for generating .aam files from code.
+---
+
+# Builder API
+
+The Builder API lets users **generate valid `.aam` files programmatically** — without manually concatenating strings. A well-implemented builder is the serialization layer's public face.
+
+---
+
+## Why a Builder?
+
+Writing AAM text by hand is fine for small configs, but programmatic generation is needed when:
+
+- A tool auto-generates configuration files (e.g. a level editor).
+- Tests need to create minimal AAM fixtures without touching the filesystem.
+- A migration script converts another format (JSON, TOML, YAML) to AAM.
+
+The builder ensures the output is always syntactically valid AAM.
+
+---
+
+## Minimal Builder API
+
+The builder follows a **fluent / method-chaining** design. All `add_*` methods return `&mut Self` so calls can be chained:
+
+```rust
+use aam_rs::AamBuilder;
+
+let aam_text = AamBuilder::new()
+    .comment("Server configuration")
+    .import("shared/defaults.aam")
+    .blank_line()
+    .add("host", "localhost")
+    .add("port", 8080i32)
+    .add("debug", false)
+    .build();
+
+println!("{aam_text}");
+```
+
+Output:
+
+```aam
+# Server configuration
+@import "shared/defaults.aam"
+
+host = "localhost"
+port = 8080
+debug = false
+```
+
+---
+
+## Core Methods
+
+### `new() → AamBuilder`
+
+Creates an empty builder with no entries or directives.
+
+---
+
+### `comment(text: &str) → &mut Self`
+
+Appends a `# …` comment line. Multi-line strings produce multiple comment lines:
+
+```rust
+builder.comment("This is line 1\nThis is line 2");
+```
+
+```aam
+# This is line 1
+# This is line 2
+```
+
+---
+
+### `blank_line() → &mut Self`
+
+Inserts an empty line for readability. Has no effect on the parsed output; purely cosmetic.
+
+---
+
+### `import(path: &str) → &mut Self`
+
+Adds an `@import` directive:
+
+```rust
+builder.import("shared/constants.aam");
+```
+
+```aam
+@import "shared/constants.aam"
+```
+
+---
+
+### `derive(path: &str, schema: &str) → &mut Self`
+
+Adds a `@derive` directive with the qualified `file::Schema` path:
+
+```rust
+builder.derive("entities/base.aam", "Entity");
+```
+
+```aam
+@derive "entities/base.aam::Entity"
+```
+
+---
+
+### `add(key: &str, value: impl IntoAamValue) → &mut Self`
+
+Appends a `key = value` entry. The `IntoAamValue` trait is automatically implemented for all supported Rust types:
+
+| Rust type | AAM output |
+|-----------|-----------|
+| `&str` / `String` | `key = "value"` |
+| `i32` / `i64` | `key = 42` |
+| `f32` / `f64` | `key = 3.14` |
+| `bool` | `key = true` |
+| `[u8; 4]` (RGBA) | `key = #rrggbb` |
+| `Vec<T>` | `key = ["a", "b"]` |
+
+```rust
+builder
+    .add("name", "Alice")
+    .add("level", 10i32)
+    .add("active", true);
+```
+
+```aam
+name = "Alice"
+level = 10
+active = true
+```
+
+---
+
+### `schema(name: &str, fields: &[(&str, &str, bool)]) → &mut Self`
+
+Appends a `@schema` block. Each field tuple is `(field_name, type_str, required)`:
+
+```rust
+builder.schema("Player", &[
+    ("name",  "string", true),
+    ("score", "i32",    true),
+    ("team",  "string", false),  // optional
+]);
+```
+
+```aam
+@schema Player {
+    name: string
+    score: i32
+    team*: string
+}
+```
+
+---
+
+### `type_alias(name: &str, ty: &str) → &mut Self`
+
+Appends a `@type` directive:
+
+```rust
+builder.type_alias("PlayerId", "i32");
+```
+
+```aam
+@type PlayerId = i32
+```
+
+---
+
+### `build() → String`
+
+Consumes the builder and returns the final AAM text as a `String`. The output is always terminated by a trailing newline.
+
+```rust
+let text: String = builder.build();
+```
+
+---
+
+### `write_to_file(path: &str) → Result<(), AamlError>`
+
+Convenience method: calls `build()` and writes the result to a file, creating parent directories if needed.
+
+```rust
+builder.write_to_file("output/config.aam")?;
+```
+
+---
+
+## Internal Implementation
+
+The builder is backed by a `Vec<AamNode>` that records nodes in insertion order:
+
+```rust
+pub enum BuilderNode {
+    Comment(String),
+    BlankLine,
+    Import(String),
+    Derive { file: String, schema: String },
+    Schema(Schema),
+    TypeAlias { name: String, ty: String },
+    Entry { key: String, value: String }, // Internal representation of value
+}
+
+pub struct AamBuilder {
+    nodes: Vec<BuilderNode>,
+}
+```
+
+`build()` iterates over `nodes` and formats each one:
+
+```rust
+impl AamBuilder {
+    pub fn build(self) -> String {
+        let mut out = String::new();
+        for node in self.nodes {
+            match node {
+                BuilderNode::Comment(text) => {
+                    for line in text.lines() {
+                        out.push_str(&format!("# {line}\n"));
+                    }
+                }
+                BuilderNode::BlankLine => out.push('\n'),
+                BuilderNode::Import(path) => {
+                    out.push_str(&format!("@import \"{path}\"\n"));
+                }
+                BuilderNode::Derive { file, schema } => {
+                    out.push_str(&format!("@derive \"{file}::{schema}\"\n"));
+                }
+                BuilderNode::TypeAlias { name, ty } => {
+                    out.push_str(&format!("@type {name} = {ty}\n"));
+                }
+                BuilderNode::Schema(s) => {
+                    out.push_str(&format_schema(&s));
+                }
+                BuilderNode::Entry { key, value } => {
+                    out.push_str(&format!("{key} = {}\n", value)); // Assuming string is pre-formatted
+                }
+            }
+        }
+        out
+    }
+}
+```
+
+---
+
+## Full Example
+
+```rust
+use aam_rs::AamBuilder;
+
+fn generate_level_config(level_id: u32, title: &str) -> String {
+    AamBuilder::new()
+        .comment(&format!("Auto-generated level config — Level {level_id}"))
+        .comment("Do not edit by hand.")
+        .blank_line()
+        .import("shared/defaults.aam")
+        .derive("schemas/level.aam", "Level")
+        .blank_line()
+        .add("id",    level_id as i32)
+        .add("title", title)
+        .add("spawn", [0.0f64, 1.0, 0.0].as_slice())  // vector3
+        .add("tags",  vec!["outdoor", "forest"])
+        .build()
+}
+```
+
+Output:
+
+```aam
+# Auto-generated level config — Level 7
+# Do not edit by hand.
+
+@import "shared/defaults.aam"
+@derive "schemas/level.aam::Level"
+
+id = 7
+title = "Forest Crossing"
+spawn = {x: 0.0, y: 1.0, z: 0.0}
+tags = ["outdoor", "forest"]
+```
+
+---
+
+## Validation on Build
+
+`build()` **should not** silently produce invalid AAM. If a schema is active (added via `derive()`) and required fields are missing, `build()` should return an error (or a `Result<String, AamlError>`) rather than writing an invalid file:
+
+```rust
+pub fn build(self) -> Result<String, AamlError> {
+    let text = self.render();
+    // Use the Loader to parse and validate the generated text as a final sanity check
+    AAML::parse(&text)?;
+    Ok(text)
+}
+```
+
+This round-trip check catches bugs in your own builder implementation and gives users an early warning if they forgot a required field.
+

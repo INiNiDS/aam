@@ -1,0 +1,102 @@
+---
+sidebar_position: 1
+title: "@import"
+description: Como implementar a diretiva @import, resolução de ficheiros e proteção de dependências cíclicas.
+---
+
+# A Diretiva `@import`
+
+A diretiva `@import` instrui o parser a **fundir um ficheiro `.aam` externo** no documento atual. Todos os pares chave-valor, aliases de tipo e definições de schema do ficheiro importado ficam disponíveis no âmbito atual.
+
+```aam
+@import caminho/para/outro.aam
+```
+
+---
+
+## Sintaxe
+
+`@import` recebe uma única **string citada** — o caminho para o ficheiro a importar:
+
+```aam
+@import "shared/defaults.aam"
+@import "../common/colors.aam"
+```
+
+Os caminhos são resolvidos **relativamente ao ficheiro que contém a diretiva**, não ao diretório de trabalho do processo.
+
+---
+
+## O que `@import` Faz
+
+Quando o parser encontra `@import "ficheiro.aam"`:
+
+1. **Resolve o caminho** relativo ao diretório do ficheiro atual.
+2. **Canonicaliza** (resolve `..`, symlinks, etc.) para obter uma identidade estável para deteção de ciclos.
+3. **Analisa o ficheiro importado** recursivamente usando a mesma instância do parser e o mesmo conjunto `visited`.
+4. **Funde o resultado** no documento atual usando semântica **Child-Wins-on-Conflict** — se uma chave já existir no ficheiro importador, o valor do ficheiro importador é mantido.
+
+### Semântica de fusão
+
+| Entidade | Comportamento de importação |
+|--------| -------------------------|
+| Entradas chave-valor | Fundidas; o ficheiro atual vence em caso de conflito |
+| Definições `@schema` | Fundidas no registo de schemas |
+| Aliases `@type` | Fundidos no registo de tipos |
+| `@import` aninhado | Resolvido recursivamente |
+
+---
+
+## Proteção de Dependências Cíclicas {#cyclic-dependency-protection}
+
+:::warning Anti-Ciclo — Esta secção é obrigatória implementar
+Sem deteção de ciclos, um par de ficheiros que se importam mutuamente causará **recursão infinita** e um estouro de pilha. Esta proteção não é opcional.
+:::
+
+### O problema
+
+Considere os dois ficheiros seguintes:
+
+```aam
+# a.aam
+@import "b.aam"
+x = 1
+```
+
+```aam
+# b.aam
+@import "a.aam"
+y = 2
+```
+
+Sem proteção, analisar `a.aam` desencadeia a análise de `b.aam`, que desencadeia novamente a análise de `a.aam` — indefinidamente.
+
+### A solução: um conjunto "Ficheiros Visitados"
+
+Mantenha um `HashSet<PathBuf>` (ou equivalente na sua linguagem) de **caminhos canónicos** que estão a ser processados atualmente na pilha de chamadas. Antes de processar qualquer importação:
+
+1. Verifique se o caminho canónico já está no conjunto.
+2. **Se sim** — retorne imediatamente um erro `CyclicImport`.
+3. **Se não** — adicione-o, faça a recursão e depois **remova-o** após o retorno da chamada recursiva.
+
+### Importações em diamante são permitidas
+
+`base.aam` é importado tanto por `a.aam` como por `b.aam`. Isto **não** é um ciclo — são caminhos de travessia separados. O padrão visited-set trata corretamente desta situação porque `base.aam` é removido do conjunto após o términus do primeiro ramo, e pode portanto ser entrado novamente a partir do segundo ramo.
+
+---
+
+## Cache
+
+Analisar o mesmo ficheiro múltiplas vezes durante uma única chamada `load()` é ineficiente. Mantenha uma **cache de documentos** (`HashMap<PathBuf, AAML>`) que é separada do conjunto `visited`:
+
+```rust
+pub struct ParseContext {
+    /// Files currently on the call stack — used for cycle detection.
+    visited: HashSet<PathBuf>,
+
+    /// Already-parsed documents — avoids redundant I/O and parsing.
+    cache: HashMap<PathBuf, AAML>,
+}
+```
+
+A cache tem como chave o caminho canónico. Antes de analisar um ficheiro, verifique primeiro a cache. O conjunto visited e a cache servem propósitos diferentes e não devem ser confundidos.

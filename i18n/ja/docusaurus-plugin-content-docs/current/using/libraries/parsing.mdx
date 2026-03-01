@@ -1,0 +1,110 @@
+---
+sidebar_position: 2
+title: "パース"
+description: "プロジェクトでAAMファイルをパースする方法"
+---
+
+# パース
+
+このページでは、`aam-rs`（Rust）または `aam-py`（Python）を使用してAAMコンテンツをアプリケーションに読み込みパースするすべての方法を説明します。
+
+## ファイルから
+
+最も一般的なエントリーポイントは `AAML::load` で、ディスクから `.aam` ファイルを読み取り、すべてのディレクティブを処理し、すぐに使用できる `AAML` インスタンスを返します。
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::load("config.aam").unwrap();
+println!("{}", cfg.find_obj("host").unwrap());
+```
+
+```python
+from aam_py import AAML
+
+cfg = AAML.load("config.aam")
+print(cfg.find_obj("host"))
+```
+
+## 文字列から
+
+すでにメモリ内に文字列としてあるAAMコンテンツをパースするには `AAML::parse` を使用します。これはインライン設定、ユニットテスト、またはリモートソースから取得したコンテンツに便利です。
+
+```rust
+use aam_rs::aaml::AAML;
+
+let source = "host = localhost\nport = 8080";
+let cfg = AAML::parse(source).unwrap();
+
+assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+```
+
+```python
+from aam_py import AAML
+
+source = "host = localhost\nport = 8080"
+cfg = AAML.parse(source)
+
+assert cfg.find_obj("host") == "localhost"
+```
+
+## 複数のソースのマージ
+
+設定が複数のファイルや文字列から来る場合があります。`merge_content` と `merge_file` を使用して、既存の `AAML` インスタンスに追加のコンテンツを読み込みます。キーが既存のインスタンスとマージされるソースの両方に存在する場合、**受信値が勝ちます**。
+
+```rust
+use aam_rs::aaml::AAML;
+
+let mut cfg = AAML::new();
+cfg.merge_file("base.aam").unwrap();
+cfg.merge_content("debug = true").unwrap(); // 'debug' を追加またはオーバーライド
+```
+
+```python
+from aam_py import AAML
+
+cfg = AAML()
+cfg.merge_file("base.aam")
+cfg.merge_content("debug = true")   # 'debug' を追加またはオーバーライド
+```
+
+## パース時に処理されるディレクティブ
+
+すべてのAAMディレクティブはパース中に自動的に解決されます — `load` または `parse` 後に追加のメソッドを呼び出す必要はありません：
+
+| ディレクティブ | 効果 |
+|-------------|------|
+| `@import` | 別の `.aam` ファイルをインラインで読み込みマージします。 |
+| `@derive` | 別のファイルからキーと値のペアを継承します；キーの競合ではchildが勝ちます。 |
+| `@schema` | 名前付きスキーマを登録し、フィールドごとの自動型チェックを有効にします。 |
+| `@type` | スキーマフィールド宣言で使用するカスタム型エイリアスを登録します。 |
+
+## エラーハンドリング
+
+```rust
+use aam_rs::aaml::AAML;
+use aam_rs::error::AamlError;
+
+match AAML::load("config.aam") {
+    Ok(cfg) => {
+        println!("host = {}", cfg.find_obj("host").unwrap());
+    }
+    Err(AamlError::IoError(e)) => {
+        eprintln!("ファイルを読み取れませんでした: {e}");
+    }
+    Err(AamlError::ParseError { line, content, details }) => {
+        eprintln!("{}行目でパースエラー: '{}' — {}", line, content, details);
+    }
+    Err(e) => eprintln!("予期しないエラー: {e}"),
+}
+```
+
+```python
+from aam_py import AAML, AamlError
+
+try:
+    cfg = AAML.load("config.aam")
+    print("host =", cfg.find_obj("host"))
+except AamlError as e:
+    print(f"エラー: {e}")
+```

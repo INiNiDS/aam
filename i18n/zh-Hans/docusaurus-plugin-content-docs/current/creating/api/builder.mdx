@@ -1,0 +1,87 @@
+---
+sidebar_position: 2
+title: Builder API
+description: "如何实现程序化Builder API以从代码生成.aam文件。"
+---
+
+# Builder API
+
+Builder API让用户**以程序方式生成有效的`.aam`文件**——无需手动连接字符串。实现良好的构建器是序列化层的公开面。
+
+---
+
+## 最小Builder API
+
+构建器遵循**流畅/方法链**设计。所有 `add_*` 方法返回 `&mut Self`，因此可以链式调用：
+
+```rust
+use aam_rs::AamBuilder;
+
+let aam_text = AamBuilder::new()
+    .comment("服务器配置")
+    .import("shared/defaults.aam")
+    .blank_line()
+    .add("host", "localhost")
+    .add("port", 8080i32)
+    .add("debug", false)
+    .build();
+
+println!("{aam_text}");
+```
+
+输出：
+
+```aam
+# 服务器配置
+@import "shared/defaults.aam"
+
+host = "localhost"
+port = 8080
+debug = false
+```
+
+---
+
+## 核心方法
+
+### `new() → AamBuilder`
+
+创建一个没有条目或指令的空构建器。
+
+### `comment(text: &str) → &mut Self`
+
+追加一个 `# …` 注释行。多行字符串会产生多个注释行。
+
+### `blank_line() → &mut Self`
+
+插入一个空行以提高可读性。对解析输出没有影响；纯装饰性。
+
+### `import(path: &str) → &mut Self`
+
+添加一个 `@import` 指令。
+
+### `derive(path: &str, schema: &str) → &mut Self`
+
+使用限定的 `file::Schema` 路径添加 `@derive` 指令。
+
+### `add(key: &str, value: impl IntoAamValue) → &mut Self`
+
+追加一个 `key = value` 条目。
+
+### `build() → String`
+
+消耗构建器并将最终AAM文本作为 `String` 返回。输出始终以尾部换行符终止。
+
+### `write_to_file(path: &str) → Result<(), AamlError>`
+
+方便方法：调用 `build()` 并将结果写入文件，必要时创建父目录。
+
+```rust
+builder.write_to_file("output/config.aam")?;
+```
+
+---
+
+## 构建时的验证
+
+`build()` **不应该**静默生成无效的AAM。如果Schema处于活动状态（通过 `derive()` 添加）且必要字段缺失，`build()` 应返回错误，而不是写入无效文件。

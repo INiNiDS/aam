@@ -1,25 +1,91 @@
 ---
 sidebar_position: 2
+description: "Learn how to use types in your project"
 ---
 
 # Types
-## Primitive types
-AAM have some built-in primitive types, such as `string`, `i32`, `f64`. `bool`, and `color` (accepts hex color codes like `#ff0000` or `#00ff00`).
+
+## Primitive Types
+AAM has several built-in primitive types, such as `string`, `i32`, `f64`, `bool`, and `color` (which accepts hex color codes like `#ff0000` or `#00ff00`).
+
 ```aam
-schema User {
+@schema User {
     name: string
     age: i32
-    isAdmin: bool
-    profileColor: color
+    is_admin: bool
+    profile_color: color
 }
 ```
+
 ## Other Built-in Types
-AAM also have other built-in types.
+AAM also provides extended built-in types for specific use cases.
+
 ### Physics Types
-To get to the physics types, you need to write `types::physics::type`, for example:
+
+To access physics-related types, you need to use the `types::physics` namespace. For example:
+
 ```aam
-schema PhysicsObject {
-    meters: types::physics::meter
+@schema PhysicsObject {
+    length: types::physics::meter
 }
 ```
-All physics types you can check in the [Extra types](https://aam-lang.org/docs/types/physics).
+
+You can find a complete list of physics types in the [Extra types documentation](../types/physics).
+### Math Types
+To get math types, you need to use `types::math` namespace, for example:
+```aam
+@schema MathObjects {
+    vector: types::math::vector2
+}
+```
+All math types can be found in the [Extra types documentation](../types/math).
+### Time
+AAM supports time-related types. For datetime and duration, the ISO 8601 format is used:
+```aam
+@schema TimeObjects {
+    timestamp: types::time::datetime # e.g., "2024-01-01T12:00:00Z"
+    cooldown: types::time::duration # e.g., "PT1H30M" for 1 hour and 30 minutes
+    units: types::time::hour
+}
+```
+For a full list of available time types, visit the [Extra types documentation](../types/time).
+### Lists
+AAM also supports list types, which allow you to define a list of elements of a specific type. For example:
+```aam
+@schema Inventory {1
+    items: list<string>
+}
+```
+and create list:
+```aam
+items = ["Hello", "World"]
+```
+## Own types
+### Schemas
+You can use your own schemas as types. For example:
+```aam
+@schema User {
+    name: string
+    age: i32
+}
+
+@schema ServerUsers {
+    users: list<User>
+}
+```
+### Custom Types
+You can declare your own type using type directive (`@type`):
+```aam
+@type Name = string
+```
+This allows you to create custom types that can be reused throughout your configuration, improving readability and maintainability.
+You can also create new types on non-primitive types, for example:
+```aam
+@type FromLast = types::time::duration
+```
+Or use your own types in other type declaration:
+```aam
+@type Name = string
+@type FirstName = Name
+@type LastName = Name
+```

@@ -1,0 +1,72 @@
+---
+sidebar_position: 4
+title: "@type"
+description: Comment implémenter les définitions d'alias @type et maintenir un registre de types interne.
+---
+
+# La Directive `@type`
+
+La directive `@type` permet à un utilisateur de **déclarer un alias nommé** pour tout type existant — primitif, complexe ou un autre alias. Les bibliothèques doivent enregistrer ces alias lors de l'analyse afin que chaque référence de type ultérieure (dans les champs `@schema`, les annotations clé-valeur, etc.) puisse être résolu vers sa forme canonique.
+
+```aam
+@type PlayerId = i32
+@type SpawnPoint = types::math::vector3
+@type Timeout = types::time::duration
+```
+
+---
+
+## Syntaxe
+
+```
+@type <Nom> = <expression_de_type>
+```
+
+- `Nom` doit être en **PascalCase** (p. ex., `UserId`, `WorldPosition`).
+- `expression_de_type` est tout type AAM valide — un primitif, un type complexe avec namespace, ou un autre alias précédemment déclaré.
+- Les alias auto-référentiels ou de référence anticipée **ne sont pas** autorisés ; les alias ne peuvent faire référence qu'à des types déjà enregistrés.
+
+---
+
+## Ce que fait `@type`
+
+Lorsque le parser rencontre `@type Alias = UnType` :
+
+1. Analyse `UnType` comme une expression de type.
+2. Résout `UnType` vers son `AamType` canonique en utilisant le `type_registry` actuel.
+3. Enregistre le mapping `Alias → AamType canonique` dans le `type_registry`.
+4. À partir de ce point, `Alias` peut être utilisé partout où un type est attendu.
+
+---
+
+## Chaînes d'Alias
+
+Les alias peuvent être chaînés — un alias peut faire référence à un autre :
+
+```aam
+@type Name = string
+@type FirstName = Name
+@type LastName = Name
+```
+
+Votre fonction `parse_type_expression` doit rechercher récursivement dans le registre jusqu'à trouver un type non-alias.
+
+---
+
+## Règles de Portée
+
+Les alias de type ont une **portée de fichier par défaut**. Lorsqu'un fichier est importé via `@import`, ses alias de type sont fusionnés dans le `type_registry` du document importateur (suivant la sémantique Child-Wins-on-Conflict, de même que les entrées clé-valeur).
+
+---
+
+## Noms Réservés
+
+Les noms suivants **ne doivent pas** être utilisés comme noms d'alias — ce sont des identifiants de types intégrés :
+
+| Noms réservés |
+|--------------|
+| `i32`, `f64`, `string`, `bool`, `color` |
+| `list` |
+| Tout nom dans les namespaces `math::`, `physics::`, `time::` |
+
+Retournez une erreur `AamlError::ReservedTypeName` si un utilisateur tente de masquer un type intégré.

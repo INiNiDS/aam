@@ -1,0 +1,98 @@
+---
+sidebar_position: 3
+description: "AAML構造体、FoundValue、AamlErrorの完全なAPIリファレンス"
+---
+
+# aam-rs APIリファレンス
+
+`aam-rs` はAAM設定ファイルのパース、バリデーション、ビルドのための公式Rustライブラリです。PythonライブラリはAAM `aam-py` 同じAPIを公開しています — すべての例で両方の言語を示します。
+
+---
+
+## `AAML`
+
+すべてのAAM操作のメインエントリーポイント。`AAML` はパースされたキーと値のマップ、登録された型定義、スキーマ定義を保持します。
+
+### コンストラクタ
+
+#### `AAML::parse`
+
+AAM文字列をパースして新しい完全に設定された `AAML` インスタンスを返します。
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("host = localhost\nport = 8080").unwrap();
+assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse("host = localhost\nport = 8080")
+assert cfg.find_obj("host") == "localhost"
+```
+
+---
+
+#### `AAML::load`
+
+ディスクからAAMファイルを読み取り、新しい `AAML` インスタンスを返します。
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::load("config.aam").unwrap();
+println!("{}", cfg.find_obj("host").unwrap());
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.load("config.aam")
+print(cfg.find_obj("host"))
+```
+
+---
+
+### ルックアップ
+
+#### `find_obj`
+
+主要なルックアップメソッド。マップで `key` を検索します。一致するキーが見つからない場合、自動的に**逆引きルックアップ**を実行します。
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("a = b").unwrap();
+
+// 順方向ルックアップ
+assert_eq!(cfg.find_obj("a").unwrap().as_str(), "b");
+
+// 逆引きルックアップ（値で検索）
+assert_eq!(cfg.find_obj("b").unwrap().as_str(), "a");
+```
+
+---
+
+#### `find_deep`
+
+終端値に達するかサイクルが検出されるまで `key → value → key` ルックアップのチェーンをたどります。
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("a = b\nb = c").unwrap();
+// たどる: a → b → c  (cは終端 — キー "c" は存在しない)
+assert_eq!(cfg.find_deep("a").unwrap().as_str(), "c");
+```
+
+---
+
+## `AamlError`
+
+| バリアント | 説明 |
+|----------|------|
+| `IoError(io::Error)` | ファイル読み取り時にI/Oエラーが発生しました。 |
+| `ParseError { line, content, details }` | ソース行が有効なAAMLステートメントとしてパースできませんでした。 |
+| `SchemaValidationError { schema, field, type_name, details }` | パースまたはバリデーション中にスキーマ制約が違反されました。 |

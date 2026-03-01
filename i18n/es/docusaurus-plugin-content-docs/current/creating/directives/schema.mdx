@@ -1,0 +1,107 @@
+---
+sidebar_position: 3
+title: "@schema"
+description: Cómo analizar e imponer bloques @schema, campos obligatorios vs opcionales y validación de schema.
+---
+
+# La Directiva `@schema`
+
+La directiva `@schema` **define un contrato de datos con nombre**. Declara qué campos debe (o puede) contener un documento, junto con el tipo de cada campo. Las bibliotecas deben analizar estas definiciones y usarlas posteriormente durante la validación.
+
+```aam
+@schema Player {
+    name: string
+    score: i32
+    team*: string
+}
+```
+
+---
+
+## Sintaxis
+
+```
+@schema <Nombre> {
+    <campo>:  <tipo>   # campo obligatorio
+    <campo>*: <tipo>   # campo opcional
+}
+```
+
+El cuerpo puede escribirse en una sola línea (separado por comas) o en múltiples líneas (separado por saltos de línea):
+
+```aam
+# Multilínea (preferido para legibilidad)
+@schema Config {
+    host: string
+    port: i32
+    debug*: bool
+}
+
+# Inline (conveniente para schemas pequeños)
+@schema Point {x: f64, y: f64}
+```
+
+Ambas formas son semánticamente idénticas. Tu parser debe manejar ambas.
+
+---
+
+## Modificadores de Campo
+
+| Sintaxis | Significado |
+|--------- |---------    |
+| `name: type` | **Obligatorio** — el campo *debe* estar presente en cualquier documento que use este schema |
+| `name*: type` | **Opcional** — el campo *puede* omitirse; su ausencia no es un error |
+
+---
+
+## Usar un Schema en el Mismo Fichero
+
+Un schema definido en un fichero puede aplicarse a ese mismo fichero siguiendo inmediatamente la definición con pares clave-valor — **sin** un `@derive`:
+
+```aam
+@schema Server {
+    host: string
+    port: i32
+    tls*: bool
+}
+
+# Los valores de abajo se validan contra el schema Server
+host = "localhost"
+port = 8080
+```
+
+---
+
+## Validación de Schema
+
+Una vez completado el análisis, el validador hace cumplir el schema. Hay tres comprobaciones:
+
+### 1 — Campos obligatorios presentes
+
+Para cada campo donde `required == true`, las `entries` del documento deben contener una clave correspondiente.
+
+### 2 — Sin campos desconocidos
+
+Si el modo estricto está activo (recomendado), rechaza cualquier clave que no esté declarada en el schema.
+
+### 3 — Corrección de tipo
+
+Para cada entrada que *aparece* en el schema, verifica que el valor coincide con el tipo declarado.
+
+---
+
+## Schemas Anidados como Tipos
+
+Un nombre de schema puede usarse como tipo de campo dentro de otro schema. Al validar, la biblioteca debe validar recursivamente el valor anidado contra el schema referenciado:
+
+```aam
+@schema Address {
+    street: string
+    city: string
+}
+
+@schema User {
+    name: string
+    address: Address
+}
+```

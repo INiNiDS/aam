@@ -1,0 +1,130 @@
+---
+sidebar_position: 6
+title: Estándares de API
+description: Estándares entre lenguajes que todas las bibliotecas AAM deben seguir para garantizar la interoperabilidad y una experiencia de desarrollador consistente.
+---
+
+# Estándares de API
+
+Esta página define los **estándares entre lenguajes** que todas las bibliotecas AAM deben cumplir. Seguir estos estándares garantiza que los ficheros AAM escritos para una biblioteca funcionen correctamente con otra, y que los desarrolladores que cambian de lenguaje encuentren una API familiar. Usamos el Motor de Referencia (`aam-rs`) como línea base.
+
+---
+
+## Métodos de API Estándar
+
+Para proporcionar una experiencia consistente de "Motor de Configuración", las bibliotecas deben implementar los siguientes métodos principales (o sus equivalentes idiomáticos más cercanos en el lenguaje objetivo).
+
+### 1. API de Loader Principal
+
+Estos métodos gestionan el análisis y la fusión de texto bruto en la estructura `AAML`:
+
+| Método Genérico | Descripción |
+|---|---|
+| `parse(content: String)` | Analiza una string bruta en el objeto en memoria. |
+| `load(file_path: Path)` | Carga y analiza un fichero del disco, resolviendo las directivas `@import` automáticamente. |
+| `merge_content(content: String)` | Analiza una string y la fusiona en el objeto *actual*, sobrescribiendo las claves existentes. |
+| `merge_file(file_path: Path)` | Carga un fichero y lo fusiona en el objeto actual. |
+
+### 2. API de Consulta
+
+Estos métodos controlan cómo los desarrolladores leen del árbol:
+
+| Método Genérico | Descripción |
+|---|---|
+| `find_obj(key: String)` | Búsqueda bidireccional inteligente. Si `key` existe, retorna su valor. Si no, retorna la clave cuyo valor es `key`. |
+| `find_deep(key: String)` | Búsqueda recursiva. Sigue la cadena de valores hasta llegar a un valor terminal que no es una clave. ¡Debe incluir detección de ciclos! |
+| `find_key(value: String)` | Búsqueda inversa estricta. Encuentra la primera clave que contiene el valor dado. |
+
+### 3. API de Constructor
+
+El constructor `AAMBuilder` debe proporcionar:
+
+| Método Genérico | Descripción |
+|---|---|
+| `add_line(key, value)` | Añade un par `key = value` estándar. |
+| `comment(text)` | Añade una línea comenzando con `# `. |
+| `schema(name, fields[])` | Produce una directiva `@schema` inline. |
+| `schema_multiline(...)` | Produce una directiva `@schema` multilínea. |
+| `derive(path, schemas[])` | Produce una directiva `@derive`. |
+| `type_alias(alias, type)` | Produce una directiva `@type`. |
+| `to_file(path)` / `to_string()` | Vuelca el constructor determinístico al disco o a memoria. |
+
+---
+
+## Versionado
+
+Las bibliotecas deben seguir el [Versionado Semántico](https://semver.org/):
+
+- Una versión **patch** (`1.0.x`) puede corregir bugs sin cambiar el comportamiento.
+- Una versión **minor** (`1.x.0`) puede agregar nuevas funcionalidades opcionales.
+- Una versión **major** (`x.0.0`) puede introducir cambios de API de ruptura.
+
+El `README` de la biblioteca debe indicar claramente qué **versión de especificación AAM** implementa (p. ej., `AAM 1.0`).
+
+---
+
+## Gestión de Errores
+
+Todos los métodos públicos que pueden fallar deben retornar un tipo de resultado estructurado, **nunca** entrar en pánico ni lanzar una excepción sin tipo en un error del usuario:
+
+| Lenguaje | Patrón esperado |
+|-------------|----------------------------------------------|
+| Rust        | `Result<T, AamlError>`                       |
+| Go          | `(T, error)`                                 |
+| Python      | lanzar `AamlError` (subclase de `Exception`) |
+| TypeScript  | lanzar `AamlError` (subclase de `Error`)     |
+| Java/Kotlin | lanzar `AamlException` (verificada o documentada)|
+
+Las variantes de error deben estar documentadas. Como mínimo, distinguir entre:
+
+- **Errores de I/O** (fichero no encontrado, permiso denegado)
+- **Errores de análisis** (sintaxis inválida), incluyendo números de línea y columna
+- **Restricciones de búsqueda** (clave no encontrada)
+
+---
+
+## Salida Determinística
+
+La salida de serialización debe ser **determinística** para una entrada dada. Ejecutar `builder.to_string()` dos veces en el mismo documento en memoria debe producir texto idéntico byte a byte. Esto permite que las herramientas hagan diff de ficheros `.aam` de forma fiable.
+
+---
+
+## Espacios en Blanco y Formateo
+
+Al serializar, los constructores deben producir una salida que cumpla las reglas de formateo de AAM:
+
+- Exactamente **un espacio** en cada lado de `=`.
+- Las directivas (`@import`, `@schema`, etc.) aparecen **antes** de las entradas clave-valor.
+- Los cuerpos de schema inline usan comas; los cuerpos multilínea usan saltos de línea.
+- Sin espacios en blanco al final de ninguna línea.
+- El fichero termina con exactamente **un carácter de nueva línea**.
+
+---
+
+## Codificación
+
+Todos los ficheros `.aam` están codificados en **UTF-8**. Las bibliotecas deben:
+
+- Leer ficheros como UTF-8 y retornar un error claro si el fichero no es UTF-8 válido.
+- Escribir ficheros como UTF-8 sin BOM.
+
+---
+
+## Seguridad de Hilos
+
+Los objetos `AAML` analizados deben ser **seguros para lectura en hilos**. Si el lenguaje lo admite, marca el tipo como `Send + Sync` (Rust) o equivalente, para que los documentos puedan compartirse entre hilos sin bloqueo.
+
+Si tu biblioteca expone un constructor mutable (`AAMBuilder`), este **no** necesita ser seguro para hilos por defecto, pero documéntalo claramente.
+
+---
+
+## Suite de Pruebas
+
+Cada biblioteca debe incluir una suite de pruebas que cubra:
+
+- [ ] Análisis básico de `key = value` para cada tipo primitivo
+- [ ] Resolución de fichero `@import` y anexión
+- [ ] Corrección de formateo `@schema`
+- [ ] `find_obj` identifica correctamente las claves inversas
+- [ ] `find_deep` previene bucles infinitos en dependencias `A -> A`
+- [ ] Viaje de ida y vuelta del serializador: `parse(builder.to_string()) == estado_analizado`

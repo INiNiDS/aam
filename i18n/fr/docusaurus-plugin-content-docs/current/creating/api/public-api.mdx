@@ -1,0 +1,111 @@
+---
+sidebar_position: 1
+title: API Publique
+description: Un design d'API publique standardisé pour les bibliothèques AAM afin que différentes implémentations se sentent cohérentes.
+---
+
+# Design d'API Publique
+
+Une API publique bien conçue rend votre bibliothèque intuitive pour les utilisateurs finaux et cohérente avec d'autres implémentations AAM entre langages. Cette page propose une **surface d'API standard minimale** que chaque bibliothèque AAM devrait exposer.
+
+:::note Conventions de nommage
+Les noms de méthodes dans ce document utilisent `snake_case`. Adaptez la casse aux idiomes de votre langage cible — `camelCase` en Java/JavaScript, `PascalCase` pour les méthodes publiques en C#, etc. Le contrat de comportement doit rester le même.
+:::
+
+---
+
+## Points d'Entrée Principaux
+
+### `parse(source: string) → AAML`
+
+Analyse une chaîne AAM brute déjà en mémoire. **N'effectue** aucune I/O sur le système de fichiers.
+
+- Résout les directives `@schema` et `@type` inline.
+- **Ne résout pas** `@import` ou `@derive` (pas de chemins de fichier disponibles). Si la source contient ces directives, retourne une erreur `AamlError::DirectiveRequiresFileContext`.
+- Exécute automatiquement la validation du schéma actif après l'analyse.
+
+---
+
+### `load(path: string) → AAML`
+
+Lit un fichier `.aam` depuis le disque et retourne un document entièrement résolu et validé.
+
+- Résout toutes les directives `@import` et `@derive` relativement au propre répertoire du fichier.
+- Active automatiquement la protection contre les dépendances cycliques.
+- Exécute automatiquement le validateur après l'analyse.
+
+C'est la **méthode principale** pour la plupart des utilisateurs de la bibliothèque.
+
+---
+
+## Lire des Valeurs via le Moteur de Requête
+
+### `find_obj(key: &str) → Option<FoundValue>`
+
+Recherche bidirectionnelle intelligente. Retourne le `FoundValue` (un wrapper de chaîne) pour la clé donnée. Si la clé n'existe pas directement, il suppose que l'argument était une valeur et effectue une recherche inversée pour trouver la clé correspondante.
+
+---
+
+### `find_deep(key: &str) → Option<FoundValue>`
+
+Recherche profonde récursive. Conçue pour suivre les chaînes d'alias AAM (p. ex., `current = base`, `base = /dir`). Doit implémenter la détection anti-boucle.
+
+---
+
+### `find_key(value: &str) → Option<String>`
+
+Recherche inversée stricte. Recherche dans les éléments AAML pour trouver la première clé contenant la valeur désignée exacte.
+
+---
+
+## Introspection de Schéma
+
+### `schema(name: &str) → Option<&Schema>`
+
+Recherche une définition de schéma analysée par son nom.
+
+---
+
+### `validate() → Result<(), Vec<AamlError>>`
+
+Ré-exécute le validateur contre l'état actuel du document. Normalement appelé automatiquement par `load()` et `parse()`, mais exposé pour les cas où le document a été muté programmatiquement après l'analyse.
+
+Retourne **toutes** les erreurs de validation à la fois, pas seulement la première.
+
+---
+
+## Gestion des Erreurs
+
+Toutes les méthodes pouvant échouer doivent retourner un type `Result` structuré, pas une panique ou une chaîne brute. Le type d'erreur doit être un enum afin que les consommateurs puissent faire du pattern-matching sur les variantes :
+
+```rust
+pub enum AamlError {
+    Io(std::io::Error),
+    Parse { line: u32, col: u32, message: String },
+    TypeMismatch { key: String, expected: String, found: String },
+    MissingRequiredField { field: String, schema: String },
+    UnknownField { field: String, schema: String },
+    CyclicImport { path: PathBuf },
+    SchemaNotFound { name: String, file: PathBuf },
+    UnknownType { name: String },
+    TypeAliasCycle,
+}
+```
+
+---
+
+## Liste de Vérification Minimale d'API
+
+Une bibliothèque AAM conforme doit implémenter au minimum :
+
+| Méthode | Requis |
+|--------| -------|
+| `parse(source)` | ✅ |
+| `load(path)` | ✅ |
+| `find_obj(key)` | ✅ |
+| `find_deep(key)` | ✅ |
+| `find_key(value)` | ✅ |
+| `validate()` | ✅ |
+| `schema(name)` | Recommandé |
+| `load_from_reader(reader, base_dir)` | Recommandé |
+| `AamlOptions` / struct de configuration | Recommandé |

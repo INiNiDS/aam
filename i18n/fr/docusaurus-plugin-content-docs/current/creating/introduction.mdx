@@ -1,0 +1,29 @@
+---
+sidebar_position: 1
+title: Introduction
+description: Bases pour créer des bibliothèques AAM
+---
+
+# Introduction au Développement AAM
+
+Cette catégorie vous aide à créer votre propre plugin ou bibliothèque pour AAM dans votre langage de programmation préféré.
+
+Par exemple, si vous avez besoin d'AAM pour Rust, vous pouvez utiliser la [bibliothèque officielle `aam-rs`](https://crates.io/crates/aaml). S'il n'existe pas de bibliothèque pour votre langage (par exemple, Python, Go, TypeScript), vous pouvez en créer une de zéro ! L'implémentation `aam-rs` est considérée comme l'**étalon-or** pour la conception de bibliothèques AAM et sert de référence principale sur la façon dont une bibliothèque AAM robuste doit être structurée.
+
+## Démarrer
+
+Tout d'abord, vérifiez s'il existe déjà une bibliothèque pour votre langage.
+* **Si oui :** Contribuez ! Ajoutez de nouvelles fonctionnalités, corrigez des bugs ou améliorez la documentation.
+* **Si non :** Créez-en une de zéro en suivant les directives de cette section.
+
+## Le Paradigme du Moteur de Configuration
+
+Si vous construisez une bibliothèque, vous devez comprendre ce qu'est réellement AAM. **AAM est un format de configuration texte déclaratif** construit sur de simples paires clé-valeur, mais il excelle grâce à ses puissantes capacités structurelles comme les importations de fichiers, les alias, la résolution récursive profonde et la sécurité des dépendances circulaires.
+
+Historiquement, les bibliothèques AAM ont été conceptualisées comme des ensembles basiques de "parsers, sérialiseurs et validateurs". Cependant, les bibliothèques AAM modernes—modélisées d'après `aam-rs`—agissent comme des **Moteurs de Configuration** complets. Une bibliothèque AAM mature et de haute qualité fournit les trois mécanismes principaux suivants :
+
+1. **Moteur de Parser & Loader :** Lecture du texte brut (fichiers `.aam`) ou de chaînes de caractères, et gestion transparente des directives `@import` en parcourant et fusionnant les fichiers externes dans une structure de données unifiée en mémoire (analogue à un `dict` Python, une `map` Go, ou une `struct` Rust).
+2. **Moteur de Requête Intelligent :** Permettant aux utilisateurs de parcourir le graphe de configuration de manière sûre et efficace. Cela signifie fournir des recherches bidirectionnelles (trouver des clés par leur valeur, ou des valeurs par leur clé) et une résolution récursive d'"aliasing profond" avec détection de boucles intégrée pour prévenir les débordements de pile.
+3. **Constructeur de Configuration :** Fournit aux développeurs une API fluide et programmatique pour construire, manipuler et sauvegarder des configurations `.aam` dynamiquement via le code.
+
+Lorsque vous créez une nouvelle bibliothèque, votre objectif est de traduire ces mécanismos puissants en code idiomatique qui semble entièrement naturel dans l'écosystème de votre langage cible.

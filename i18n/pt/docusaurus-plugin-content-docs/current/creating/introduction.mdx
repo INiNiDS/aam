@@ -1,0 +1,30 @@
+l
+la---
+sidebar_position: 1
+title: Introdução
+description: Fundamentos para criar bibliotecas AAM
+---
+
+# Introdução ao Desenvolvimento AAM
+
+Esta categoria ajuda-o a criar o seu próprio plugin ou biblioteca para AAM na sua linguagem de programação preferida.
+
+Por exemplo, se precisar de AAM para Rust, pode usar a [biblioteca oficial `aam-rs`](https://crates.io/crates/aaml). Se não existir uma biblioteca para a sua linguagem (por exemplo, Python, Go, TypeScript), pode criar uma de raiz! A implementação `aam-rs` é considerada o **padrão de ouro** para o design de bibliotecas AAM e serve como referência principal de como uma biblioteca AAM robusta deve ser estruturada.
+
+## Começar
+
+Primeiro, verifique se já existe uma biblioteca para a sua linguagem.
+* **Se sim:** Contribua! Adicione novas funcionalidades, corrija bugs ou melhore a documentação.
+* **Se não:** Crie uma de raiz seguindo as diretrizes desta secção.
+
+## O Paradigma do Motor de Configuração
+
+Se está a construir uma biblioteca, precisa de entender o que o AAM realmente é. **O AAM é um formato de configuração de texto declarativo** construído sobre pares chave-valor simples, mas destaca-se pelas suas poderosas capacidades estruturais como importações de ficheiros, aliases, resolução profunda recursiva e segurança contra dependências circulares.
+
+Historicamente, as bibliotecas AAM foram concebidas como conjuntos básicos de "parsers, serializadores e validadores". No entanto, as bibliotecas AAM modernas—modeladas a partir do `aam-rs`—atuam como **Motores de Configuração** abrangentes. Uma biblioteca AAM madura e de alta qualidade fornece os três mecanismos principais seguintes:
+
+1. **Motor de Parser & Loader:** Leitura de texto bruto (ficheiros `.aam`) ou strings, e tratamento transparente de diretivas `@import` inline ao percorrer e fundir ficheiros externos numa estrutura de dados unificada em memória (análoga a um `dict` Python, um `map` Go, ou uma `struct` Rust).
+2. **Motor de Consulta Inteligente:** Permite aos utilizadores percorrer o gráfico de configuração de forma segura e eficiente. Isto significa fornecer pesquisas bidirecionais (encontrar chaves pelo seu valor, ou valores pela sua chave) e resolução de "aliasing profundo" recursiva com deteção integrada de ciclos para evitar estouros de pilha.
+3. **Construtor de Configuração:** Fornece aos programadores uma API fluente e programática para construir, manipular e guardar configurações `.aam` dinamicamente via código.
+
+Quando cria uma nova biblioteca, o seu objetivo é traduzir estes mecanismos poderosos em código idiomático que pareça completamente natural no ecossistema da sua linguagem alvo.

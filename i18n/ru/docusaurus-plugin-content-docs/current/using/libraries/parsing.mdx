@@ -1,0 +1,137 @@
+---
+sidebar_position: 2
+title: "Разбор"
+description: "Как разбирать AAM-файлы в ваших проектах"
+---
+
+# Разбор
+
+Эта страница охватывает все способы загрузки и разбора содержимого AAM в вашем приложении с помощью `aam-rs` (Rust) или `aam-py` (Python).
+
+## Из файла
+
+Наиболее распространённая точка входа — `AAML::load`, которая читает файл `.aam` с диска, обрабатывает все директивы и возвращает готовый к использованию экземпляр `AAML`.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::load("config.aam").unwrap();
+println!("{}", cfg.find_obj("host").unwrap());
+```
+
+```python
+from aam_py import AAML
+
+cfg = AAML.load("config.aam")
+print(cfg.find_obj("host"))
+```
+
+## Из строки
+
+Используйте `AAML::parse` для разбора содержимого AAM, которое уже находится в памяти в виде строки. Это полезно для встроенных конфигураций, юнит-тестов или содержимого, полученного из удалённого источника.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let source = "host = localhost\nport = 8080";
+let cfg = AAML::parse(source).unwrap();
+
+assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+```
+
+```python
+from aam_py import AAML
+
+source = "host = localhost\nport = 8080"
+cfg = AAML.parse(source)
+
+assert cfg.find_obj("host") == "localhost"
+```
+
+## Слияние нескольких источников
+
+Иногда конфигурация поступает из нескольких файлов или строк. Используйте `merge_content` и `merge_file` для загрузки дополнительного содержимого в существующий экземпляр `AAML`. Когда ключ присутствует как в существующем экземпляре, так и в объединяемом источнике, **входящее значение побеждает**.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let mut cfg = AAML::new();
+cfg.merge_file("base.aam").unwrap();
+cfg.merge_content("debug = true").unwrap(); // добавляет или перезаписывает 'debug'
+```
+
+```python
+from aam_py import AAML
+
+cfg = AAML()
+cfg.merge_file("base.aam")
+cfg.merge_content("debug = true")   # добавляет или перезаписывает 'debug'
+```
+
+Также можно объединить два экземпляра `AAML` с помощью оператора `+`:
+
+```rust
+use aam_rs::aaml::AAML;
+
+let base      = AAML::load("base.aam").unwrap();
+let overrides = AAML::load("env.aam").unwrap();
+
+let cfg = base + overrides; // правый операнд побеждает при конфликте
+```
+
+```python
+from aam_py import AAML
+
+base      = AAML.load("base.aam")
+overrides = AAML.load("env.aam")
+
+cfg = base + overrides   # правый операнд побеждает при конфликте
+```
+
+## Директивы, обрабатываемые при разборе
+
+Все директивы AAM разрешаются автоматически во время разбора — вам не нужно вызывать какие-либо дополнительные методы после `load` или `parse`:
+
+| Директива | Эффект |
+|-----------|--------|
+| `@import` | Загружает и сливает другой `.aam`-файл встроенно. |
+| `@derive` | Наследует пары ключ-значение из другого файла; дочерний побеждает при конфликтах ключей. |
+| `@schema` | Регистрирует именованную схему и включает автоматическую проверку типов по полям. |
+| `@type` | Регистрирует псевдоним пользовательского типа для использования в объявлениях полей схем. |
+
+## Обработка ошибок
+
+`AAML::load` и `AAML::parse` возвращают `Result<AAML, AamlError>`. Всегда обрабатывайте ошибки в производственном коде:
+
+```rust
+use aam_rs::aaml::AAML;
+use aam_rs::error::AamlError;
+
+match AAML::load("config.aam") {
+    Ok(cfg) => {
+        println!("host = {}", cfg.find_obj("host").unwrap());
+    }
+    Err(AamlError::IoError(e)) => {
+        eprintln!("Не удалось прочитать файл: {e}");
+    }
+    Err(AamlError::ParseError { line, content, details }) => {
+        eprintln!("Ошибка разбора в строке {line}: '{content}' — {details}");
+    }
+    Err(AamlError::SchemaValidationError { schema, field, type_name, details }) => {
+        eprintln!("Схема '{schema}': поле '{field}' ({type_name}) — {details}");
+    }
+    Err(e) => eprintln!("Неожиданная ошибка: {e}"),
+}
+```
+
+```python
+from aam_py import AAML, AamlError
+
+try:
+    cfg = AAML.load("config.aam")
+    print("host =", cfg.find_obj("host"))
+except AamlError as e:
+    print(f"Ошибка: {e}")
+```
+
+> **Примечание:** Полное описание каждого варианта `AamlError` см. в [справочнике API aam-rs](./aam-rs#aamlerror).

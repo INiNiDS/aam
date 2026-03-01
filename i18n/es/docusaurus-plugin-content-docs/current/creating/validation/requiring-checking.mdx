@@ -1,0 +1,29 @@
+---
+sidebar-position: 2
+title: "Comprobar Claves Obligatorias"
+description: "Cómo validar que todas las claves obligatorias están presentes en el mapa AAML analizado y gestionar las claves faltantes de forma elegante."
+---
+
+# Comprobar Claves Obligatorias
+Necesitamos confirmar que **todas las claves obligatorias están presentes** en el mapa AAML analizado antes de finalizarlo. Esta página describe cómo realizar esa comprobación y gestionar las claves faltantes de forma elegante.
+Los campos obligatorios se definen como `:` como ```a: b```. Esta sintaxis indica que la clave `a` es obligatoria y debe tener un valor de tipo `b`. Si falta una clave obligatoria en el mapa AAML analizado, debemos retornar un error indicando qué clave falta y qué tipo se esperaba.
+
+```rust
+fn check_required_keys(
+    parsed_map: &HashMap<String, AamValue>,
+    schema: &Schema, // Contains field definitions and required flags
+) -> Result<(), AamlError> {
+    for (field_name, field_def) in &schema.fields {
+        if field_def.required && !parsed_map.contains_key(field_name) {
+            return Err(AamlError::MissingRequiredField {
+                field: field_name.clone(),
+                schema: schema.name.clone(),
+            });
+        }
+    }
+    Ok(())
+}
+```
+Los campos opcionales se definen como `*:` como ```a*: b```. Esta sintaxis indica que la clave `a` es opcional y puede tener un valor de tipo `b`. Si falta una clave opcional en el mapa AAML analizado, podemos simplemente ignorarla sin retornar un error.
+La comprobación de claves obligatorias debe realizarse después de analizar el documento AAML y antes de finalizar el mapa `AAML`. Esto garantiza que detectamos temprano en el proceso de carga cualquier clave obligatoria faltante y proporcionamos retroalimentación clara al usuario sobre lo que falta.
+Debe comprobarse en el fichero que ha derivado el schema.

@@ -5,8 +5,8 @@ import type * as Preset from '@docusaurus/preset-classic';
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: 'AAMSite',
-  tagline: 'Aam declaration site',
+  title: 'AAM',
+  tagline: 'AAM Format - A modern, efficient, and extensible format for configs and aliasing.',
   favicon: 'img/favicon.ico',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -32,7 +32,16 @@ const config: Config = {
   // may want to replace "en" with "zh-Hans".
   i18n: {
     defaultLocale: 'en',
-    locales: ['en'],
+    locales: ['en', 'ru', 'ja', 'zh-Hans', 'pt', 'fr', 'es'],
+    localeConfigs: {
+      en: { label: 'English' },
+      ru: { label: 'Русский' },
+      ja: { label: '日本語' },
+      'zh-Hans': { label: '中文（简体）' },
+      pt: { label: 'Português' },
+      fr: { label: 'Français' },
+      es: { label: 'Español' },
+    },
   },
 
   presets: [
@@ -74,7 +83,7 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'AAM Site',
+      title: 'AAM',
       logo: {
         alt: 'AAM Logo',
         src: 'img/logo.svg',
@@ -92,12 +101,19 @@ const config: Config = {
           label: 'GitHub',
           position: 'right',
         },
+        {
+          type: 'localeDropdown',
+          position: 'right',
+        },
+        {
+          type: 'docsVersionDropdown',
+        },
       ],
     },
     footer: {
       style: 'dark',
       logo: {
-        alt: 'AAM Format Logo',
+        alt: 'AAM Logo',
         src: 'img/logo.svg',
         href: 'https://github.com/ininids/aam',
         width: 160,
@@ -110,14 +126,6 @@ const config: Config = {
             {
               label: 'Tutorial',
               to: '/docs/intro',
-            },
-            {
-              label: 'Спецификация',
-              to: '/docs/spec/format-layout',
-            },
-            {
-              label: 'Rust / C API',
-              to: '/docs/api/integration',
             },
           ],
         },

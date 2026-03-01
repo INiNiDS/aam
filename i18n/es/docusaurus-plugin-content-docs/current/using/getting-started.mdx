@@ -1,0 +1,75 @@
+---
+sidebar_position: 1
+description: "Empezar con AAM"
+---
+
+# Introducción Rápida
+Esta es una introducción rápida a AAM. Cubre los fundamentos y te muestra cómo crear un mapeo bidireccional simple entre dos variables. Esta guía te proporciona todo lo que necesitas saber para empezar a usar AAM en tu proyecto.
+
+## El MVP
+El **Producto Mínimo Viable** (MVP) de AAM es simplemente una línea:
+```aam
+a = b
+```
+sintaxis que crea un mapeo bidireccional entre `a` y `b`. Puedes buscar `a` para obtener `b`, y buscar `b` para obtener `a`. Es conciso, claro y elimina el código repetitivo.
+## Estándares de Sintaxis
+AAM sigue una sintaxis limpia y mínima diseñada para la legibilidad y la simplicidad.
+
+### Mapeo Clave-Valor
+Se requiere un único espacio en cada lado del operador `=`:
+```aam
+a = b
+```
+
+### Terminación de Instrucción
+Las instrucciones se terminan con una **nueva línea** (`\n`). No necesitas punto y coma ni comas al final de una línea para completar una instrucción:
+```aam
+a = b
+c = d
+e = f
+```
+*Nota*: Aunque la terminación de instrucción no usa comas, estas se usan como separadores de elementos dentro de estructuras inline específicas, como listas (```["Hello", "World"]```) y schemas inline (```{name: string, id: i32}```).
+
+### Comentarios
+Los comentarios de una sola línea usan el prefijo `#`:
+```aam
+# Este es un comentario
+a = b
+```
+
+### Directivas
+Las directivas (como importaciones y declaraciones similares) usan el prefijo `@`:
+```aam
+@import otro-fichero.aam
+```
+
+### Schema inline
+Para schemas inline puedes usar la coma (`,`) como separador. Por ejemplo:
+```aam
+@schema Player {name: string, id: i32}
+```
+
+### Schema multilínea
+Para schemas multilínea usa la nueva línea (`\n`) como separador. Por ejemplo:
+```aam
+@schema Player {
+    name: string
+    id: i32
+}
+```
+
+### Convenciones de Nomenclatura
+
+Para mantener tu proyecto limpio y consistente, AAM usa convenciones de nomenclatura específicas para diferentes elementos:
+
+* Variables y Mapeos: Usa snake_case para todos los nombres de variables y asignaciones de mapeo.
+    ```aam
+    player_score = current_points
+    ```
+
+* Tipos Integrados: Todos los tipos primitivos y estándar (como i32, string o bool) se escriben en snake_case.
+
+* Tipos y Schemas definidos por el Usuario: Usa PascalCase para tipos y schemas personalizados para distinguirlos claramente de los primitivos integrados.
+    ```aam
+    @schema PlayerData { ... } o @type UserProfile = string
+    ```

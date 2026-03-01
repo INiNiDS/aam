@@ -1,0 +1,84 @@
+---
+sidebar_position: 2
+description: "学习如何在项目中使用类型"
+---
+
+# 类型
+
+## 基本类型
+AAM 具有几种内置基本类型：`string`、`i32`、`f64`、`bool` 和 `color`（接受十六进制颜色代码）。
+
+```aam
+@schema User {
+    name: string
+    age: i32
+    is_admin: bool
+    profile_color: color
+}
+```
+
+## 其他内置类型
+
+### 物理类型
+使用 `types::physics` 命名空间：
+```aam
+@schema PhysicsObject {
+    length: types::physics::meter
+}
+```
+完整列表见[扩展类型文档](../types/physics)。
+
+### 数学类型
+使用 `types::math` 命名空间：
+```aam
+@schema MathObjects {
+    vector: types::math::vector2
+}
+```
+完整列表见[扩展类型文档](../types/math)。
+
+### 时间
+datetime 和 duration 使用 ISO 8601 格式：
+```aam
+@schema TimeObjects {
+    timestamp: types::time::datetime
+    cooldown: types::time::duration
+    units: types::time::hour
+}
+```
+完整列表见[扩展类型文档](../types/time)。
+
+### 列表
+```aam
+@schema Inventory {
+    items: list<string>
+}
+```
+创建列表：
+```aam
+items = ["Hello", "World"]
+```
+
+## 自定义类型
+
+### 模式
+```aam
+@schema User {
+    name: string
+    age: i32
+}
+
+@schema ServerUsers {
+    users: list<User>
+}
+```
+
+### 自定义类型声明
+使用 `@type` 指令：
+```aam
+@type Name = string
+@type FromLast = types::time::duration
+@type FirstName = Name
+@type LastName = Name
+```
+

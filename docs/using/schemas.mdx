@@ -1,0 +1,68 @@
+---
+sidebar_position: 3
+description: "Learn how to define schemas in AAM"
+---
+
+# Schemas
+In AAM, schemas are a powerful way to define structured data. They allow you to create complex data models with clear types and relationships. Schemas can be used for various purposes, such as defining the shape of data, validating input, or generating code.
+## Defining a Schema
+To define a schema in AAM, you use the `@schema` directive followed by the name of the schema and a block that contains the fields and their types. For example:
+```aam
+@schema Player {
+    name: string
+    id: i32
+}
+```
+In this example, we define a `Player` schema with two fields: `name` of type `string` and `id` of type `i32`. You can also define schemas inline using a comma as a separator:
+```aam
+@schema Player {name: string, id: i32}
+```
+Both of these definitions are equivalent and create a schema that can be used throughout your configuration.
+## Using Schemas
+Once you have defined a schema, you can use `@derive` directive to create instances of that schema. For example:
+```aam
+# file.aam
+@schema Player {
+    name: string
+    id: i32
+}
+```
+```aam
+# main.aam
+@derive file.aam::Player
+name = "Alice"
+id = 1
+```
+In this example, we derive the `Player` schema from `file.aam` and then set the `name` and `id` fields for an instance of the `Player` schema.
+## Schema Requiring
+By default, all fields in a schema are required. This means that when you create an instance of a schema, you must provide values for all fields. If you try to create an instance without providing values for all required fields, AAM will throw an error. For example:
+```aam
+@derive file.aam::Player
+name = "Alice"  # This will throw an error because 'id' is required but not provided
+```
+But if we add a `*` after the field name, it becomes optional:
+```aam
+@schema Player {
+    name: string
+    id*: i32
+}
+```
+In this case, the `id` field is optional, and you can create an instance of the `Player` schema without providing a value for `id`:
+```aam
+@derive file.aam::Player
+name = "Alice"  # This is valid because 'id' is optional
+```
+## Checking
+### Checking Types
+AAM automatically checks the types of fields when you create an instance of a schema. If you try to assign a value that doesn't match the defined type, AAM will throw an error. For example:
+```aam
+@derive file.aam::SchemaName
+name = 123  # This will throw an error because 'name' is defined as a string
+id = "abc"  # This will throw an error because 'id' is defined as i32
+```
+### Checking Required Fields
+AAM also checks that all required fields are provided when creating an instance of a schema. If you omit a required field, AAM will throw an error. For example:
+```aam
+@derive file.aam::SchemaName
+name = "Alice"  # This will throw an error because 'id' is required but not provided
+```

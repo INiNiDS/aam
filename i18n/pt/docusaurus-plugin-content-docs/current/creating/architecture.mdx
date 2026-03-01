@@ -1,0 +1,156 @@
+---
+sidebar_position: 2
+title: Arquitetura
+description: Os mecanismos principais de cada biblioteca AAM como Motor de Configuração.
+---
+
+# Arquitetura da Biblioteca
+
+Cada biblioteca AAM moderna, independentemente da linguagem alvo, é construída como um **Motor de Configuração**. Seguindo a arquitetura da implementação de referência `aam-rs`, o motor é composto por três subsistemas primários. Compreender as suas responsabilidades é o primeiro passo para uma implementação correta.
+
+```
+┌─────────────┐     texto     ┌─────────────┐   Objeto AAML   ┌─────────────┐
+│  ficheiro   │  ──────────►  │   Loader    │  ─────────────► │Motor Consulta│
+│   .aam      │               └──────┬──────┘                 └─────────────┘
+└─────────────┘                      │  ▲
+                               Objeto AAML (fundido)
+                                     │  │
+                               ┌─────▼───────┐
+                               │  Construtor  │
+                               └─────────────┘
+                                     │
+                                     │  texto
+                                     ▼
+                               ┌─────────────┐
+                               │  ficheiro   │
+                               │   .aam      │
+                               └─────────────┘
+```
+
+---
+
+## 1. Parser & Loader
+
+O loader é o **ponto de entrada** da sua biblioteca. Lê texto AAM bruto (ou um caminho de ficheiro) e produz uma representação unificada em memória—tipicamente chamada `AAML` ou um struct/map equivalente na sua linguagem.
+
+### Responsabilidades
+
+1. **Tokenização & Parsing** — Dividir o texto fonte em pares chave-valor, strings e diretivas (`@import`, `@schema`, `@type`).
+2. **Carregamento & Fusão de Ficheiros** — Quando uma diretiva `@import "outro.aam"` é encontrada, o loader lê transparentemente esse ficheiro, analisa-o e funde o seu conteúdo no documento atual.
+3. **Construção do Modelo de Dados** — Construir o mapa interno que armazena o gráfico de configuração.
+
+### Modelo de Dados Interno
+
+Um objeto `AAML` mínimo em memória normalmente parece algo assim (traduzido para Rust, Python e Go):
+
+**Rust (`struct`)**
+```rust
+pub struct AAML {
+    /// Preserves insertion order for deterministic serialization.
+    pub elements: IndexMap<String, String>,
+    pub schemas: HashMap<String, Schema>,
+}
+```
+
+**Python (`dict`)**
+```python
+class AAML:
+    def __init__(self):
+        # Python dicts preserve insertion order in modern versions
+        self.elements: dict[str, str] = {}
+        self.schemas: dict[str, Schema] = {}
+```
+
+**Go (`map` e slices)**
+```go
+type AAML struct {
+    // Go maps don't preserve order, so a separate keys slice is often used
+    Elements map[string]string
+    Keys     []string
+    Schemas  map[string]Schema
+}
+```
+
+---
+
+## 2. Motor de Consulta
+
+O motor de consulta é o que torna o AAM poderoso. Em vez de apenas expor um mapa bruto, a biblioteca fornece métodos de travessia inteligentes para ler a configuração.
+
+### Responsabilidades
+
+1. **Pesquisas Bidirecionais (`find_obj`)** — Às vezes um programador conhece a chave; outras vezes conhece o valor e precisa de encontrar a chave. O seu motor deve tentar primeiro uma pesquisa direta por chave, e se falhar, realizar uma pesquisa reversa.
+2. **Resolução Recursiva (`find_deep`)** — Os utilizadores de AAM frequentemente usam aliases (por exemplo, `current_path = base_path`). O motor de consulta deve seguir a cadeia de valores até encontrar um valor terminal que não é uma chave.
+3. **Deteção de Ciclos** — Uma vez que o AAM é declarativo, os utilizadores podem facilmente criar referências circulares (por exemplo, `a = b` e `b = a`). A função `find_deep` deve detetar ciclos e retornar o último valor único visitado para prevenir recursões infinitas e estouros de pilha.
+4. **Encapsulamento Abstrato de Valores (`FoundValue`)** — Em vez de retornar strings brutas, encapsule o resultado num tipo rico (como uma classe ou struct personalizada) que permite fácil conversão para inteiros, booleanos ou manipulação de strings no local.
+
+### Fluxo do Motor de Consulta
+
+Quando um utilizador chama `config.find_deep(chave)`:
+
+```
+Fase 1: Pesquisa Direta
+  └── Tentar config[chave] -> encontrado valor V
+
+Fase 2: Recursão
+  └── Deteção de ciclo: já vimos V? Se sim, terminar e retornar.
+  └── Verificar se V existe como chave na config?
+      ├── Se sim, V torna-se a nova chave, ir para Fase 1.
+      └── Se não, retornar V como valor final resolvido.
+```
+
+---
+
+## 3. Construtor de Configuração
+
+O construtor realiza o fluxo de aplicação **inverso**: permite aos utilizadores gerar texto AAM programaticamente de forma segura e eficiente, sem concatenar strings manualmente.
+
+### Responsabilidades
+
+1. **Geração de API Fluente** — Fornecer métodos para adicionar pares chave-valor, comentários, aliases de tipo e blocos `@schema` sequencialmente.
+2. **Saída Determinística** — O construtor deve preservar a ordem exata de inserção dos elementos para que os ficheiros `.aam` gerados permaneçam limpos e com diff possível.
+3. **Validação & Formatação** — Garantir que strings com espaços são automaticamente citadas, que as novas linhas são colocadas corretamente e que os comentários são prefixados com `#`.
+
+### Contrato de Saída Mínimo
+
+Dado uma sequência de construção programática (por exemplo, em TypeScript):
+
+```typescript
+const builder = new AAMBuilder();
+builder.comment("Configuração de rede");
+builder.addLine("host", "localhost");
+builder.addLine("port", "8080");
+```
+
+O Construtor deve serializar perfeitamente para:
+
+```aam
+# Configuração de rede
+host = localhost
+port = 8080
+```
+
+---
+
+## Juntando Tudo
+
+Uma interação típica com a biblioteca seguindo o modelo de Motor de Configuração parece assim (traduzido para Python):
+
+```python
+import aam
+
+# 1. Analisar e Carregar (trata todos os @imports automaticamente)
+config = aam.load("config.aam")
+
+# 2. Consulta inteligente (Resolução Profunda)
+caminho_terminal = config.find_deep("app_path")
+print(f"Caminho resolvido: {caminho_terminal}")
+
+# 3. Criar uma nova configuração programaticamente
+builder = aam.AAMBuilder()
+builder.comment("Substituições geradas")
+builder.add_line("app_path", caminho_terminal)
+builder.to_file("overrides.aam")
+```
+
+Ao desacoplar estes três sistemas principais, a sua biblioteca fornece aos programadores controlo absoluto: podem analisar configurações arbitrárias, resolver redes de dependências complexas de forma segura, ou gerar ficheiros robustos programaticamente.

@@ -1,0 +1,45 @@
+---
+sidebar-position: 1
+description: "了解如何在项目中安装AAM库"
+---
+
+
+# 安装
+## 使用什么？
+您需要为您的编程语言选择库。官方库：
+| 语言 | 库 | 描述 |
+|------|---|----|
+| Rust | [aam-rs](https://crates.io/crates/aam) | Rust的AAM库 |
+| Python | aam-py（即将推出） | Python的AAM库 |
+目前就这些。
+## 安装 aam-rs
+要安装 `aam-rs`，将以下内容添加到您的 `Cargo.toml`：
+```toml
+[dependencies]
+aam = "1.1.0"
+```
+然后，您可以在Rust代码中使用它：
+```rust
+use aam::aaml::AAML;
+
+fn main() {
+    let aaml = AAML::load("config.aam").unwrap();
+    println!("{:#?}", aaml.find_obj("key"));
+}
+```
+## 安装 aam-py
+要安装 `aam-py`，您可以使用pip：
+```bash
+pip install aam-py
+```
+然后，您可以在Python代码中使用它：
+```python
+from aam import AAML
+
+aaml = AAML.load("config.aam")
+print(aaml.find_obj("key"))
+```
+## API文档
+- [aam-rs API文档](https://docs.rs/aam/latest/aam/)
+- [aam-py API文档](https://aam-py.readthedocs.io/en/latest/)
+API函数在各库之间大致相同，但命名约定或其他辅助方法可能有些差异。有关可用函数及其用法的详情，请始终参考特定库的文档。

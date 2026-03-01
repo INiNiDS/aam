@@ -1,0 +1,75 @@
+---
+sidebar_position: 1
+description: "Démarrer avec AAM"
+---
+
+# Démarrage Rapide
+Il s'agit d'une introduction rapide à AAM. Elle couvre les bases et vous montre comment créer un mapping bidirectionnel simple entre deux variables. Ce guide vous fournit tout ce que vous devez savoir pour commencer à utiliser AAM dans votre projet.
+
+## Le MVP
+Le **Produit Minimum Viable** (MVP) d'AAM est une seule ligne :
+```aam
+a = b
+```
+syntaxe qui crée un mapping bidirectionnel entre `a` et `b`. Vous pouvez chercher `a` pour obtenir `b`, et chercher `b` pour obtenir `a`. C'est concis, clair et élimine le code répétitif.
+## Standards de Syntaxe
+AAM suit une syntaxe propre et minimale conçue pour la lisibilité et la simplicité.
+
+### Mapping Clé-Valeur
+Un seul espace est requis de chaque côté de l'opérateur `=` :
+```aam
+a = b
+```
+
+### Terminaison d'Instruction
+Les instructions sont terminées par un **saut de ligne** (`\n`). Vous n'avez pas besoin de point-virgule ni de virgules à la fin d'une ligne pour compléter une instruction :
+```aam
+a = b
+c = d
+e = f
+```
+*Remarque* : Bien que la terminaison d'instruction n'utilise pas de virgules, celles-ci sont utilisées comme séparateurs d'éléments dans des structures inline spécifiques, telles que les listes (```["Hello", "World"]```) et les schémas inline (```{name: string, id: i32}```).
+
+### Commentaires
+Les commentaires sur une seule ligne utilisent le préfixe `#` :
+```aam
+# Ceci est un commentaire
+a = b
+```
+
+### Directives
+Les directives (comme les imports et les déclarations similaires) utilisent le préfixe `@` :
+```aam
+@import autre-fichier.aam
+```
+
+### Schéma inline
+Pour les schémas inline, vous pouvez utiliser la virgule (`,`) comme séparateur. Par exemple :
+```aam
+@schema Player {name: string, id: i32}
+```
+
+### Schéma multiligne
+Pour les schémas multilignes, utilisez le saut de ligne (`\n`) comme séparateur. Par exemple :
+```aam
+@schema Player {
+    name: string
+    id: i32
+}
+```
+
+### Conventions de Nommage
+
+Pour garder votre projet propre et cohérent, AAM utilise des conventions de nommage spécifiques pour différents éléments :
+
+* Variables et Mappings : Utilisez snake_case pour tous les noms de variables et les assignations de mapping.
+    ```aam
+    player_score = current_points
+    ```
+
+* Types Intégrés : Tous les types primitifs et standards (comme i32, string ou bool) sont écrits en snake_case.
+
+* Types et Schémas définis par l'Utilisateur : Utilisez PascalCase pour les types et schémas personnalisés afin de les distinguer clairement des primitives intégrées.
+    ```aam
+    @schema PlayerData { ... } ou @type UserProfile = string
+    ```

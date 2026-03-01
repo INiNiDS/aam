@@ -1,0 +1,72 @@
+---
+sidebar_position: 1
+title: "公共API"
+description: "AAM库的标准化公共API设计，使不同实现保持一致。"
+---
+
+# 公共API设计
+
+设计良好的公共API使您的库对最终用户直观，并与其他语言的AAM实现保持一致。本页提出了每个AAM库应公开的**最小标准API面**。
+
+:::note 命名约定
+本文档中的方法名使用 `snake_case`。根据目标语言的惯例调整大小写——Java/JavaScript中的 `camelCase`，C#公共方法的 `PascalCase` 等。行为契约必须保持相同。
+:::
+
+---
+
+## 核心入口点
+
+### `parse(source: string) → AAML`
+
+解析已在内存中的原始AAM字符串。**不**执行任何文件I/O。
+
+```rust
+let source = r#"
+    name = "Alice"
+    level = 42
+"#;
+
+let doc = AAML::parse(source)?;
+```
+
+### `load(path: string) → AAML`
+
+从磁盘读取 `.aam` 文件并返回完全解析和验证的文档。
+
+```rust
+let doc = AAML::load("config/server.aam")?;
+```
+
+这是**大多数**库用户的**主要方法**。
+
+---
+
+## 通过查询引擎读取值
+
+### `find_obj(key: &str) → Option<FoundValue>`
+
+智能双向查找。返回给定键的 `FoundValue`（字符串包装器）。
+
+### `find_deep(key: &str) → Option<FoundValue>`
+
+递归深度查找。用于跟随AAM别名链。必须实现反循环检测。
+
+### `find_key(value: &str) → Option<String>`
+
+严格反向查找。搜索AAML元素以查找保存确切指定值的第一个键。
+
+---
+
+## 最小API清单
+
+| 方法 | 必要 |
+|------|------|
+| `parse(source)` | ✅ |
+| `load(path)` | ✅ |
+| `find_obj(key)` | ✅ |
+| `find_deep(key)` | ✅ |
+| `find_key(value)` | ✅ |
+| `validate()` | ✅ |
+| `schema(name)` | 推荐 |
+| `load_from_reader(reader, base_dir)` | 推荐 |
+| `AamlOptions` / 配置结构体 | 推荐 |

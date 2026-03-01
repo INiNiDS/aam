@@ -1,0 +1,102 @@
+---
+sidebar_position: 4
+description: "AAMBuilderとSchemaFieldのAPIリファレンス — AAM設定をプログラム的に構築する"
+---
+
+# Builder APIリファレンス
+
+`builder` モジュールは、生の `.aam` 文字列を手書きすることなく、AAM設定コンテンツをプログラム的に構築するための流暢なAPIを提供します。
+
+---
+
+## `AAMBuilder`
+
+`AAMBuilder` は内部バッファに行を蓄積し、すべてのAAM構造に対してチェーン可能なAPIを公開します。最後に [`build`](#build) を呼び出してビルダーを消費し、最終的な文字列を取得します。
+
+### コンストラクタ
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost");
+let content = b.build();
+assert!(content.contains("host = localhost"));
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder()
+b.add_line("host", "localhost")
+content = b.build()
+assert "host = localhost" in content
+```
+
+---
+
+### キーと値の割り当て
+
+#### `add_line`
+
+バッファに `key = value` 割り当て行を追加します。
+
+```rust
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost")
+ .add_line("port", "8080");
+println!("{}", b.build());
+```
+
+---
+
+### ディレクティブ
+
+#### `schema`
+
+インライン（1行）形式で `@schema Name { ... }` ディレクティブを追加します。
+
+#### `schema_multiline`
+
+複数行形式で `@schema Name { ... }` ディレクティブを追加します。
+
+#### `derive`
+
+`@derive path` ディレクティブを追加します。
+
+#### `import`
+
+`@import path` ディレクティブを追加します。
+
+#### `type_alias`
+
+`@type alias = type_name` ディレクティブを追加します。
+
+---
+
+### 出力
+
+#### `build`
+
+ビルダーを消費し、蓄積されたコンテンツを `String` として返します。
+
+#### `to_file`
+
+`path` のファイルに蓄積されたコンテンツを書き込みます。
+
+```rust
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost").add_line("port", "8080");
+b.to_file("output.aam").unwrap();
+```
+
+---
+
+## `SchemaField`
+
+`@schema` ブロック内の単一フィールド宣言を表します。
+
+| メソッド | AAMLの形式 | 説明 |
+|---------|-----------|------|
+| `SchemaField::required(name, type_name)` | `name: type` | データマップに**必ず**存在するフィールド。 |
+| `SchemaField::optional(name, type_name)` | `name*: type` | 不在でもよいフィールド；存在する場合は検証されます。 |

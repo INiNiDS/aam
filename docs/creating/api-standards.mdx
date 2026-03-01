@@ -1,0 +1,131 @@
+---
+sidebar_position: 6
+title: API Standards
+description: Cross-language standards that all AAM libraries must follow to ensure interoperability and a consistent developer experience.
+---
+
+# API Standards
+
+This page defines the **cross-language standards** that every AAM library must adhere to. Following these standards ensures that AAM files written for one library work correctly with another, and that developers switching between languages encounter a familiar API. We use the Reference Engine (`aam-rs`) as the baseline.
+
+---
+
+## Standard API Methods
+
+To provide a consistent "Configuration Engine" experience, libraries must implement the following core methods (or their closest idiomatic equivalents in the target language).
+
+### 1. Core Loader API
+
+These methods manage parsing and merging raw text into the `AAML` structure:
+
+| Generic Method | Description |
+|---|---|
+| `parse(content: String)` | Parses a raw string into the in-memory object. |
+| `load(file_path: Path)` | Loads and parses a file from disk, resolving `@import` directives automatically. |
+| `merge_content(content: String)` | Parses a string and merges it into the *current* object, overwriting existing keys. |
+| `merge_file(file_path: Path)` | Loads a file and merges it into the current object. |
+
+### 2. Query API
+
+These methods govern how developers read from the tree:
+
+| Generic Method | Description |
+|---|---|
+| `find_obj(key: String)` | Smart bidirectional lookup. If `key` exists, returns its value. If not, returns the key whose value is `key`. |
+| `find_deep(key: String)` | Recursive search. Follows the chain of values until it hits a terminal value that is not a key. Must include loop detection! |
+| `find_key(value: String)` | Strict reverse lookup. Finds the first key that holds the given value. |
+
+### 3. Builder API
+
+The `AAMBuilder` construct must provide:
+
+| Generic Method | Description |
+|---|---|
+| `add_line(key, value)` | Adds a standard `key = value` pair. |
+| `comment(text)` | Adds a line starting with `# `. |
+| `schema(name, fields[])` | Produces an inline `@schema` directive. |
+| `schema_multiline(...)` | Produces a multi-line `@schema` directive. |
+| `derive(path, schemas[])` | Produces a `@derive` directive. |
+| `type_alias(alias, type)` | Produces a `@type` directive. |
+| `to_file(path)` / `to_string()` | Flushes the deterministic builder to disk or memory. |
+
+---
+
+## Versioning
+
+Libraries should follow [Semantic Versioning](https://semver.org/):
+
+- A **patch** release (`1.0.x`) may fix bugs without changing behaviour.
+- A **minor** release (`1.x.0`) may add new optional features.
+- A **major** release (`x.0.0`) may introduce breaking API changes.
+
+The library's `README` must clearly state which **AAM specification version** it implements (e.g. `AAM 1.0`).
+
+---
+
+## Error Handling
+
+All public methods that can fail must return a structured result type, **never** panic or throw an untyped exception on a user error:
+
+| Language | Expected pattern                                |
+|-------------|----------------------------------------------|
+| Rust        | `Result<T, AamlError>`                       |
+| Go          | `(T, error)`                                 |
+| Python      | raise `AamlError` (subclass of `Exception`)  |
+| TypeScript  | throw `AamlError` (subclass of `Error`)      |
+| Java/Kotlin | throw `AamlException` (checked or documented)|
+
+Error variants must be documented. At minimum, distinguish between:
+
+- **I/O errors** (file not found, permission denied)
+- **Parse errors** (invalid syntax), including line and column numbers
+- **Lookup constraints** (key not found)
+
+---
+
+## Deterministic Output
+
+Serialization output must be **deterministic** for a given input. Running `builder.to_string()` twice on the same in-memory document must produce byte-for-byte identical text. This allows tools to diff `.aam` files reliably.
+
+---
+
+## Whitespace and Formatting
+
+When serializing, builders must produce output that conforms to the AAM formatting rules:
+
+- Exactly **one space** on each side of `=`.
+- Directives (`@import`, `@schema`, etc.) appear **before** key-value entries.
+- Inline schema bodies use commas; multiline bodies use newlines.
+- No trailing whitespace on any line.
+- File ends with exactly **one newline** character.
+
+---
+
+## Encoding
+
+All `.aam` files are **UTF-8** encoded. Libraries must:
+
+- Read files as UTF-8 and return a clear error if the file is not valid UTF-8.
+- Write files as UTF-8 without a BOM.
+
+---
+
+## Thread Safety
+
+Parsed `AAML` objects should be **thread-safe** for reading. If a language supports it, mark the type as `Send + Sync` (Rust) or equivalent, so documents can be shared across threads without locking.
+
+If your library exposes a mutable builder (`AAMBuilder`), it does **not** need to be thread-safe by default, but document this clearly.
+
+---
+
+## Test Suite
+
+Every library must ship with a test suite that covers:
+
+- [ ] Basic `key = value` parsing for every primitive type
+- [ ] `@import` file resolution and appending
+- [ ] `@schema` formatting correctness
+- [ ] `find_obj` correctly identifies reverse keys
+- [ ] `find_deep` prevents infinite loops on `A -> A` dependencies
+- [ ] Serializer round-trip: `parse(builder.to_string()) == parsed_state`
+

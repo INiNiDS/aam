@@ -1,11 +1,29 @@
 ---
-sidebar-position: 1
-title: "Getting started"
-description: "Learn how to use AAM in your projects and how to create your own plugin or library for your programming language."
+sidebar_position: 1
+title: Introduction
+description: Basics of creating AAM libraries
 ---
 
-# What about this category?
-This category helps to create your own plugin or library in that programming language, that you need. For example, I need AAM for Rust, and using this category, I made a [library for Rust](https://crates.io/crates/aam-rs). You can also create a plugin for any other programming language, or even for a specific framework. The possibilities are endless!
+# Introduction to AAM Development
 
-## Getting started
-First of all, you need to check for existing plugins or libraries for your programming language. If there is already a plugin or library for your programming language, you can contribute to it by adding new features, fixing bugs, or improving documentation. If there is no plugin or library for your programming language, you can create one from scratch.
+This category helps you create your own plugin or library for AAM in your preferred programming language.
+
+For example, if you need AAM for Rust, you might use the [official `aam-rs` library](https://crates.io/crates/aaml). If there is no library for your language (e.g., Python, Go, TypeScript), you can create one from scratch! The `aam-rs` implementation is considered the **gold standard** for AAM library design and serves as the prime reference for how a robust AAM library should be structured.
+
+## Getting Started
+
+First, check if a library already exists for your language.
+* **If yes:** Contribute! Add new features, fix bugs, or improve documentation.
+* **If no:** Create one from scratch following the guidelines in this section.
+
+## The Configuration Engine Paradigm
+
+If you are building a library, you need to understand what AAM actually is. **AAM is a declarative text configuration format** built on simple key-value pairs, but it excels through powerful structural capabilities like file imports, aliases, recursive deep resolution, and circular dependency safety.
+
+Historically, AAM libraries were conceptualized as basic sets of "parsers, serializers, and validators." However, modern AAM libraries—modeled after `aam-rs`—act as comprehensive **Configuration Engines**. A mature, high-quality AAM library provides the following three core mechanics:
+
+1. **Parser & Loader Engine:** Reading raw text (`.aam` files) or strings, and seamlessly handling inline `@import` directives by traversing and merging external files into a unified in-memory data structure (analogous to a Python `dict`, a Go `map`, or a Rust `struct`).
+2. **Smart Query Engine:** Allowing users to safely and efficiently traverse the configuration graph. This means providing bidirectional lookups (finding keys by their value, or values by their key) and recursive "deep" aliasing resolution with built-in loop detection to prevent stack overflows.
+3. **Configuration Builder:** Giving developers a programmatic, fluent API to iteratively construct, manipulate, and save `.aam` configurations dynamically via code.
+
+When you author a new library, your goal is to translate these powerful mechanics into idiomatic code that feels entirely natural to your target language's ecosystem.

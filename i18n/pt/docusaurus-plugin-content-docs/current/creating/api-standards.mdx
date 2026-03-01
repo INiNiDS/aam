@@ -1,0 +1,130 @@
+---
+sidebar_position: 6
+title: Padrões de API
+description: Padrões entre linguagens que todas as bibliotecas AAM devem seguir para garantir interoperabilidade e uma experiência de programador consistente.
+---
+
+# Padrões de API
+
+Esta página define os **padrões entre linguagens** que todas as bibliotecas AAM devem cumprir. Seguir estes padrões garante que os ficheiros AAM escritos para uma biblioteca funcionam corretamente com outra, e que os programadores que mudam entre linguagens encontram uma API familiar. Usamos o Motor de Referência (`aam-rs`) como base.
+
+---
+
+## Métodos de API Padrão
+
+Para fornecer uma experiência consistente de "Motor de Configuração", as bibliotecas devem implementar os seguintes métodos principais (ou os seus equivalentes mais próximos idiomáticos na linguagem alvo).
+
+### 1. API de Loader Principal
+
+Estes métodos gerem a análise e fusão de texto bruto na estrutura `AAML`:
+
+| Método Genérico | Descrição |
+|---|---|
+| `parse(content: String)` | Analisa uma string bruta no objeto em memória. |
+| `load(file_path: Path)` | Carrega e analisa um ficheiro do disco, resolvendo diretivas `@import` automaticamente. |
+| `merge_content(content: String)` | Analisa uma string e funde-a no objeto *atual*, substituindo chaves existentes. |
+| `merge_file(file_path: Path)` | Carrega um ficheiro e funde-o no objeto atual. |
+
+### 2. API de Consulta
+
+Estes métodos controlam como os programadores leem da árvore:
+
+| Método Genérico | Descrição |
+|---|---|
+| `find_obj(key: String)` | Pesquisa bidirecional inteligente. Se `key` existir, retorna o seu valor. Se não, retorna a chave cujo valor é `key`. |
+| `find_deep(key: String)` | Pesquisa recursiva. Segue a cadeia de valores até atingir um valor terminal que não é uma chave. Deve incluir deteção de ciclos! |
+| `find_key(value: String)` | Pesquisa inversa estrita. Encontra a primeira chave que contém o valor dado. |
+
+### 3. API de Construtor
+
+O construtor `AAMBuilder` deve fornecer:
+
+| Método Genérico | Descrição |
+|---|---|
+| `add_line(key, value)` | Adiciona um par `key = value` padrão. |
+| `comment(text)` | Adiciona uma linha começando com `# `. |
+| `schema(name, fields[])` | Produz uma diretiva `@schema` inline. |
+| `schema_multiline(...)` | Produz uma diretiva `@schema` multi-linha. |
+| `derive(path, schemas[])` | Produz uma diretiva `@derive`. |
+| `type_alias(alias, type)` | Produz uma diretiva `@type`. |
+| `to_file(path)` / `to_string()` | Descarrega o construtor determinístico para disco ou memória. |
+
+---
+
+## Versionamento
+
+As bibliotecas devem seguir o [Semantic Versioning](https://semver.org/):
+
+- Uma versão **patch** (`1.0.x`) pode corrigir bugs sem alterar o comportamento.
+- Uma versão **minor** (`1.x.0`) pode adicionar novas funcionalidades opcionais.
+- Uma versão **major** (`x.0.0`) pode introduzir alterações de API de ruptura.
+
+O `README` da biblioteca deve indicar claramente qual **versão de especificação AAM** implementa (por exemplo, `AAM 1.0`).
+
+---
+
+## Tratamento de Erros
+
+Todos os métodos públicos que podem falhar devem retornar um tipo de resultado estruturado, **nunca** entrar em pânico ou lançar uma exceção sem tipo num erro do utilizador:
+
+| Linguagem | Padrão esperado |
+|-------------|----------------------------------------------|
+| Rust        | `Result<T, AamlError>`                       |
+| Go          | `(T, error)`                                 |
+| Python      | lançar `AamlError` (subclasse de `Exception`)|
+| TypeScript  | lançar `AamlError` (subclasse de `Error`)    |
+| Java/Kotlin | lançar `AamlException` (verificada ou documentada)|
+
+As variantes de erro devem ser documentadas. No mínimo, distinguir entre:
+
+- **Erros de I/O** (ficheiro não encontrado, permissão negada)
+- **Erros de análise** (sintaxe inválida), incluindo números de linha e coluna
+- **Restrições de pesquisa** (chave não encontrada)
+
+---
+
+## Saída Determinística
+
+A saída de serialização deve ser **determinística** para uma dada entrada. Executar `builder.to_string()` duas vezes no mesmo documento em memória deve produzir texto idêntico byte a byte. Isto permite que as ferramentas façam diff de ficheiros `.aam` de forma fiável.
+
+---
+
+## Espaço em Branco e Formatação
+
+Ao serializar, os construtores devem produzir saída que esteja em conformidade com as regras de formatação AAM:
+
+- Exatamente **um espaço** de cada lado de `=`.
+- As diretivas (`@import`, `@schema`, etc.) aparecem **antes** das entradas chave-valor.
+- Os corpos de schema inline usam vírgulas; os corpos multi-linha usam novas linhas.
+- Sem espaços em branco à direita em nenhuma linha.
+- O ficheiro termina com exatamente **um caractere de nova linha**.
+
+---
+
+## Codificação
+
+Todos os ficheiros `.aam` são codificados em **UTF-8**. As bibliotecas devem:
+
+- Ler ficheiros como UTF-8 e retornar um erro claro se o ficheiro não for UTF-8 válido.
+- Escrever ficheiros como UTF-8 sem BOM.
+
+---
+
+## Segurança de Thread
+
+Os objetos `AAML` analisados devem ser **seguros para leitura em threads**. Se a linguagem o suportar, marque o tipo como `Send + Sync` (Rust) ou equivalente, para que os documentos possam ser partilhados entre threads sem bloqueio.
+
+Se a sua biblioteca expõe um construtor mutável (`AAMBuilder`), este **não** precisa de ser seguro para threads por padrão, mas documente-o claramente.
+
+---
+
+## Suite de Testes
+
+Cada biblioteca deve incluir uma suite de testes que cubra:
+
+- [ ] Análise básica de `key = value` para cada tipo primitivo
+- [ ] Resolução de ficheiro `@import` e anexação
+- [ ] Correção de formatação `@schema`
+- [ ] `find_obj` identifica corretamente chaves inversas
+- [ ] `find_deep` previne ciclos infinitos em dependências `A -> A`
+- [ ] Viagem de ida e volta do serializador: `parse(builder.to_string()) == estado_analisado`

@@ -1,0 +1,111 @@
+---
+sidebar_position: 1
+title: API Pública
+description: Un diseño de API pública estandarizado para bibliotecas AAM para que diferentes implementaciones se sientan consistentes.
+---
+
+# Diseño de API Pública
+
+Una API pública bien diseñada hace que tu biblioteca sea intuitiva para los usuarios finales y consistente con otras implementaciones de AAM entre lenguajes. Esta página propone una **superficie de API estándar mínima** que toda biblioteca AAM debería exponer.
+
+:::note Convenciones de nomenclatura
+Los nombres de métodos en este documento usan `snake_case`. Adapta la capitalización a los idiomas de tu lenguaje objetivo — `camelCase` en Java/JavaScript, `PascalCase` para métodos públicos en C#, etc. El contrato de comportamiento debe permanecer igual.
+:::
+
+---
+
+## Puntos de Entrada Principales
+
+### `parse(source: string) → AAML`
+
+Analiza una string AAM bruta que ya está en memoria. **No** realiza ninguna I/O de fichero.
+
+- Resuelve directivas `@schema` y `@type` inline.
+- **No** resuelve `@import` o `@derive` (sin rutas de fichero disponibles). Si la fuente contiene estas directivas, retorna un error `AamlError::DirectiveRequiresFileContext`.
+- Ejecuta la validación de schema activo automáticamente después del análisis.
+
+---
+
+### `load(path: string) → AAML`
+
+Lee un fichero `.aam` del disco y retorna un documento completamente resuelto y validado.
+
+- Resuelve todas las directivas `@import` y `@derive` relativas al propio directorio del fichero.
+- Activa automáticamente la protección de dependencias cíclicas.
+- Ejecuta el validador automáticamente después del análisis.
+
+Este es el **método principal** para la mayoría de los usuarios de la biblioteca.
+
+---
+
+## Leer Valores vía Motor de Consulta
+
+### `find_obj(key: &str) → Option<FoundValue>`
+
+Búsqueda bidireccional inteligente. Retorna el `FoundValue` (un wrapper de string) para la clave dada. Si la clave no existe directamente, asume que el argumento era un valor y realiza una búsqueda inversa para encontrar la clave correspondiente.
+
+---
+
+### `find_deep(key: &str) → Option<FoundValue>`
+
+Búsqueda profunda recursiva. Diseñada para seguir cadenas de alias AAM (p. ej., `current = base`, `base = /dir`). Debe implementar detección anti-ciclo.
+
+---
+
+### `find_key(value: &str) → Option<String>`
+
+Búsqueda inversa estricta. Busca en los elementos AAML para encontrar la primera clave que contiene el valor designado exacto.
+
+---
+
+## Introspección de Schema
+
+### `schema(name: &str) → Option<&Schema>`
+
+Busca una definición de schema analizada por nombre.
+
+---
+
+### `validate() → Result<(), Vec<AamlError>>`
+
+Re-ejecuta el validador contra el estado actual del documento. Normalmente llamado automáticamente por `load()` y `parse()`, pero expuesto para casos donde el documento fue mutado programáticamente después del análisis.
+
+Retorna **todos** los errores de validación a la vez, no solo el primero.
+
+---
+
+## Gestión de Errores
+
+Todos los métodos que pueden fallar deben retornar un tipo `Result` estructurado, no un pánico o string bruta. El tipo de error debe ser un enum para que los consumidores puedan hacer pattern-match en las variantes:
+
+```rust
+pub enum AamlError {
+    Io(std::io::Error),
+    Parse { line: u32, col: u32, message: String },
+    TypeMismatch { key: String, expected: String, found: String },
+    MissingRequiredField { field: String, schema: String },
+    UnknownField { field: String, schema: String },
+    CyclicImport { path: PathBuf },
+    SchemaNotFound { name: String, file: PathBuf },
+    UnknownType { name: String },
+    TypeAliasCycle,
+}
+```
+
+---
+
+## Lista de Verificación Mínima de API
+
+Una biblioteca AAM compatible debe implementar al menos:
+
+| Método | Requerido |
+|--------| ----------|
+| `parse(source)` | ✅ |
+| `load(path)` | ✅ |
+| `find_obj(key)` | ✅ |
+| `find_deep(key)` | ✅ |
+| `find_key(value)` | ✅ |
+| `validate()` | ✅ |
+| `schema(name)` | Recomendado |
+| `load_from_reader(reader, base_dir)` | Recomendado |
+| `AamlOptions` / struct de configuración | Recomendado |

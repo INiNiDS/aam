@@ -1,0 +1,219 @@
+---
+sidebar_position: 1
+title: "@import"
+description: How to implement the @import directive, file resolution, and cyclic dependency protection.
+---
+
+# The `@import` Directive
+
+The `@import` directive instructs the parser to **merge an external `.aam` file** into the current document. All key-value pairs, type aliases, and schema definitions from the imported file become available in the current scope.
+
+```aam
+@import path/to/other.aam
+```
+
+---
+
+## Syntax
+
+`@import` takes a single **quoted string** — the path to the file to import:
+
+```aam
+@import "shared/defaults.aam"
+@import "../common/colors.aam"
+```
+
+Paths are resolved **relative to the file that contains the directive**, not the working directory of the process.
+
+---
+
+## What `@import` Does
+
+When the parser encounters `@import "file.aam"`:
+
+1. **Resolves the path** relative to the current file's directory.
+2. **Canonicalizes** it (resolves `..`, symlinks, etc.) to get a stable identity for cycle detection.
+3. **Parses the imported file** recursively using the same parser instance and the same `visited` set.
+4. **Merges the result** into the current document using **Child-Wins-on-Conflict** semantics — if a key already exists in the importing file, the importing file's value is kept.
+
+### Merge semantics
+
+| Entity | Import behaviour |
+|--------|-----------------|
+| Key-value entries | Merged; current file wins on conflict |
+| `@schema` definitions | Merged into the schema registry |
+| `@type` aliases | Merged into the type registry |
+| Nested `@import` | Resolved recursively |
+
+---
+
+## Implementation
+
+```rust
+fn process_import(
+    import_path: &str,
+    current_file: &Path,
+    current_doc: &mut AAML,
+    visited: &mut HashSet<PathBuf>,
+) -> Result<(), AamlError> {
+    // 1. Resolve the path relative to the current file's directory
+    let raw_path = current_file
+        .parent()
+        .unwrap_or(Path::new("."))
+        .join(import_path);
+
+    // 2. Canonicalize for stable identity
+    let canonical = raw_path.canonicalize().map_err(|_| {
+        AamlError::FileNotFound { path: raw_path.clone() }
+    })?;
+
+    // 3. Cycle detection — see the section below
+    if visited.contains(&canonical) {
+        return Err(AamlError::CyclicImport { path: canonical });
+    }
+
+    // 4. Parse the imported file recursively
+    visited.insert(canonical.clone());
+    let imported_doc = parse_file_recursive(&canonical, visited)?;
+    visited.remove(&canonical);
+
+    // 5. Merge: child (current) wins on conflict
+    for (key, value) in imported_doc.elements {
+        current_doc.elements.entry(key).or_insert(value);
+    }
+    for (name, schema) in imported_doc.schemas {
+        current_doc.schemas.entry(name).or_insert(schema);
+    }
+    for (alias, ty) in imported_doc.type_registry {
+        current_doc.type_registry.entry(alias).or_insert(ty);
+    }
+
+    Ok(())
+}
+```
+
+:::note
+Notice the use of `.entry(...).or_insert(...)` — this ensures the **importing file always wins**. Values from the imported file are only inserted when the key does not yet exist in the current document.
+:::
+
+---
+
+## Cyclic Dependency Protection {#cyclic-dependency-protection}
+
+:::warning Anti-Loop — This section is mandatory to implement
+Without cycle detection, a pair of files that import each other will cause **infinite recursion** and a stack overflow. This protection is not optional.
+:::
+
+### The problem
+
+Consider the following two files:
+
+```aam
+# a.aam
+@import "b.aam"
+x = 1
+```
+
+```aam
+# b.aam
+@import "a.aam"
+y = 2
+```
+
+Without protection, parsing `a.aam` triggers parsing `b.aam`, which triggers parsing `a.aam` again — indefinitely.
+
+### The solution: a "Visited Files" set
+
+Maintain a `HashSet<PathBuf>` (or equivalent in your language) of **canonical paths** that are currently being processed on the call stack. Before processing any import:
+
+1. Check if the canonical path is already in the set.
+2. **If yes** — return a `CyclicImport` error immediately.
+3. **If no** — add it, recurse, then **remove it** after the recursive call returns.
+
+```rust
+fn parse_file_recursive(
+    path: &Path,
+    visited: &mut HashSet<PathBuf>,
+) -> Result<AAML, AamlError> {
+    let canonical = path.canonicalize()?;
+
+    // ── Anti-loop guard ──────────────────────────────────────────────────────
+    if visited.contains(&canonical) {
+        return Err(AamlError::CyclicImport {
+            path: canonical,
+        });
+    }
+    visited.insert(canonical.clone());
+    // ─────────────────────────────────────────────────────────────────────────
+
+    let source = std::fs::read_to_string(&canonical)?;
+    let doc = parse_source(&source, &canonical, visited)?;
+
+    // Remove AFTER recursion so siblings can still be imported
+    visited.remove(&canonical);
+
+    Ok(doc)
+}
+```
+
+### Why canonical paths?
+
+Using the raw string path is unreliable:
+- `./shared/base.aam` and `shared/base.aam` and `../project/shared/base.aam` may all refer to the **same file**.
+- Canonicalisation resolves all of these to a single absolute path, giving you a stable identity.
+
+### Diamond imports are allowed
+
+```
+      main.aam
+      /      \
+  a.aam     b.aam
+      \      /
+      base.aam
+```
+
+`base.aam` is imported by both `a.aam` and `b.aam`. This is **not** a cycle — both are separate traversal paths. The visited-set pattern handles this correctly because `base.aam` is removed from the set after the first branch finishes, and can therefore be entered again from the second branch.
+
+### Error reporting
+
+```
+Error: cyclic import detected
+  --> a.aam
+   |
+ 1 | @import "b.aam"
+   |
+   = note: import chain: a.aam → b.aam → a.aam
+```
+
+Reconstruct the chain by passing a `Vec<PathBuf>` alongside the `HashSet` to record the traversal order.
+
+---
+
+## Caching
+
+Parsing the same file multiple times during a single `load()` call is wasteful. Maintain a **document cache** (`HashMap<PathBuf, AAML>`) that is separate from the `visited` set:
+
+```rust
+pub struct ParseContext {
+    /// Files currently on the call stack — used for cycle detection.
+    visited: HashSet<PathBuf>,
+
+    /// Already-parsed documents — avoids redundant I/O and parsing.
+    cache: HashMap<PathBuf, AAML>,
+}
+```
+
+The cache is keyed by canonical path. Before parsing a file, check the cache first. The visited set and the cache serve different purposes and must not be confused.
+
+---
+
+## `@import` vs `@derive`
+
+| Feature | `@import` | `@derive` |
+|---------|-----------|-----------|
+| Targets | Entire file | A specific `@schema` |
+| Schema enforcement | No | Yes |
+| Conflict resolution | Child-Wins | Child-Wins |
+| Cycle protection | Required | Required |
+| Typical use case | Shared config values | Schema-based data contracts |
+

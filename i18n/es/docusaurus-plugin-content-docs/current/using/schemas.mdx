@@ -1,0 +1,68 @@
+---
+sidebar_position: 3
+description: "Aprende a definir schemas en AAM"
+---
+
+# Schemas
+En AAM, los schemas son una forma poderosa de definir datos estructurados. Te permiten crear modelos de datos complejos con tipos y relaciones claros. Los schemas se pueden usar para diversos fines, como definir la forma de los datos, validar entradas o generar código.
+## Definir un Schema
+Para definir un schema en AAM, se usa la directiva `@schema` seguida del nombre del schema y un bloque que contiene los campos y sus tipos. Por ejemplo:
+```aam
+@schema Player {
+    name: string
+    id: i32
+}
+```
+En este ejemplo, definimos un schema `Player` con dos campos: `name` de tipo `string` e `id` de tipo `i32`. También puedes definir schemas inline usando una coma como separador:
+```aam
+@schema Player {name: string, id: i32}
+```
+Ambas definiciones son equivalentes y crean un schema que se puede usar en toda tu configuración.
+## Usar Schemas
+Una vez que has definido un schema, puedes usar la directiva `@derive` para crear instancias de ese schema. Por ejemplo:
+```aam
+# fichero.aam
+@schema Player {
+    name: string
+    id: i32
+}
+```
+```aam
+# main.aam
+@derive fichero.aam::Player
+name = "Alice"
+id = 1
+```
+En este ejemplo, derivamos el schema `Player` de `fichero.aam` y luego establecemos los campos `name` e `id` para una instancia del schema `Player`.
+## Obligatoriedad del Schema
+Por defecto, todos los campos de un schema son obligatorios. Esto significa que cuando creas una instancia de un schema, debes proporcionar valores para todos los campos. Si intentas crear una instancia sin proporcionar valores para todos los campos obligatorios, AAM lanzará un error. Por ejemplo:
+```aam
+@derive fichero.aam::Player
+name = "Alice"  # Esto lanzará un error porque 'id' es obligatorio pero no se ha proporcionado
+```
+Pero si añadimos un `*` después del nombre del campo, se convierte en opcional:
+```aam
+@schema Player {
+    name: string
+    id*: i32
+}
+```
+En este caso, el campo `id` es opcional, y puedes crear una instancia del schema `Player` sin proporcionar un valor para `id`:
+```aam
+@derive fichero.aam::Player
+name = "Alice"  # Esto es válido porque 'id' es opcional
+```
+## Comprobación
+### Comprobar Tipos
+AAM comprueba automáticamente los tipos de los campos cuando creas una instancia de un schema. Si intentas asignar un valor que no coincide con el tipo definido, AAM lanzará un error. Por ejemplo:
+```aam
+@derive fichero.aam::NombreSchema
+name = 123  # Esto lanzará un error porque 'name' está definido como string
+id = "abc"  # Esto lanzará un error porque 'id' está definido como i32
+```
+### Comprobar Campos Obligatorios
+AAM también comprueba que se proporcionen todos los campos obligatorios al crear una instancia de un schema. Si omites un campo obligatorio, AAM lanzará un error. Por ejemplo:
+```aam
+@derive fichero.aam::NombreSchema
+name = "Alice"  # Esto lanzará un error porque 'id' es obligatorio pero no se ha proporcionado
+```

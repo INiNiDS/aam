@@ -1,0 +1,233 @@
+---
+sidebar_position: 3
+title: "@schema"
+description: How to parse and enforce @schema blocks, required vs optional fields, and schema validation.
+---
+
+# The `@schema` Directive
+
+The `@schema` directive **defines a named data contract**. It declares which fields a document must (or may) contain, together with each field's type. Libraries must parse these definitions and later use them during validation.
+
+```aam
+@schema Player {
+    name: string
+    score: i32
+    team*: string
+}
+```
+
+---
+
+## Syntax
+
+```
+@schema <Name> {
+    <field>:  <type>   # required field
+    <field>*: <type>   # optional field
+}
+```
+
+The body may be written on a single line (comma-separated) or across multiple lines (newline-separated):
+
+```aam
+# Multiline (preferred for readability)
+@schema Config {
+    host: string
+    port: i32
+    debug*: bool
+}
+
+# Inline (convenient for small schemas)
+@schema Point {x: f64, y: f64}
+```
+
+Both forms are semantically identical. Your parser must handle both.
+
+---
+
+## Field Modifiers
+
+| Syntax | Meaning |
+|--------|---------|
+| `name: type` | **Required** — the field *must* be present in any document that uses this schema |
+| `name*: type` | **Optional** — the field *may* be omitted; absence is not an error |
+
+---
+
+## Internal Representation
+
+A schema should be stored in your library as a named collection of field definitions:
+
+```rust
+pub struct FieldDef {
+    pub name: String,
+    pub ty: String, // Assuming string representations or resolved Types
+    pub required: bool,   // false when the `*` modifier is present
+}
+
+pub struct Schema {
+    pub name: String,
+    pub fields: IndexMap<String, FieldDef>,
+}
+```
+
+After parsing the example at the top of this page, `AamSchema` for `Player` would look like:
+
+| Field | Type | Required |
+|-------|------|----------|
+| `name` | `string` | ✅ |
+| `score` | `i32` | ✅ |
+| `team` | `string` | ❌ |
+
+---
+
+## Parsing a Schema Block
+
+When the parser sees `@schema Name {`:
+
+1. Record the schema name (`Name`).
+2. Scan ahead until the closing `}`.
+3. For each line (or comma-separated token) inside the block:
+   - Strip leading/trailing whitespace.
+   - Detect the `*` suffix on the field name to determine optionality.
+   - Parse the type expression after `:`.
+4. Register the completed `AamSchema` in `AamDocument.schemas`.
+
+```rust
+```rust
+fn parse_schema_block(
+    tokens: &mut TokenStream,
+    doc: &mut AAML,
+) -> Result<(), AamlError> {
+    let name = tokens.expect_identifier()?;
+    tokens.expect(Token::LBrace)?;
+
+    let mut fields = IndexMap::new();
+
+    while !tokens.peek_is(Token::RBrace) {
+        tokens.skip_whitespace_and_newlines();
+        if tokens.peek_is(Token::RBrace) { break; }
+
+        // field_name or field_name*
+        let raw_name = tokens.expect_identifier()?;
+        let required = !raw_name.ends_with('*');
+        let field_name = raw_name.trim_end_matches('*').to_string();
+
+        tokens.expect(Token::Colon)?;
+        let ty = parse_type_expression(tokens, &doc.type_registry)?;
+
+        fields.insert(field_name.clone(), FieldDef {
+            name: field_name,
+            ty,
+            required,
+        });
+
+        // Allow comma or newline as separator
+        tokens.skip_one_of(&[Token::Comma, Token::Newline]);
+    }
+
+    tokens.expect(Token::RBrace)?;
+    doc.schemas.insert(name.clone(), Schema { name, fields });
+
+    Ok(())
+}
+```
+
+---
+
+## Using a Schema in the Same File
+
+A schema defined in a file can be applied to that same file by immediately following the definition with key-value pairs — **without** a `@derive`:
+
+```aam
+@schema Server {
+    host: string
+    port: i32
+    tls*: bool
+}
+
+# Values below are validated against the Server schema
+host = "localhost"
+port = 8080
+```
+
+:::info
+When a `@schema` block appears in the same file as the key-value data, the parser should automatically set that schema as the **active schema** for validation. The validator then checks the document's entries against it at the end of parsing.
+:::
+
+---
+
+## Schema Validation
+
+Once parsing is complete, the validator enforces the schema. There are three checks:
+
+### 1 — Required fields present
+
+For every field where `required == true`, the document's `entries` must contain a matching key.
+
+```rust
+for (field_name, field_def) in &active_schema.fields {
+    if field_def.required && !doc.elements.contains_key(field_name) {
+        errors.push(AamlError::MissingRequiredField {
+            field: field_name.clone(),
+            schema: active_schema.name.clone(),
+        });
+    }
+}
+```
+
+### 2 — No unknown fields
+
+If strict mode is active (recommended), reject any key that is not declared in the schema:
+
+```rust
+for key in doc.elements.keys() {
+    if !active_schema.fields.contains_key(key) {
+        errors.push(AamlError::UnknownField {
+            field: key.clone(),
+            schema: active_schema.name.clone(),
+        });
+    }
+}
+```
+
+### 3 — Type correctness
+
+For each entry that *does* appear in the schema, verify the value matches the declared type (see [Type Checking](../validation/type-checking)).
+
+---
+
+## Error Messages
+
+Each schema error must identify the schema name and the offending field:
+
+```
+Error: missing required field `port`
+  in schema `Server`
+  --> config.aam
+
+Error: unknown field `debug`
+  in schema `Server` (no such field declared)
+  --> config.aam:7:1
+```
+
+---
+
+## Nested Schemas as Types
+
+A schema name can be used as a field type inside another schema. When validating, the library must recursively validate the nested value against the referenced schema:
+
+```aam
+@schema Address {
+    street: string
+    city: string
+}
+
+@schema User {
+    name: string
+    address: Address
+}
+```
+
+When validating the `address` field, look up the `Address` schema in the `AAML` engine's schema registry and validate the nested object against it.
+

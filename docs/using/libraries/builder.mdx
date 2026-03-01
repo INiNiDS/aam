@@ -1,0 +1,570 @@
+---
+sidebar_position: 4
+description: "API reference for AAMBuilder and SchemaField — build AAM configurations programmatically"
+---
+
+# Builder API Reference
+
+The `builder` module provides a fluent API for constructing AAM configuration content programmatically — without writing raw `.aam` strings by hand. It is useful for code generators, test fixtures, and applications that need to produce configuration files at runtime.
+
+> **Note:** The builder produces a plain `String` of AAM source text. You can pass it directly to [`AAML::parse`](./aam-rs#aamlparse) or write it to disk with [`to_file`](#to_file).
+
+---
+
+## `AAMBuilder`
+
+`AAMBuilder` accumulates lines in an internal buffer and exposes a chainable API for every AAM construct. Call [`build`](#build) at the end to consume the builder and retrieve the final string.
+
+### Constructors
+
+#### `AAMBuilder::new`
+
+Creates a new empty builder.
+
+**Returns:** `AAMBuilder`
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost");
+let content = b.build();
+assert!(content.contains("host = localhost"));
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder()
+b.add_line("host", "localhost")
+content = b.build()
+assert "host = localhost" in content
+```
+
+---
+
+#### `AAMBuilder::with_capacity`
+
+Creates a new builder with a pre-allocated string buffer of the given byte capacity. Use this to avoid reallocations when generating large configuration files.
+
+| Parameter  | Type    | Description                                    |
+|------------|---------|------------------------------------------------|
+| `capacity` | `usize` | Initial byte capacity of the internal buffer.  |
+
+**Returns:** `AAMBuilder`
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::with_capacity(1024);
+b.add_line("key", "value");
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder.with_capacity(1024)
+b.add_line("key", "value")
+```
+
+---
+
+### Key-Value Assignments
+
+#### `add_line`
+
+Appends a `key = value` assignment line to the buffer. A newline separator is inserted automatically between consecutive entries.
+
+Returns `&mut self` for method chaining.
+
+| Parameter | Type   | Description     |
+|-----------|--------|-----------------|
+| `key`     | `&str` | The key name.   |
+| `value`   | `&str` | The value text. |
+
+**Returns:** `&mut AAMBuilder`
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost")
+ .add_line("port", "8080")
+ .add_line("debug", "true");
+
+println!("{}", b.build());
+// host = localhost
+// port = 8080
+// debug = true
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder()
+b.add_line("host", "localhost") \
+ .add_line("port", "8080") \
+ .add_line("debug", "true")
+
+print(b.build())
+# host = localhost
+# port = 8080
+# debug = true
+```
+
+---
+
+### Comments
+
+#### `comment`
+
+Appends a `# text` comment line to the buffer. Returns `&mut self` for chaining.
+
+| Parameter | Type   | Description          |
+|-----------|--------|----------------------|
+| `text`    | `&str` | The comment content. |
+
+**Returns:** `&mut AAMBuilder`
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.comment("Server configuration")
+ .add_line("host", "localhost");
+
+let out = b.build();
+assert!(out.contains("# Server configuration"));
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder()
+b.comment("Server configuration").add_line("host", "localhost")
+out = b.build()
+assert "# Server configuration" in out
+```
+
+---
+
+### Directives
+
+#### `schema`
+
+Appends a `@schema Name { field1: type1, field2*: type2, ... }` directive in **inline** (single-line) format. Use [`SchemaField::required`](#schemafield) and [`SchemaField::optional`](#schemafield) to build the field list.
+
+Returns `&mut self` for chaining.
+
+| Parameter | Type                                    | Description               |
+|-----------|-----------------------------------------|---------------------------|
+| `name`    | `&str`                                  | Schema name (PascalCase). |
+| `fields`  | `impl IntoIterator<Item = SchemaField>` | Field declarations.       |
+
+**Returns:** `&mut AAMBuilder`
+
+```rust
+use aam_rs::builder::{AAMBuilder, SchemaField};
+
+let mut b = AAMBuilder::new();
+b.schema("Player", [
+    SchemaField::required("name", "string"),
+    SchemaField::required("score", "i32"),
+    SchemaField::optional("team", "string"),
+]);
+
+// @schema Player { name: string, score: i32, team*: string }
+assert!(b.build().contains("@schema Player {"));
+```
+
+```python
+from aam import AAMBuilder, SchemaField
+
+b = AAMBuilder()
+b.schema("Player", [
+    SchemaField.required("name", "string"),
+    SchemaField.required("score", "i32"),
+    SchemaField.optional("team", "string"),
+])
+
+# @schema Player { name: string, score: i32, team*: string }
+assert "@schema Player {" in b.build()
+```
+
+---
+
+#### `schema_multiline`
+
+Appends a `@schema Name { ... }` directive in **multiline** format — each field on its own indented line. Produces more readable output for schemas with many fields.
+
+Returns `&mut self` for chaining.
+
+| Parameter | Type                                    | Description               |
+|-----------|-----------------------------------------|---------------------------|
+| `name`    | `&str`                                  | Schema name (PascalCase). |
+| `fields`  | `impl IntoIterator<Item = SchemaField>` | Field declarations.       |
+
+**Returns:** `&mut AAMBuilder`
+
+```rust
+use aam_rs::builder::{AAMBuilder, SchemaField};
+
+let mut b = AAMBuilder::new();
+b.schema_multiline("Server", [
+    SchemaField::required("host", "string"),
+    SchemaField::optional("port", "i32"),
+]);
+
+let out = b.build();
+// @schema Server {
+//     host: string
+//     port*: i32
+// }
+assert!(out.contains("    host: string"));
+```
+
+```python
+from aam import AAMBuilder, SchemaField
+
+b = AAMBuilder()
+b.schema_multiline("Server", [
+    SchemaField.required("host", "string"),
+    SchemaField.optional("port", "i32"),
+])
+
+out = b.build()
+# @schema Server {
+#     host: string
+#     port*: i32
+# }
+assert "    host: string" in out
+```
+
+---
+
+#### `derive`
+
+Appends a `@derive path` or `@derive path::Schema1::Schema2` directive. Pass an empty iterator as `schemas` to derive the entire file without selecting specific schemas.
+
+Returns `&mut self` for chaining.
+
+| Parameter | Type                                          | Description                             |
+|-----------|-----------------------------------------------|-----------------------------------------|
+| `path`    | `&str`                                        | Path to the base `.aam` file.           |
+| `schemas` | `impl IntoIterator<Item = impl AsRef<str>>`   | Schema names to select (can be empty).  |
+
+**Returns:** `&mut AAMBuilder`
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+// Derive specific schemas
+let mut b = AAMBuilder::new();
+b.derive("base.aam", ["Server", "Database"]);
+assert!(b.build().contains("@derive base.aam::Server::Database"));
+
+// Derive the whole file
+let mut b2 = AAMBuilder::new();
+b2.derive("base.aam", [] as [&str; 0]);
+assert!(b2.build().contains("@derive base.aam"));
+```
+
+```python
+from aam import AAMBuilder
+
+# Derive specific schemas
+b = AAMBuilder()
+b.derive("base.aam", ["Server", "Database"])
+assert "@derive base.aam::Server::Database" in b.build()
+
+# Derive the whole file
+b2 = AAMBuilder()
+b2.derive("base.aam", [])
+assert "@derive base.aam" in b2.build()
+```
+
+---
+
+#### `import`
+
+Appends a `@import path` directive. Returns `&mut self` for chaining.
+
+| Parameter | Type   | Description                        |
+|-----------|--------|------------------------------------|
+| `path`    | `&str` | Path to the `.aam` file to import. |
+
+**Returns:** `&mut AAMBuilder`
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.import("shared.aam");
+assert!(b.build().contains("@import shared.aam"));
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder()
+b.import_("shared.aam")
+assert "@import shared.aam" in b.build()
+```
+
+---
+
+#### `type_alias`
+
+Appends a `@type alias = type_name` directive. Returns `&mut self` for chaining.
+
+| Parameter   | Type   | Description                      |
+|-------------|--------|----------------------------------|
+| `alias`     | `&str` | The new type alias name.         |
+| `type_name` | `&str` | The existing type name to alias. |
+
+**Returns:** `&mut AAMBuilder`
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.type_alias("pos", "math::vector3");
+assert!(b.build().contains("@type pos = math::vector3"));
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder()
+b.type_alias("pos", "math::vector3")
+assert "@type pos = math::vector3" in b.build()
+```
+
+---
+
+#### ~~`add_raw`~~
+
+> **Deprecated** since `1.1.0`. Use the typed directive methods ([`schema`](#schema), [`derive`](#derive), [`import`](#import), [`type_alias`](#type_alias)) instead.
+
+Appends a raw line to the buffer as-is without any processing or validation. Returns `&mut self` for chaining.
+
+| Parameter  | Type   | Description         |
+|------------|--------|---------------------|
+| `raw_line` | `&str` | Raw text to append. |
+
+**Returns:** `&mut AAMBuilder`
+
+---
+
+### Output
+
+#### `build`
+
+Consumes the builder and returns the accumulated content as a `String`.
+
+**Returns:** `String`
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost");
+
+let content: String = b.build();
+println!("{}", content);
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder()
+b.add_line("host", "localhost")
+
+content = b.build()
+print(content)
+```
+
+---
+
+#### `as_string`
+
+Returns a **clone** of the accumulated content as a `String` without consuming the builder. The builder can continue to be used after this call.
+
+**Returns:** `String`
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost");
+
+let snapshot = b.as_string(); // builder is still usable
+b.add_line("port", "8080");
+
+println!("snapshot: {}", snapshot);
+println!("full:     {}", b.build());
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder()
+b.add_line("host", "localhost")
+
+snapshot = b.as_string()   # builder is still usable
+b.add_line("port", "8080")
+
+print("snapshot:", snapshot)
+print("full:    ", b.build())
+```
+
+---
+
+#### `to_file`
+
+Writes the accumulated content to the file at `path`. The file is created if it does not exist, or truncated if it does.
+
+| Parameter | Type               | Description             |
+|-----------|--------------------|-------------------------|
+| `path`    | `impl AsRef<Path>` | Destination file path.  |
+
+**Returns:** `io::Result<()>` (Rust) / raises `IOError` (Python)
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost")
+ .add_line("port", "8080");
+
+b.to_file("output.aam").unwrap();
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder()
+b.add_line("host", "localhost").add_line("port", "8080")
+b.to_file("output.aam")
+```
+
+---
+
+### Trait Implementations
+
+| Trait               | Behaviour                                                                   |
+|---------------------|-----------------------------------------------------------------------------|
+| `Display`           | Prints the accumulated buffer content.                                      |
+| `Deref<Target=str>` | Derefs to the inner `str`, giving read-only access to all string methods.   |
+| `Default`           | Equivalent to `AAMBuilder::new()`.                                          |
+
+---
+
+## `SchemaField`
+
+Represents a single field declaration inside a `@schema` block. Used as the element type for the `fields` argument of [`AAMBuilder::schema`](#schema) and [`AAMBuilder::schema_multiline`](#schema_multiline).
+
+Fields declared as **optional** are rendered with a `*` suffix (`name*: type`), meaning the key does not have to be present in the data map — but if it *is* present, its value is still type-checked.
+
+### `SchemaField::required` and `SchemaField::optional`
+
+| Method                               | Rendered AAML form | Description                                        |
+|--------------------------------------|--------------------|----------------------------------------------------|
+| `SchemaField::required(name, type_name)` | `name: type`   | Field that **must** be present in the data map.    |
+| `SchemaField::optional(name, type_name)` | `name*: type`  | Field that **may** be absent; validated if present.|
+
+| Parameter   | Type                | Description              |
+|-------------|---------------------|--------------------------|
+| `name`      | `impl Into<String>` | Field name (snake_case). |
+| `type_name` | `impl Into<String>` | Type name.               |
+
+**Returns:** `SchemaField`
+
+```rust
+use aam_rs::builder::SchemaField;
+
+let req = SchemaField::required("host", "string");
+assert_eq!(req.to_aaml(), "host: string");
+
+let opt = SchemaField::optional("debug", "bool");
+assert_eq!(opt.to_aaml(), "debug*: bool");
+```
+
+```python
+from aam import SchemaField
+
+req = SchemaField.required("host", "string")
+assert req.to_aaml() == "host: string"
+
+opt = SchemaField.optional("debug", "bool")
+assert opt.to_aaml() == "debug*: bool"
+```
+
+---
+
+### `SchemaField::to_aaml`
+
+Renders the field as an AAML field declaration string (`name: type` or `name*: type`).
+
+**Returns:** `String`
+
+---
+
+## End-to-End Example
+
+The following example builds a complete `.aam` configuration file programmatically, writes it to disk, and then parses it back with `AAML::load`:
+
+```rust
+use aam_rs::builder::{AAMBuilder, SchemaField};
+use aam_rs::aaml::AAML;
+
+// Build the configuration
+let mut b = AAMBuilder::new();
+b.comment("Server configuration")
+ .type_alias("port_t", "i32")
+ .schema("Server", [
+     SchemaField::required("host", "string"),
+     SchemaField::required("port", "port_t"),
+     SchemaField::optional("debug", "bool"),
+ ])
+ .add_line("host", "localhost")
+ .add_line("port", "8080")
+ .add_line("debug", "true");
+
+// Write to disk
+b.to_file("server.aam").unwrap();
+
+// Parse back and validate
+let cfg = AAML::load("server.aam").unwrap();
+cfg.validate_schemas_completeness().unwrap();
+
+assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+assert_eq!(cfg.find_obj("port").unwrap().as_str(), "8080");
+```
+
+```python
+from aam import AAMBuilder, SchemaField, AAML
+
+# Build the configuration
+b = AAMBuilder()
+b.comment("Server configuration") \
+ .type_alias("port_t", "i32") \
+ .schema("Server", [
+     SchemaField.required("host", "string"),
+     SchemaField.required("port", "port_t"),
+     SchemaField.optional("debug", "bool"),
+ ]) \
+ .add_line("host", "localhost") \
+ .add_line("port", "8080") \
+ .add_line("debug", "true")
+
+# Write to disk
+b.to_file("server.aam")
+
+# Parse back and validate
+cfg = AAML.load("server.aam")
+cfg.validate_schemas_completeness()
+
+assert cfg.find_obj("host") == "localhost"
+assert cfg.find_obj("port") == "8080"
+```

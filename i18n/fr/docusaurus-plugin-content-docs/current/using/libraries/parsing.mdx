@@ -1,0 +1,123 @@
+---
+sidebar_position: 2
+title: "Analyse"
+description: "Comment analyser des fichiers AAM dans vos projets"
+---
+
+# Analyse
+
+Cette page couvre toutes les façons de charger et d'analyser du contenu AAM dans votre application en utilisant `aam-rs` (Rust) ou `aam-py` (Python).
+
+## Depuis un Fichier
+
+Le point d'entrée le plus courant est `AAML::load`, qui lit un fichier `.aam` depuis le disque, traite toutes les directives et retourne une instance `AAML` prête à l'emploi.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::load("config.aam").unwrap();
+println!("{}", cfg.find_obj("host").unwrap());
+```
+
+```python
+from aam_py import AAML
+
+cfg = AAML.load("config.aam")
+print(cfg.find_obj("host"))
+```
+
+## Depuis une Chaîne
+
+Utilisez `AAML::parse` pour analyser du contenu AAM qui est déjà en mémoire sous forme de chaîne. C'est utile pour les configurations inline, les tests unitaires ou le contenu récupéré depuis une source distante.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let source = "host = localhost\nport = 8080";
+let cfg = AAML::parse(source).unwrap();
+
+assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+```
+
+```python
+from aam_py import AAML
+
+source = "host = localhost\nport = 8080"
+cfg = AAML.parse(source)
+
+assert cfg.find_obj("host") == "localhost"
+```
+
+## Fusionner Plusieurs Sources
+
+Parfois, la configuration provient de plus d'un fichier ou d'une chaîne. Utilisez `merge_content` et `merge_file` pour charger du contenu supplémentaire dans une instance `AAML` existante. Lorsqu'une clé apparaît à la fois dans l'instance existante et dans la source fusionnée, la **valeur entrante gagne**.
+
+```rust
+use aam_rs::aaml::AAML;
+
+let mut cfg = AAML::new();
+cfg.merge_file("base.aam").unwrap();
+cfg.merge_content("debug = true").unwrap(); // ajoute ou remplace 'debug'
+```
+
+```python
+from aam_py import AAML
+
+cfg = AAML()
+cfg.merge_file("base.aam")
+cfg.merge_content("debug = true")   # ajoute ou remplace 'debug'
+```
+
+Vous pouvez également fusionner deux instances `AAML` avec l'opérateur `+` :
+
+```rust
+let base      = AAML::load("base.aam").unwrap();
+let overrides = AAML::load("env.aam").unwrap();
+
+let cfg = base + overrides; // le côté droit gagne en cas de conflit
+```
+
+## Directives Traitées au Moment de l'Analyse
+
+Toutes les directives AAM sont résolues automatiquement pendant l'analyse — vous n'avez pas besoin d'appeler de méthode supplémentaire après `load` ou `parse` :
+
+| Directive | Effet |
+|-----------|-------|
+| `@import` | Charge et fusionne un autre fichier `.aam` inline. |
+| `@derive` | Hérite des paires clé-valeur d'un autre fichier ; l'enfant gagne sur les conflits de clé. |
+| `@schema` | Enregistre un schéma nommé et active la vérification de type automatique par champ. |
+| `@type` | Enregistre un alias de type personnalisé pour utilisation dans les déclarations de champ de schéma. |
+
+## Gestion des Erreurs
+
+`AAML::load` et `AAML::parse` retournent tous deux `Result<AAML, AamlError>`. Gérez toujours les erreurs dans le code de production :
+
+```rust
+use aam_rs::aaml::AAML;
+use aam_rs::error::AamlError;
+
+match AAML::load("config.aam") {
+    Ok(cfg) => {
+        println!("host = {}", cfg.find_obj("host").unwrap());
+    }
+    Err(AamlError::IoError(e)) => {
+        eprintln!("Impossible de lire le fichier : {e}");
+    }
+    Err(AamlError::ParseError { line, content, details }) => {
+        eprintln!("Erreur d'analyse à la ligne {line} : '{content}' — {details}");
+    }
+    Err(e) => eprintln!("Erreur inattendue : {e}"),
+}
+```
+
+```python
+from aam_py import AAML, AamlError
+
+try:
+    cfg = AAML.load("config.aam")
+    print("host =", cfg.find_obj("host"))
+except AamlError as e:
+    print(f"Erreur : {e}")
+```
+
+> **Remarque :** Pour une description complète de chaque variante `AamlError`, consultez la [Référence API aam-rs](./aam-rs#aamlerror).

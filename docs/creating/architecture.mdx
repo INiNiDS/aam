@@ -1,0 +1,155 @@
+---
+sidebar_position: 2
+title: Architecture
+description: The core mechanics of every AAM library as a Configuration Engine.
+---
+
+# Library Architecture
+
+Every modern AAM library, regardless of the target language, is built as a **Configuration Engine**. Following the architecture of the reference implementation `aam-rs`, the engine is composed of three primary sub-systems. Understanding their responsibilities is the first step toward a correct implementation.
+
+```
+┌─────────────┐     text      ┌─────────────┐   AAML Object   ┌─────────────┐
+│  .aam file  │  ──────────►  │   Loader    │  ─────────────► │Query Engine │
+└─────────────┘               └──────┬──────┘                 └─────────────┘
+                                     │  ▲
+                               AAML Object (merged)
+                                     │  │
+                               ┌─────▼───────┐
+                               │   Builder   │
+                               └─────────────┘
+                                     │
+                                     │  text
+                                     ▼
+                               ┌─────────────┐
+                               │  .aam file  │
+                               └─────────────┘
+```
+
+---
+
+## 1. Parser & Loader
+
+The loader is the **entry point** of your library. It reads raw AAM text (or a file path) and produces a unified in-memory representation—typically called `AAML` or an equivalent struct/map in your language.
+
+### Responsibilities
+
+1. **Tokenisation & Parsing** — Split the source text into key-value pairs, strings, and directives (`@import`, `@schema`, `@type`).
+2. **File Loading & Merging** — When an `@import "other.aam"` directive is encountered, the loader seamlessly reads that file, parses it, and merges its contents into the current document.
+3. **Data Model Construction** — Build the internal map that stores the configuration graph.
+
+### Internal Data Model
+
+A minimal `AAML` object in memory usually looks something like this (translated to Rust, Python, and Go):
+
+**Rust (`struct`)**
+```rust
+pub struct AAML {
+    /// Preserves insertion order for deterministic serialization.
+    pub elements: IndexMap<String, String>,
+    pub schemas: HashMap<String, Schema>,
+}
+```
+
+**Python (`dict`)**
+```python
+class AAML:
+    def __init__(self):
+        # Python dicts preserve insertion order in modern versions
+        self.elements: dict[str, str] = {}
+        self.schemas: dict[str, Schema] = {}
+```
+
+**Go (`map` and slices)**
+```go
+type AAML struct {
+    // Go maps don't preserve order, so a separate keys slice is often used
+    Elements map[string]string
+    Keys     []string
+    Schemas  map[string]Schema
+}
+```
+
+---
+
+## 2. Query Engine
+
+The query engine is what makes AAM powerful. Instead of just exposing a raw map, the library provides smart traversal methods to read configuration.
+
+### Responsibilities
+
+1. **Bidirectional Lookups (`find_obj`)** — Sometimes a developer knows the key; sometimes they know the value and need to find the key. Your engine should seamlessly try a direct key lookup first, and if that fails, perform a reverse lookup.
+2. **Recursive Resolution (`find_deep`)** — AAM users frequently use aliases (e.g., `current_path = base_path`). The query engine must follow the chain of values until it finds a terminal value that is not a key.
+3. **Loop Detection** — Since AAM is declarative, users might easily create circular references (e.g., `a = b` and `b = a`). The `find_deep` function must detect cycles and return the last unique value visited to prevent infinite recursions and stack overflows.
+4. **Abstract Value Wrapping (`FoundValue`)** — Instead of returning raw strings, wrap the result in a rich type (like a custom class or struct) that allows for easy casting to integers, booleans, or in-place string manipulation.
+
+### Query Engine Flow
+
+When a user calls `config.find_deep(key)`:
+
+```
+Phase 1: Direct Lookup
+  └── Try config[key] -> found value V
+
+Phase 2: Recursion
+  └── Loop detection: have we seen V? If yes, break and return.
+  └── Check if V exists as a key in config?
+      ├── If yes, V becomes the new key, go to Phase 1.
+      └── If no, return V as the final resolved value.
+```
+
+---
+
+## 3. Configuration Builder
+
+The builder performs the **reverse** application flow: it allows users to programmatically generate AAM text securely and efficiently, without manually concatenating strings.
+
+### Responsibilities
+
+1. **Fluent API Generation** — Provide methods to add key-value pairs, comments, type aliases, and `@schema` blocks sequentially.
+2. **Deterministic Output** — The builder must preserve the exact insertion order of elements so that generated `.aam` files remain clean and diffable.
+3. **Validation & Formatting** — Ensure strings with spaces are automatically quoted, newlines are placed correctly, and comments are prefixed with `#`.
+
+### Minimal Output Contract
+
+Given a programmatic build sequence (e.g., in TypeScript):
+
+```typescript
+const builder = new AAMBuilder();
+builder.comment("Network config");
+builder.addLine("host", "localhost");
+builder.addLine("port", "8080");
+```
+
+The Builder must flawlessly serialize into:
+
+```aam
+# Network config
+host = localhost
+port = 8080
+```
+
+---
+
+## Putting It All Together
+
+A typical library interaction following the Configuration Engine model looks like this (translated to Python):
+
+```python
+import aam
+
+# 1. Parse and Load (handles all @imports automatically)
+config = aam.load("config.aam")
+
+# 2. Smart query (Deep resolution)
+terminal_path = config.find_deep("app_path")
+print(f"Resolved path: {terminal_path}")
+
+# 3. Create a new config programmatically
+builder = aam.AAMBuilder()
+builder.comment("Generated overrides")
+builder.add_line("app_path", terminal_path)
+builder.to_file("overrides.aam")
+```
+
+By decoupling these three core systems, your library provides developers absolute control: they can parse arbitrary configs, resolve complex dependency webs safely, or programmatically generate robust files.

@@ -1,0 +1,70 @@
+---
+sidebar_position: 2
+title: "@derive"
+description: "@deriveディレクティブの実装方法、Child-Wins-on-Conflictセマンティクス、および派生ループ保護。"
+---
+
+# `@derive` ディレクティブ
+
+`@derive` ディレクティブを使用すると、ファイルが別の `.aam` ファイルの `@schema` で宣言されたすべてのフィールドを**継承**できます。これはAAMにおけるスキーマベースの再利用の主要なメカニズムです。
+
+```aam
+@derive path/to/file.aam::SchemaName
+```
+
+---
+
+## 構文
+
+`@derive` は常に `"<file>::<SchemaName>"` の形式の**修飾パス**を取ります：
+
+```aam
+@derive entities/base.aam::Entity
+```
+
+- `"entities/base.aam"` — スキーマを含むファイルへのパス（[`@import`](./import) と同じ方法で解決されます）。
+- `Entity` — 継承する `@schema` ブロックの名前。
+
+:::note
+ファイル全体をマージする `@import` とは異なり、`@derive` は**特定の名前付きスキーマ**を対象とします。スキーマ名なしにファイル全体から派生することはできません。
+:::
+
+---
+
+## Child-Wins-on-Conflict
+
+**Child-Wins-on-Conflict** は `@derive` のコアセマンティクスルールです：親スキーマと現在のファイルの両方が同じフィールドの値を定義する場合、**現在のファイルの値が常に勝ちます**。
+
+```aam
+# vehicles/base.aam
+@schema Vehicle {
+    name: string
+    max_speed: physics::meterpersecond
+    color*: color
+}
+
+name = "Generic Vehicle"
+max_speed = 28.0
+color = #808080
+```
+
+```aam
+# car.aam
+@derive "vehicles/base.aam::Vehicle"
+
+# これらは親の値をオーバーライドします
+name = "Sports Car"
+max_speed = 83.3
+
+# 'color'は指定されていない — 親の値(#808080)が継承されます
+```
+
+---
+
+## 派生ループ保護
+
+:::warning アンチループ — このセクションは実装が必須です
+`@derive` は内部的に別の `.aam` ファイルを読み込み、そのファイル自体も `@derive` ディレクティブを含む可能性があります。サイクル検出なしには無限再帰が発生します。
+:::
+
+保護メカニズムは [`@import`](./import#cyclic-dependency-protection) に使用されるものと同一です：正規ファイルパスの `visited` セットを維持し、各 `@derive` を処理する前にチェックします。

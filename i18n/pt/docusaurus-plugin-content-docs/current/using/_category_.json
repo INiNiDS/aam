@@ -1,0 +1,8 @@
+{
+    "label": "Usar nos seus projetos",
+    "position": 2,
+    "link": {
+        "type": "generated-index",
+        "description": "Saiba como usar a biblioteca nos seus projetos, incluindo exemplos de código e boas práticas."
+    }
+}

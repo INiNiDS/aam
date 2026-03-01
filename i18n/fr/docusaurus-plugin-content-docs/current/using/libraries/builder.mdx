@@ -1,0 +1,177 @@
+---
+sidebar_position: 4
+description: "Référence API pour AAMBuilder et SchemaField — construisez des configurations AAM programmatiquement"
+---
+
+# Référence API du Constructeur
+
+Le module `builder` fournit une API fluide pour construire du contenu de configuration AAM programmatiquement — sans écrire manuellement des chaînes `.aam` brutes. Il est utile pour les générateurs de code, les fixtures de test et les applications qui ont besoin de produire des fichiers de configuration à l'exécution.
+
+> **Remarque :** Le constructeur produit une `String` simple de texte source AAM. Vous pouvez la passer directement à [`AAML::parse`](./aam-rs#aamlparse) ou l'écrire sur disque avec [`to_file`](#to_file).
+
+---
+
+## `AAMBuilder`
+
+`AAMBuilder` accumule des lignes dans un buffer interne et expose une API chaînable pour chaque construction AAM. Appelez [`build`](#build) à la fin pour consommer le constructeur et récupérer la chaîne finale.
+
+### Constructeurs
+
+#### `AAMBuilder::new`
+
+Crée un nouveau constructeur vide.
+
+**Retourne :** `AAMBuilder`
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost");
+let content = b.build();
+assert!(content.contains("host = localhost"));
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder()
+b.add_line("host", "localhost")
+content = b.build()
+assert "host = localhost" in content
+```
+
+---
+
+### Affectations Clé-Valeur
+
+#### `add_line`
+
+Ajoute une ligne d'affectation `key = value` au buffer.
+
+Retourne `&mut self` pour le chaînage de méthodes.
+
+```rust
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost")
+ .add_line("port", "8080")
+ .add_line("debug", "true");
+println!("{}", b.build());
+```
+
+---
+
+### Commentaires
+
+#### `comment`
+
+Ajoute une ligne de commentaire `# text` au buffer. Retourne `&mut self` pour le chaînage.
+
+```rust
+let mut b = AAMBuilder::new();
+b.comment("Configuration du serveur")
+ .add_line("host", "localhost");
+let out = b.build();
+assert!(out.contains("# Configuration du serveur"));
+```
+
+---
+
+### Directives
+
+#### `schema`
+
+Ajoute une directive `@schema Nom { champ1: type1, champ2*: type2, ... }` en format **inline** (sur une ligne).
+
+#### `schema_multiline`
+
+Ajoute une directive `@schema Nom { ... }` en format **multiligne** — chaque champ sur sa propre ligne indentée.
+
+#### `derive`
+
+Ajoute une directive `@derive chemin` ou `@derive chemin::Schema`.
+
+#### `import`
+
+Ajoute une directive `@import chemin`. Retourne `&mut self` pour le chaînage.
+
+#### `type_alias`
+
+Ajoute une directive `@type alias = nom_type`. Retourne `&mut self` pour le chaînage.
+
+---
+
+### Sortie
+
+#### `build`
+
+Consomme le constructeur et retourne le contenu accumulé comme une `String`.
+
+**Retourne :** `String`
+
+```rust
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost");
+let content: String = b.build();
+println!("{}", content);
+```
+
+---
+
+#### `to_file`
+
+Écrit le contenu accumulé dans le fichier au `path` indiqué.
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `path` | `impl AsRef<Path>` | Chemin du fichier de destination. |
+
+**Retourne :** `io::Result<()>`
+
+---
+
+## `SchemaField`
+
+Représente une déclaration de champ unique à l'intérieur d'un bloc `@schema`.
+
+| Méthode | Forme AAML rendue | Description |
+|---------|-----------------|-------------|
+| `SchemaField::required(name, type_name)` | `name: type` | Champ qui **doit** être présent. |
+| `SchemaField::optional(name, type_name)` | `name*: type` | Champ qui **peut** être absent ; validé si présent. |
+
+```rust
+use aam_rs::builder::SchemaField;
+
+let req = SchemaField::required("host", "string");
+assert_eq!(req.to_aaml(), "host: string");
+
+let opt = SchemaField::optional("debug", "bool");
+assert_eq!(opt.to_aaml(), "debug*: bool");
+```
+
+---
+
+## Exemple Complet
+
+```rust
+use aam_rs::builder::{AAMBuilder, SchemaField};
+use aam_rs::aaml::AAML;
+
+let mut b = AAMBuilder::new();
+b.comment("Configuration du serveur")
+ .type_alias("port_t", "i32")
+ .schema("Server", [
+     SchemaField::required("host", "string"),
+     SchemaField::required("port", "port_t"),
+     SchemaField::optional("debug", "bool"),
+ ])
+ .add_line("host", "localhost")
+ .add_line("port", "8080")
+ .add_line("debug", "true");
+
+b.to_file("server.aam").unwrap();
+
+let cfg = AAML::load("server.aam").unwrap();
+cfg.validate_schemas_completeness().unwrap();
+assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+```

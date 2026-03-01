@@ -1,0 +1,98 @@
+---
+sidebar_position: 3
+description: "AAML结构体、FoundValue和AamlError的完整API参考"
+---
+
+# aam-rs API参考
+
+`aam-rs` 是用于解析、验证和构建AAM配置文件的官方Rust库。Python库 `aam-py` 公开了相同的API——每个示例都展示了两种语言。
+
+---
+
+## `AAML`
+
+所有AAM操作的主要入口点。`AAML` 保存解析后的键值映射、注册的类型定义和模式定义。所有指令（`@derive`、`@schema`、`@import`、`@type`）在解析时自动处理。
+
+### 构造函数
+
+#### `AAML::parse`
+
+解析AAM字符串并返回新的完全填充的 `AAML` 实例。
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("host = localhost\nport = 8080").unwrap();
+assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.parse("host = localhost\nport = 8080")
+assert cfg.find_obj("host") == "localhost"
+```
+
+---
+
+#### `AAML::load`
+
+从磁盘读取AAM文件并返回新的 `AAML` 实例。
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::load("config.aam").unwrap();
+println!("{}", cfg.find_obj("host").unwrap());
+```
+
+```python
+from aam import AAML
+
+cfg = AAML.load("config.aam")
+print(cfg.find_obj("host"))
+```
+
+---
+
+### 查找
+
+#### `find_obj`
+
+主要查找方法。在映射中搜索 `key`。如果没有找到匹配的键，它会执行自动**反向查找**——搜索*值*等于 `key` 的任何条目。
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("a = b").unwrap();
+
+// 正向查找
+assert_eq!(cfg.find_obj("a").unwrap().as_str(), "b");
+
+// 反向查找（按值搜索）
+assert_eq!(cfg.find_obj("b").unwrap().as_str(), "a");
+```
+
+---
+
+#### `find_deep`
+
+跟随 `key → value → key` 查找链，直到达到终端值或检测到循环。
+
+```rust
+use aam_rs::aaml::AAML;
+
+let cfg = AAML::parse("a = b\nb = c").unwrap();
+// 跟随: a → b → c  (c 是终端 — 键 "c" 不存在)
+assert_eq!(cfg.find_deep("a").unwrap().as_str(), "c");
+```
+
+---
+
+## `AamlError`
+
+| 变量 | 描述 |
+|------|------|
+| `IoError(io::Error)` | 读取文件时发生I/O错误。 |
+| `ParseError { line, content, details }` | 源行无法作为有效的AAML语句解析。 |
+| `SchemaValidationError { schema, field, type_name, details }` | 解析或验证期间违反了模式约束。 |

@@ -1,0 +1,339 @@
+---
+sidebar_position: 4
+description: "Справочник API для AAMBuilder и SchemaField — программное создание конфигураций AAM"
+---
+
+# Справочник Builder API
+
+Модуль `builder` предоставляет гибкий API для программного создания содержимого конфигурации AAM — без написания сырых строк `.aam` вручную. Он полезен для генераторов кода, тестовых фиксстюр и приложений, которым нужно создавать конфигурационные файлы во время выполнения.
+
+> **Примечание:** Builder создаёт обычную `String` исходного текста AAM. Вы можете передать её напрямую в [`AAML::parse`](./aam-rs#aamlparse) или записать на диск с помощью [`to_file`](#to_file).
+
+---
+
+## `AAMBuilder`
+
+`AAMBuilder` накапливает строки во внутреннем буфере и предоставляет цепочечный API для каждой конструкции AAM. Вызовите [`build`](#build) в конце, чтобы получить итоговую строку.
+
+### Конструкторы
+
+#### `AAMBuilder::new`
+
+Создаёт новый пустой builder.
+
+**Возвращает:** `AAMBuilder`
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost");
+let content = b.build();
+assert!(content.contains("host = localhost"));
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder()
+b.add_line("host", "localhost")
+content = b.build()
+assert "host = localhost" in content
+```
+
+---
+
+### Присваивания ключ-значение
+
+#### `add_line`
+
+Добавляет строку присваивания `key = value` в буфер. Разделитель в виде символа новой строки вставляется автоматически между последовательными записями.
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost")
+ .add_line("port", "8080")
+ .add_line("debug", "true");
+
+println!("{}", b.build());
+// host = localhost
+// port = 8080
+// debug = true
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder()
+b.add_line("host", "localhost") \
+ .add_line("port", "8080") \
+ .add_line("debug", "true")
+
+print(b.build())
+```
+
+---
+
+### Комментарии
+
+#### `comment`
+
+Добавляет строку комментария `# text` в буфер.
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.comment("Конфигурация сервера")
+ .add_line("host", "localhost");
+
+let out = b.build();
+assert!(out.contains("# Конфигурация сервера"));
+```
+
+---
+
+### Директивы
+
+#### `schema`
+
+Добавляет директиву `@schema Name { field1: type1, field2*: type2, ... }` в **инлайн** (однострочном) формате.
+
+```rust
+use aam_rs::builder::{AAMBuilder, SchemaField};
+
+let mut b = AAMBuilder::new();
+b.schema("Player", [
+    SchemaField::required("name", "string"),
+    SchemaField::required("score", "i32"),
+    SchemaField::optional("team", "string"),
+]);
+
+assert!(b.build().contains("@schema Player {"));
+```
+
+```python
+from aam import AAMBuilder, SchemaField
+
+b = AAMBuilder()
+b.schema("Player", [
+    SchemaField.required("name", "string"),
+    SchemaField.required("score", "i32"),
+    SchemaField.optional("team", "string"),
+])
+
+assert "@schema Player {" in b.build()
+```
+
+---
+
+#### `schema_multiline`
+
+Добавляет директиву `@schema Name { ... }` в **многострочном** формате — каждое поле на своей строке с отступом.
+
+```rust
+use aam_rs::builder::{AAMBuilder, SchemaField};
+
+let mut b = AAMBuilder::new();
+b.schema_multiline("Server", [
+    SchemaField::required("host", "string"),
+    SchemaField::optional("port", "i32"),
+]);
+
+let out = b.build();
+assert!(out.contains("    host: string"));
+```
+
+---
+
+#### `derive`
+
+Добавляет директиву `@derive path` или `@derive path::Schema1::Schema2`.
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.derive("base.aam", ["Server", "Database"]);
+assert!(b.build().contains("@derive base.aam::Server::Database"));
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder()
+b.derive("base.aam", ["Server", "Database"])
+assert "@derive base.aam::Server::Database" in b.build()
+```
+
+---
+
+#### `import`
+
+Добавляет директиву `@import path`.
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.import("shared.aam");
+assert!(b.build().contains("@import shared.aam"));
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder()
+b.import_("shared.aam")
+assert "@import shared.aam" in b.build()
+```
+
+---
+
+#### `type_alias`
+
+Добавляет директиву `@type alias = type_name`.
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.type_alias("pos", "math::vector3");
+assert!(b.build().contains("@type pos = math::vector3"));
+```
+
+---
+
+### Вывод
+
+#### `build`
+
+Потребляет builder и возвращает накопленное содержимое как `String`.
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost");
+
+let content: String = b.build();
+println!("{}", content);
+```
+
+---
+
+#### `to_file`
+
+Записывает накопленное содержимое в файл по пути `path`.
+
+```rust
+use aam_rs::builder::AAMBuilder;
+
+let mut b = AAMBuilder::new();
+b.add_line("host", "localhost")
+ .add_line("port", "8080");
+
+b.to_file("output.aam").unwrap();
+```
+
+```python
+from aam import AAMBuilder
+
+b = AAMBuilder()
+b.add_line("host", "localhost").add_line("port", "8080")
+b.to_file("output.aam")
+```
+
+---
+
+## `SchemaField`
+
+Представляет объявление одного поля внутри блока `@schema`. Используется как тип элемента для аргумента `fields` методов `AAMBuilder::schema` и `AAMBuilder::schema_multiline`.
+
+### `SchemaField::required` и `SchemaField::optional`
+
+| Метод | Форма AAML | Описание |
+|-------|-----------|----------|
+| `SchemaField::required(name, type_name)` | `name: type` | Поле, которое **должно** присутствовать в карте данных. |
+| `SchemaField::optional(name, type_name)` | `name*: type` | Поле, которое **может** отсутствовать; валидируется при наличии. |
+
+```rust
+use aam_rs::builder::SchemaField;
+
+let req = SchemaField::required("host", "string");
+assert_eq!(req.to_aaml(), "host: string");
+
+let opt = SchemaField::optional("debug", "bool");
+assert_eq!(opt.to_aaml(), "debug*: bool");
+```
+
+```python
+from aam import SchemaField
+
+req = SchemaField.required("host", "string")
+assert req.to_aaml() == "host: string"
+
+opt = SchemaField.optional("debug", "bool")
+assert opt.to_aaml() == "debug*: bool"
+```
+
+---
+
+## Сквозной пример
+
+```rust
+use aam_rs::builder::{AAMBuilder, SchemaField};
+use aam_rs::aaml::AAML;
+
+// Создаём конфигурацию
+let mut b = AAMBuilder::new();
+b.comment("Конфигурация сервера")
+ .type_alias("port_t", "i32")
+ .schema("Server", [
+     SchemaField::required("host", "string"),
+     SchemaField::required("port", "port_t"),
+     SchemaField::optional("debug", "bool"),
+ ])
+ .add_line("host", "localhost")
+ .add_line("port", "8080")
+ .add_line("debug", "true");
+
+// Записываем на диск
+b.to_file("server.aam").unwrap();
+
+// Разбираем обратно и валидируем
+let cfg = AAML::load("server.aam").unwrap();
+cfg.validate_schemas_completeness().unwrap();
+
+assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+assert_eq!(cfg.find_obj("port").unwrap().as_str(), "8080");
+```
+
+```python
+from aam import AAMBuilder, SchemaField, AAML
+
+# Создаём конфигурацию
+b = AAMBuilder()
+b.comment("Конфигурация сервера") \
+ .type_alias("port_t", "i32") \
+ .schema("Server", [
+     SchemaField.required("host", "string"),
+     SchemaField.required("port", "port_t"),
+     SchemaField.optional("debug", "bool"),
+ ]) \
+ .add_line("host", "localhost") \
+ .add_line("port", "8080") \
+ .add_line("debug", "true")
+
+# Записываем на диск
+b.to_file("server.aam")
+
+# Разбираем обратно и валидируем
+cfg = AAML.load("server.aam")
+cfg.validate_schemas_completeness()
+
+assert cfg.find_obj("host") == "localhost"
+assert cfg.find_obj("port") == "8080"
+```

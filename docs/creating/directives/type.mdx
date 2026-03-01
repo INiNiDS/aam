@@ -1,0 +1,199 @@
+---
+sidebar_position: 4
+title: "@type"
+description: How to implement @type alias definitions and maintain an internal type registry.
+---
+
+# The `@type` Directive
+
+The `@type` directive lets a user **declare a named alias** for any existing type — primitive, complex, or another alias. Libraries must register these aliases during parsing so that every subsequent type reference (in `@schema` fields, key-value annotations, etc.) can be resolved to its canonical form.
+
+```aam
+@type PlayerId = i32
+@type SpawnPoint = types::math::vector3
+@type Timeout = types::time::duration
+```
+
+---
+
+## Syntax
+
+```
+@type <Name> = <type_expression>
+```
+
+- `Name` must be in **PascalCase** (e.g. `UserId`, `WorldPosition`).
+- `type_expression` is any valid AAM type — a primitive, a namespaced complex type, or another previously declared alias.
+- Self-referential or forward-reference aliases are **not** allowed; aliases must refer only to already-registered types.
+
+---
+
+## What `@type` Does
+
+When the parser encounters `@type Alias = SomeType`:
+
+1. Parse `SomeType` as a type expression.
+2. Resolve `SomeType` to its canonical `AamType` using the current `type_registry`.
+3. Register the mapping `Alias → canonical AamType` in the `type_registry`.
+4. From this point on, `Alias` can be used anywhere a type is expected.
+
+---
+
+## Internal Representation
+
+The type registry is a flat `HashMap<String, AamType>` stored on `AamDocument`:
+
+```rust
+pub enum AamType {
+    // Primitives
+    I32,
+    F64,
+    String,
+    Bool,
+    Color,
+
+    // Complex namespaced types
+    Physics(PhysicsType),
+    Math(MathType),
+    Time(TimeType),
+
+    // Composite
+    List(Box<AamType>),
+    Schema(String),   // references a named @schema
+
+    // Resolved alias — transparent wrapper
+    Alias { name: String, resolved: Box<AamType> },
+}
+
+// In AAML:
+pub type_registry: HashMap<String, String>,  // or equivalent representations
+```
+
+When a consumer asks "what is the type of field `x`?", the Query Engine must **unwrap aliases** until it reaches a concrete core type variant.
+
+---
+
+## Parsing a `@type` Declaration
+
+```rust
+fn parse_type_directive(
+    tokens: &mut TokenStream,
+    doc: &mut AAML,
+) -> Result<(), AamlError> {
+    let alias_name = tokens.expect_identifier()?; // e.g. "PlayerId"
+    tokens.expect(Token::Equals)?;
+
+    // Resolve the right-hand side against the current registry
+    let canonical = parse_type_expression(tokens, &doc.type_registry)?;
+
+    // Guard: the alias name must not already be a built-in type
+    if is_builtin_type(&alias_name) {
+        return Err(AamlError::ReservedTypeName { name: alias_name });
+    }
+
+    doc.type_registry.insert(
+        alias_name.clone(),
+        canonical // Storing the resolved string representation
+    );
+
+    Ok(())
+}
+```
+
+---
+
+## Alias Chains
+
+Aliases may be stacked — one alias can refer to another:
+
+```aam
+@type Name = string
+@type FirstName = Name
+@type LastName = Name
+```
+
+Your `parse_type_expression` function must recursively look up the registry until it reaches a non-alias type. Implement a helper to canonicalize:
+
+```rust
+fn resolve_type(ty: &AamType, registry: &HashMap<String, AamType>) -> AamType {
+    match ty {
+        AamType::Alias { resolved, .. } => resolve_type(resolved, registry),
+        other => other.clone(),
+    }
+}
+```
+
+Use `resolve_type` in the validator so that type comparison always works on canonical types, never on alias wrappers.
+
+### Alias cycle protection
+
+Although forward references are already prohibited (an alias can only refer to types already registered), you should still guard against pathological cases:
+
+```rust
+fn resolve_type_bounded(
+    ty: &String,
+    registry: &HashMap<String, String>,
+    depth: u8,
+) -> Result<String, AamlError> {
+    if depth > 32 {
+        return Err(AamlError::TypeAliasCycle);
+    }
+    // Perform checking logic here using the string or struct variants...
+    Ok(ty.clone())
+}
+```
+
+---
+
+## Scoping Rules
+
+Type aliases are **file-scoped by default**. When a file is imported via `@import`, its type aliases are merged into the importing document's `type_registry` (subject to Child-Wins-on-Conflict semantics, same as key-value entries).
+
+```aam
+# types.aam
+@type Velocity = physics::meterpersecond
+@type Mass  = physics::kilogram
+```
+
+```aam
+# simulation.aam
+@import "types.aam"
+
+# Velocity and Mass are now available here
+@schema Body {
+    v: Velocity
+    m: Mass
+}
+```
+
+---
+
+## Using Aliases in Schemas
+
+Once registered, an alias is indistinguishable from a built-in type at the usage site:
+
+```aam
+@type EntityId = i32
+
+@schema Entity {
+    id: EntityId      # resolves to i32
+    label: string
+}
+```
+
+The validator must resolve `EntityId → i32` before checking the value of the `id` field, so that both `EntityId` and `i32` are treated as equivalent.
+
+---
+
+## Reserved Names
+
+The following names **must not** be used as alias names — they are built-in type identifiers:
+
+| Reserved names |
+|---------------|
+| `i32`, `f64`, `string`, `bool`, `color` |
+| `list` |
+| Any name in the `math::`, `physics::`, `time::` namespaces |
+
+Return an `AamlError::ReservedTypeName` error if a user attempts to shadow a built-in.
+

@@ -1,0 +1,8 @@
+{
+    "label": "API Pública",
+    "position": 5,
+    "link": {
+        "type": "generated-index",
+        "description": "Diseño de API estandarizado para bibliotecas AAM."
+    }
+}

@@ -1,0 +1,26 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.tutorialSidebar.category.Using in your projects": {
+    "message": "Using in your projects",
+    "description": "The label for category 'Using in your projects' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Using in your projects.link.generated-index.description": {
+    "message": "Learn how to use AAM in your projects",
+    "description": "The generated-index page description for category 'Using in your projects' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Tutorial - Extras": {
+    "message": "Tutorial - Extras",
+    "description": "The label for category 'Tutorial - Extras' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Extra Types": {
+    "message": "Extra Types",
+    "description": "The label for category 'Extra Types' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Extra Types.link.generated-index.description": {
+    "message": "Learn all supported aam types.",
+    "description": "The generated-index page description for category 'Extra Types' in sidebar 'tutorialSidebar'"
+  }
+}
