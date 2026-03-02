@@ -5,6 +5,6 @@ INiNiDS:
   image_url: https://github.com/INiNiDS.png
   page: true
   socials:
-    telegram: ininids
-    github: ininids
+    telegram: https://t.me/ininids
+    github: https://github.com/ininids
     newsletter: https://www.ininids.in.rs
