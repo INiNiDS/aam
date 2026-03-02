@@ -1,19 +1,24 @@
-facebook:
-  label: Facebook
-  permalink: /facebook
-  description: Facebook tag description
+aam:
+  label: AAM
+  permalink: /aam
+  description: AAM tag description
 
-hello:
-  label: Hello
-  permalink: /hello
-  description: Hello tag description
+update:
+  label: Update
+  permalink: /update
+  description: Update tag description
 
-docusaurus:
-  label: Docusaurus
-  permalink: /docusaurus
-  description: Docusaurus tag description
+fix:
+  label: Fix
+  permalink: /fix
+  description: Fix tag description
 
-hola:
-  label: Hola
-  permalink: /hola
-  description: Hola tag description
+feature:
+  label: Feature
+  permalink: /feature
+  description: Feature tag description
+
+library:
+  label: Library
+  permalink: /library
+  description: Library tag description
