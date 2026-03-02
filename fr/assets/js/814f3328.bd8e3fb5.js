@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkaam_docs=globalThis.webpackChunkaam_docs||[]).push([[7472],{5513(a){a.exports=JSON.parse('{"title":"Articles r\xe9cents","items":[{"title":"Starting AAM","permalink":"/fr/blog/starting-aam","unlisted":false,"date":"2026-03-02T00:00:00.000Z"}]}')}}]);
