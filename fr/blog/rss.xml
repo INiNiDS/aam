@@ -4,31 +4,42 @@
         <title>AAM Blog</title>
         <link>https://aam.ininids.in.rs/fr/blog</link>
         <description>AAM Blog</description>
-        <lastBuildDate>Mon, 02 Mar 2026 00:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Wed, 04 Mar 2026 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>fr</language>
         <item>
-            <title><![CDATA[Starting AAM]]></title>
+            <title><![CDATA[LLMs et Robots]]></title>
+            <link>https://aam.ininids.in.rs/fr/blog/llms-and-robots</link>
+            <guid>https://aam.ininids.in.rs/fr/blog/llms-and-robots</guid>
+            <pubDate>Wed, 04 Mar 2026 00:00:00 GMT</pubDate>
+            <description><![CDATA[Une nouvelle mise à jour arrive avec de nouveaux fichiers llms.txt et robots.txt pour les moteurs de recherche et l'IA.]]></description>
+            <content:encoded><![CDATA[<p>Une nouvelle mise à jour arrive avec de nouveaux fichiers llms.txt et robots.txt pour les moteurs de recherche et l'IA.
+Et ajout d'<a href="https://aam.ininids.in.rs/fr/assets/files/examples-769f0fb7a53040dbf22503f742dab922.md" target="_blank" class="">exemples</a></p>]]></content:encoded>
+            <category>AAM</category>
+            <category>Update</category>
+        </item>
+        <item>
+            <title><![CDATA[Commencer avec AAM]]></title>
             <link>https://aam.ininids.in.rs/fr/blog/starting-aam</link>
             <guid>https://aam.ininids.in.rs/fr/blog/starting-aam</guid>
             <pubDate>Mon, 02 Mar 2026 00:00:00 GMT</pubDate>
-            <description><![CDATA[Let's start with AAM!]]></description>
-            <content:encoded><![CDATA[<p>Let's start with AAM!</p>
-<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="aam">AAM?<a href="https://aam.ininids.in.rs/fr/blog/starting-aam#aam" class="hash-link" aria-label="Lien direct vers AAM?" title="Lien direct vers AAM?" translate="no">​</a></h2>
-<p>Modern,<br>
-<!-- -->Easy,<br>
-<!-- -->Best<br>
-<!-- -->AAM is a really good aliasing format<br>
-<!-- -->Needs easy configuration? OK<br>
-<!-- -->Needs fast parsing? OK<br>
-<!-- -->Needs type safety? OK<br>
-<!-- -->Needs transform hard to easy? OKKKKKKK</p>
-<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="example">Example<a href="https://aam.ininids.in.rs/fr/blog/starting-aam#example" class="hash-link" aria-label="Lien direct vers Example" title="Lien direct vers Example" translate="no">​</a></h2>
+            <description><![CDATA[Commençons avec AAM !]]></description>
+            <content:encoded><![CDATA[<p>Commençons avec AAM !</p>
+<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="aam-">AAM ?<a href="https://aam.ininids.in.rs/fr/blog/starting-aam#aam-" class="hash-link" aria-label="Lien direct vers AAM ?" title="Lien direct vers AAM ?" translate="no">​</a></h2>
+<p>Moderne,<br>
+<!-- -->Facile,<br>
+<!-- -->Le meilleur<br>
+<!-- -->AAM est un très bon format d'alias<br>
+<!-- -->Besoin d'une configuration facile ? OK<br>
+<!-- -->Besoin d'une analyse rapide ? OK<br>
+<!-- -->Besoin de sécurité de typage ? OK<br>
+<!-- -->Besoin de transformer du difficile au facile ? OKKKKKKK</p>
+<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="exemple">Exemple<a href="https://aam.ininids.in.rs/fr/blog/starting-aam#exemple" class="hash-link" aria-label="Lien direct vers Exemple" title="Lien direct vers Exemple" translate="no">​</a></h2>
 <div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">host = localhost</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">port = 8080</span><br></span></code></pre></div></div>
-<p>it's all. If you say <code>localhost</code> you will get <code>host</code> from config.
-"What is localhost? It's a {AAML::find_obj("localhost")}"
-Really easy, yes?</p>]]></content:encoded>
+<p>C'est tout. Si vous dites <code>localhost</code> vous obtiendrez <code>host</code> de la configuration.
+"Qu'est-ce que localhost ? C'est un {AAML::find_obj("localhost")}"
+Vraiment facile, n'est-ce pas ?</p>]]></content:encoded>
             <category>AAM</category>
         </item>
     </channel>

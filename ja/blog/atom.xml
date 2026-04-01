@@ -2,32 +2,47 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://aam.ininids.in.rs/ja/blog</id>
     <title>AAM Blog</title>
-    <updated>2026-03-02T00:00:00.000Z</updated>
+    <updated>2026-03-04T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://aam.ininids.in.rs/ja/blog"/>
     <subtitle>AAM Blog</subtitle>
     <icon>https://aam.ininids.in.rs/ja/img/favicon.ico</icon>
     <entry>
-        <title type="html"><![CDATA[Starting AAM]]></title>
+        <title type="html"><![CDATA[LLMとロボット]]></title>
+        <id>https://aam.ininids.in.rs/ja/blog/llms-and-robots</id>
+        <link href="https://aam.ininids.in.rs/ja/blog/llms-and-robots"/>
+        <updated>2026-03-04T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[検索エンジンとAI向けの新しいファイル llms.txt と robots.txt を含む新しいアップデートが行われます。]]></summary>
+        <content type="html"><![CDATA[<p>検索エンジンとAI向けの新しいファイル llms.txt と robots.txt を含む新しいアップデートが行われます。
+そして<a href="https://aam.ininids.in.rs/ja/assets/files/examples-769f0fb7a53040dbf22503f742dab922.md" target="_blank" class="">例</a>が追加されました。</p>]]></content>
+        <author>
+            <name>Nikita Goncharov</name>
+            <uri>https://www.ininids.in.rs</uri>
+        </author>
+        <category label="AAM" term="AAM"/>
+        <category label="Update" term="Update"/>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[AAMを始めよう]]></title>
         <id>https://aam.ininids.in.rs/ja/blog/starting-aam</id>
         <link href="https://aam.ininids.in.rs/ja/blog/starting-aam"/>
         <updated>2026-03-02T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Let's start with AAM!]]></summary>
-        <content type="html"><![CDATA[<p>Let's start with AAM!</p>
-<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="aam">AAM?<a href="https://aam.ininids.in.rs/ja/blog/starting-aam#aam" class="hash-link" aria-label="AAM? への直接リンク" title="AAM? への直接リンク" translate="no">​</a></h2>
-<p>Modern,<br>
-<!-- -->Easy,<br>
-<!-- -->Best<br>
-<!-- -->AAM is a really good aliasing format<br>
-<!-- -->Needs easy configuration? OK<br>
-<!-- -->Needs fast parsing? OK<br>
-<!-- -->Needs type safety? OK<br>
-<!-- -->Needs transform hard to easy? OKKKKKKK</p>
-<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="example">Example<a href="https://aam.ininids.in.rs/ja/blog/starting-aam#example" class="hash-link" aria-label="Example への直接リンク" title="Example への直接リンク" translate="no">​</a></h2>
+        <summary type="html"><![CDATA[AAMを始めましょう！]]></summary>
+        <content type="html"><![CDATA[<p>AAMを始めましょう！</p>
+<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="aamとは">AAMとは？<a href="https://aam.ininids.in.rs/ja/blog/starting-aam#aam%E3%81%A8%E3%81%AF" class="hash-link" aria-label="AAMとは？ への直接リンク" title="AAMとは？ への直接リンク" translate="no">​</a></h2>
+<p>モダン、<br>
+<!-- -->簡単、<br>
+<!-- -->最高<br>
+<!-- -->AAMは本当に優れたエイリアスフォーマットです<br>
+<!-- -->簡単な設定が必要ですか？ OK<br>
+<!-- -->高速な解析が必要ですか？ OK<br>
+<!-- -->型安全性が必要ですか？ OK<br>
+<!-- -->難しいものを簡単に変換する必要がありますか？ OKKKKKKK</p>
+<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="例">例<a href="https://aam.ininids.in.rs/ja/blog/starting-aam#%E4%BE%8B" class="hash-link" aria-label="例 への直接リンク" title="例 への直接リンク" translate="no">​</a></h2>
 <div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">host = localhost</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">port = 8080</span><br></span></code></pre></div></div>
-<p>it's all. If you say <code>localhost</code> you will get <code>host</code> from config.
-"What is localhost? It's a {AAML::find_obj("localhost")}"
-Really easy, yes?</p>]]></content>
+<p>これですべてです。<code>localhost</code>と言えば、設定から<code>host</code>を取得します。
+"localhostとは何ですか？それは {AAML::find_obj("localhost")} です"
+本当に簡単ですよね？</p>]]></content>
         <author>
             <name>Nikita Goncharov</name>
             <uri>https://www.ininids.in.rs</uri>

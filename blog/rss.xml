@@ -4,10 +4,21 @@
         <title>AAM Blog</title>
         <link>https://aam.ininids.in.rs/blog</link>
         <description>AAM Blog</description>
-        <lastBuildDate>Mon, 02 Mar 2026 00:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Wed, 04 Mar 2026 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
+        <item>
+            <title><![CDATA[LLMs and Robots]]></title>
+            <link>https://aam.ininids.in.rs/blog/llms-and-robots</link>
+            <guid>https://aam.ininids.in.rs/blog/llms-and-robots</guid>
+            <pubDate>Wed, 04 Mar 2026 00:00:00 GMT</pubDate>
+            <description><![CDATA[New update is coming up with a llms.txt and robots.txt new files for search engines and AI.]]></description>
+            <content:encoded><![CDATA[<p>New update is coming up with a llms.txt and robots.txt new files for search engines and AI.
+And added <a href="https://aam.ininids.in.rs/assets/files/examples-769f0fb7a53040dbf22503f742dab922.md" target="_blank" class="">examples</a></p>]]></content:encoded>
+            <category>AAM</category>
+            <category>Update</category>
+        </item>
         <item>
             <title><![CDATA[Starting AAM]]></title>
             <link>https://aam.ininids.in.rs/blog/starting-aam</link>

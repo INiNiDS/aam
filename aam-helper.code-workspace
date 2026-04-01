@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../../aam-helper"
+		},
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"typescript.tsc.autoDetect": "off"
+	}
+}

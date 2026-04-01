@@ -1,0 +1,27 @@
+# AAM Project
+
+> AAM Project is a fast, easy and powerful configuration and aliasing format.
+
+## Documentation
+- [Introduction](https://aam.ininids.in.rs/docs/intro.md): Core concepts and overview.
+- [Getting Started](https://aam.ininids.in.rs/docs/using/getting-started.mdx): Quick start guide for users.
+
+## Language Reference & Types
+- [Core Types](https://aam.ininids.in.rs/docs/using/types.mdx): Overview of the type system.
+- [Math Types](https://aam.ininids.in.rs/docs/types/math.mdx): Mathematical structures and syntax.
+- [Physics & Units](https://aam.ininids.in.rs/docs/types/physics.mdx): How to handle physical quantities.
+- [Time](https://aam.ininids.in.rs/docs/types/time.mdx): Temporal data formats.
+
+## Tooling & Integration
+- [Official Rust Library (aam-rs)](https://aam.ininids.in.rs/docs/using/instruments/libraries/aam-rs.md): API reference for Rust.
+- [Installation Guide](https://aam.ininids.in.rs/docs/using/instruments/libraries/installing.md): How to add AAM to your project.
+- [IDE Plugins](https://aam.ininids.in.rs/docs/using/instruments/ide-plugins.md): Editor support and syntax highlighting.
+
+## Extension & Development (Internal)
+- [Architecture](https://aam.ininids.in.rs/docs/creating/architecture.mdx): Internal structure of the format.
+- [Directives](https://aam.ininids.in.rs/docs/creating/directives/schema.mdx): Using @import, @schema, and @type.
+- [Validation](https://aam.ininids.in.rs/docs/creating/validation/type-checking.mdx): How type checking and validation work.
+- [API Standards](https://aam.ininids.in.rs/docs/creating/api-standards.mdx): Rules for building compatible tools.
+
+## Resources
+- [Examples](https://aam.ininids.in.rs/docs/examples.md): Ready-to-use code recipes and patterns.

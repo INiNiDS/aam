@@ -2,32 +2,47 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://aam.ininids.in.rs/pt/blog</id>
     <title>AAM Blog</title>
-    <updated>2026-03-02T00:00:00.000Z</updated>
+    <updated>2026-03-04T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://aam.ininids.in.rs/pt/blog"/>
     <subtitle>AAM Blog</subtitle>
     <icon>https://aam.ininids.in.rs/pt/img/favicon.ico</icon>
     <entry>
-        <title type="html"><![CDATA[Starting AAM]]></title>
+        <title type="html"><![CDATA[LLMs e Robôs]]></title>
+        <id>https://aam.ininids.in.rs/pt/blog/llms-and-robots</id>
+        <link href="https://aam.ininids.in.rs/pt/blog/llms-and-robots"/>
+        <updated>2026-03-04T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[Uma nova atualização está chegando com novos arquivos llms.txt e robots.txt para mecanismos de busca e IA.]]></summary>
+        <content type="html"><![CDATA[<p>Uma nova atualização está chegando com novos arquivos llms.txt e robots.txt para mecanismos de busca e IA.
+E foram adicionados <a href="https://aam.ininids.in.rs/pt/assets/files/examples-769f0fb7a53040dbf22503f742dab922.md" target="_blank" class="">exemplos</a></p>]]></content>
+        <author>
+            <name>Nikita Goncharov</name>
+            <uri>https://www.ininids.in.rs</uri>
+        </author>
+        <category label="AAM" term="AAM"/>
+        <category label="Update" term="Update"/>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Começando com AAM]]></title>
         <id>https://aam.ininids.in.rs/pt/blog/starting-aam</id>
         <link href="https://aam.ininids.in.rs/pt/blog/starting-aam"/>
         <updated>2026-03-02T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Let's start with AAM!]]></summary>
-        <content type="html"><![CDATA[<p>Let's start with AAM!</p>
+        <summary type="html"><![CDATA[Vamos começar com o AAM!]]></summary>
+        <content type="html"><![CDATA[<p>Vamos começar com o AAM!</p>
 <h2 class="anchor anchorTargetStickyNavbar_UCMm" id="aam">AAM?<a href="https://aam.ininids.in.rs/pt/blog/starting-aam#aam" class="hash-link" aria-label="Link directo para AAM?" title="Link directo para AAM?" translate="no">​</a></h2>
-<p>Modern,<br>
-<!-- -->Easy,<br>
-<!-- -->Best<br>
-<!-- -->AAM is a really good aliasing format<br>
-<!-- -->Needs easy configuration? OK<br>
-<!-- -->Needs fast parsing? OK<br>
-<!-- -->Needs type safety? OK<br>
-<!-- -->Needs transform hard to easy? OKKKKKKK</p>
-<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="example">Example<a href="https://aam.ininids.in.rs/pt/blog/starting-aam#example" class="hash-link" aria-label="Link directo para Example" title="Link directo para Example" translate="no">​</a></h2>
+<p>Moderno,<br>
+<!-- -->Fácil,<br>
+<!-- -->O melhor<br>
+<!-- -->AAM é um formato de alias realmente bom<br>
+<!-- -->Precisa de configuração fácil? OK<br>
+<!-- -->Precisa de análise rápida? OK<br>
+<!-- -->Precisa de segurança de tipos? OK<br>
+<!-- -->Precisa transformar o difícil em fácil? OKKKKKKK</p>
+<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="exemplo">Exemplo<a href="https://aam.ininids.in.rs/pt/blog/starting-aam#exemplo" class="hash-link" aria-label="Link directo para Exemplo" title="Link directo para Exemplo" translate="no">​</a></h2>
 <div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">host = localhost</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">port = 8080</span><br></span></code></pre></div></div>
-<p>it's all. If you say <code>localhost</code> you will get <code>host</code> from config.
-"What is localhost? It's a {AAML::find_obj("localhost")}"
-Really easy, yes?</p>]]></content>
+<p>Isso é tudo. Se você disser <code>localhost</code>, você obterá o <code>host</code> da configuração.
+"O que é localhost? É um {AAML::find_obj("localhost")}"
+Realmente fácil, sim?</p>]]></content>
         <author>
             <name>Nikita Goncharov</name>
             <uri>https://www.ininids.in.rs</uri>

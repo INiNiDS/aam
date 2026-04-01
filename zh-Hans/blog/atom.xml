@@ -2,32 +2,47 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://aam.ininids.in.rs/zh-Hans/blog</id>
     <title>AAM Blog</title>
-    <updated>2026-03-02T00:00:00.000Z</updated>
+    <updated>2026-03-04T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://aam.ininids.in.rs/zh-Hans/blog"/>
     <subtitle>AAM Blog</subtitle>
     <icon>https://aam.ininids.in.rs/zh-Hans/img/favicon.ico</icon>
     <entry>
-        <title type="html"><![CDATA[Starting AAM]]></title>
+        <title type="html"><![CDATA[LLM 与机器人]]></title>
+        <id>https://aam.ininids.in.rs/zh-Hans/blog/llms-and-robots</id>
+        <link href="https://aam.ininids.in.rs/zh-Hans/blog/llms-and-robots"/>
+        <updated>2026-03-04T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[即将推出新的更新，其中包含用于搜索引擎和 AI 的新文件 llms.txt 和 robots.txt。]]></summary>
+        <content type="html"><![CDATA[<p>即将推出新的更新，其中包含用于搜索引擎和 AI 的新文件 llms.txt 和 robots.txt。
+并且添加了<a href="https://aam.ininids.in.rs/zh-Hans/assets/files/examples-769f0fb7a53040dbf22503f742dab922.md" target="_blank" class="">示例</a></p>]]></content>
+        <author>
+            <name>Nikita Goncharov</name>
+            <uri>https://www.ininids.in.rs</uri>
+        </author>
+        <category label="AAM" term="AAM"/>
+        <category label="Update" term="Update"/>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[开始使用 AAM]]></title>
         <id>https://aam.ininids.in.rs/zh-Hans/blog/starting-aam</id>
         <link href="https://aam.ininids.in.rs/zh-Hans/blog/starting-aam"/>
         <updated>2026-03-02T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Let's start with AAM!]]></summary>
-        <content type="html"><![CDATA[<p>Let's start with AAM!</p>
-<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="aam">AAM?<a href="https://aam.ininids.in.rs/zh-Hans/blog/starting-aam#aam" class="hash-link" aria-label="AAM?的直接链接" title="AAM?的直接链接" translate="no">​</a></h2>
-<p>Modern,<br>
-<!-- -->Easy,<br>
-<!-- -->Best<br>
-<!-- -->AAM is a really good aliasing format<br>
-<!-- -->Needs easy configuration? OK<br>
-<!-- -->Needs fast parsing? OK<br>
-<!-- -->Needs type safety? OK<br>
-<!-- -->Needs transform hard to easy? OKKKKKKK</p>
-<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="example">Example<a href="https://aam.ininids.in.rs/zh-Hans/blog/starting-aam#example" class="hash-link" aria-label="Example的直接链接" title="Example的直接链接" translate="no">​</a></h2>
+        <summary type="html"><![CDATA[让我们开始使用 AAM 吧！]]></summary>
+        <content type="html"><![CDATA[<p>让我们开始使用 AAM 吧！</p>
+<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="aam">AAM？<a href="https://aam.ininids.in.rs/zh-Hans/blog/starting-aam#aam" class="hash-link" aria-label="AAM？的直接链接" title="AAM？的直接链接" translate="no">​</a></h2>
+<p>现代，<br>
+<!-- -->简单，<br>
+<!-- -->最好<br>
+<!-- -->AAM 是一个非常好的别名格式<br>
+<!-- -->需要简单的配置？OK<br>
+<!-- -->需要快速解析？OK<br>
+<!-- -->需要类型安全？OK<br>
+<!-- -->需要将困难转化为容易？OKKKKKKK</p>
+<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="示例">示例<a href="https://aam.ininids.in.rs/zh-Hans/blog/starting-aam#%E7%A4%BA%E4%BE%8B" class="hash-link" aria-label="示例的直接链接" title="示例的直接链接" translate="no">​</a></h2>
 <div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">host = localhost</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">port = 8080</span><br></span></code></pre></div></div>
-<p>it's all. If you say <code>localhost</code> you will get <code>host</code> from config.
-"What is localhost? It's a {AAML::find_obj("localhost")}"
-Really easy, yes?</p>]]></content>
+<p>这就是全部了。如果你说 <code>localhost</code>，你将从配置中得到 <code>host</code>。
+"什么是 localhost？它是一个 {AAML::find_obj("localhost")}"
+真的很容易，对吧？</p>]]></content>
         <author>
             <name>Nikita Goncharov</name>
             <uri>https://www.ininids.in.rs</uri>

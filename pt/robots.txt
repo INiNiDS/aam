@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://aam.ininids.in.rs/sitemap.xml
