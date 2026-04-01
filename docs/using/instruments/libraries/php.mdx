@@ -1,0 +1,38 @@
+---
+sidebar_position: 9
+description: "Public API reference for PHP integration"
+---
+
+# PHP API Reference
+
+The PHP AAM library provides a convenient interface for interacting with AAM configuration files through PHP FFI.
+
+## Main Class
+
+| Class | Description |
+|:---|:---|
+| `AamPhp` | The primary object for interacting with an AAM document. |
+
+---
+
+## Construction
+
+| Constructor | Description |
+|:---|:---|
+| `new AamPhp(?string $libraryPath = null)` | Creates a new instance. The library path is optional and can be used to explicitly specify the location of the native shared library. |
+
+---
+
+## Exposed Method
+
+| Method | Return | Description |
+|:---|:---|:---|
+| `parseFindObj(string $content, string $query)` | `?string` | Parses the input content and performs a `find_obj` style lookup for the query string. |
+
+---
+
+## Runtime Notes
+
+- Uses PHP FFI and requires the native `aam_rs` shared library to be installed on the system.
+- The library path can be specified directly or will be resolved from the environment/default locations.
+- Supports reverse lookup fallback when the provided query is not a key.

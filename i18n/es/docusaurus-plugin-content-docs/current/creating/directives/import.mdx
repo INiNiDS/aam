@@ -47,7 +47,58 @@ Cuando el parser encuentra `@import "fichero.aam"`:
 
 ---
 
-## Protección de Dependencias Cíclicas {#cyclic-dependency-protection}
+## Implementación
+
+```rust
+fn process_import(
+    import_path: &str,
+    current_file: &Path,
+    current_doc: &mut AAML,
+    visited: &mut HashSet<PathBuf>,
+) -> Result<(), AamlError> {
+    // 1. Resolver la ruta relativa al directorio del fichero actual
+    let raw_path = current_file
+        .parent()
+        .unwrap_or(Path::new("."))
+        .join(import_path);
+
+    // 2. Canonicalizar para una identidad estable
+    let canonical = raw_path.canonicalize().map_err(|_| {
+        AamlError::FileNotFound { path: raw_path.clone() }
+    })?;
+
+    // 3. Detección de ciclos — ver sección más abajo
+    if visited.contains(&canonical) {
+        return Err(AamlError::CyclicImport { path: canonical });
+    }
+
+    // 4. Analizar el fichero importado recursivamente
+    visited.insert(canonical.clone());
+    let imported_doc = parse_file_recursive(&canonical, visited)?;
+    visited.remove(&canonical);
+
+    // 5. Fusionar: el hijo (actual) gana en caso de conflicto
+    for (key, value) in imported_doc.elements {
+        current_doc.elements.entry(key).or_insert(value);
+    }
+    for (name, schema) in imported_doc.schemas {
+        current_doc.schemas.entry(name).or_insert(schema);
+    }
+    for (alias, ty) in imported_doc.type_registry {
+        current_doc.type_registry.entry(alias).or_insert(ty);
+    }
+
+    Ok(())
+}
+```
+
+:::note
+Observa el uso de `.entry(...).or_insert(...)` — esto asegura que el **fichero importador siempre gana**. Los valores del fichero importado solo se insertan cuando la clave aún no existe en el documento actual.
+:::
+
+---
+
+## Protección de Dependencias Cíclicas
 
 :::warning Anti-Ciclo — Esta sección es obligatorio implementar
 Sin detección de ciclos, un par de ficheros que se importen mutuamente causará **recursión infinita** y un desbordamiento de pila. Esta protección no es opcional.
@@ -79,9 +130,62 @@ Mantén un `HashSet<PathBuf>` (o equivalente en tu lenguaje) de **rutas canónic
 2. **Si sí** — devuelve inmediatamente un error `CyclicImport`.
 3. **Si no** — añádela, haz la recursión y después **elimínala** tras el retorno de la llamada recursiva.
 
+```rust
+fn parse_file_recursive(
+    path: &Path,
+    visited: &mut HashSet<PathBuf>,
+) -> Result<AAML, AamlError> {
+    let canonical = path.canonicalize()?;
+
+    // ── Protección contra bucles (Anti-loop guard) ──────────────────────────
+    if visited.contains(&canonical) {
+        return Err(AamlError::CyclicImport {
+            path: canonical,
+        });
+    }
+    visited.insert(canonical.clone());
+    // ─────────────────────────────────────────────────────────────────────────
+
+    let source = std::fs::read_to_string(&canonical)?;
+    let doc = parse_source(&source, &canonical, visited)?;
+
+    // Eliminar DESPUÉS de la recursión para que los hermanos puedan seguir importándose
+    visited.remove(&canonical);
+
+    Ok(doc)
+}
+```
+
+### ¿Por qué rutas canónicas?
+
+El uso de rutas de strings crutos es poco fiable:
+- `./shared/base.aam` y `shared/base.aam` y `../project/shared/base.aam` pueden referirse todos al **mismo fichero**.
+- La canonicalización resuelve todo esto a una única ruta absoluta, dándote una identidad estable.
+
 ### Las importaciones en diamante están permitidas
 
+```
+      main.aam
+      /      \
+  a.aam     b.aam
+      \      /
+      base.aam
+```
+
 `base.aam` es importado tanto por `a.aam` como por `b.aam`. Esto **no** es un ciclo — son rutas de recorrido separadas. El patrón visited-set gestiona esto correctamente porque `base.aam` se elimina del conjunto tras completarse la primera rama, y por tanto puede volver a entrar desde la segunda rama.
+
+### Reporte de errores
+
+```
+Error: cyclic import detected
+  --> a.aam
+   |
+ 1 | @import "b.aam"
+   |
+   = note: import chain: a.aam → b.aam → a.aam
+```
+
+Reconstruye la cadena pasando un `Vec<PathBuf>` junto al `HashSet` para registrar el orden del recorrido.
 
 ---
 
@@ -91,12 +195,24 @@ Analizar el mismo fichero múltiples veces durante una sola llamada `load()` es 
 
 ```rust
 pub struct ParseContext {
-    /// Files currently on the call stack — used for cycle detection.
+    /// Ficheros actualmente en la pila de llamadas — usados para detección de ciclos.
     visited: HashSet<PathBuf>,
 
-    /// Already-parsed documents — avoids redundant I/O and parsing.
+    /// Documentos ya analizados — evita I/O y análisis redundantes.
     cache: HashMap<PathBuf, AAML>,
 }
 ```
 
 La caché tiene como clave la ruta canónica. Antes de analizar un fichero, comprueba primero la caché. El conjunto visited y la caché sirven propósitos diferentes y no deben confundirse.
+
+---
+
+## `@import` vs `@derive`
+
+| Característica | `@import` | `@derive` |
+|----------------|-----------|-----------|
+| Objetivo | Fichero completo | Un `@schema` específico |
+| Obligación de schema | No | Sí |
+| Resolución de conflictos | Child-Wins (El hijo gana) | Child-Wins |
+| Protección contra ciclos | Requerida | Requerida |
+| Caso de uso típico | Valores de config compartidos | Contratos de datos basados en schema |

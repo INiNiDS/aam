@@ -1,98 +1,147 @@
 ---
 sidebar_position: 3
-description: "AAML構造体、FoundValue、AamlErrorの完全なAPIリファレンス"
+description: "AAML構造体、FoundValue、およびAamlErrorの完全なAPIリファレンス"
 ---
 
-# aam-rs APIリファレンス
+# aam-rs API リファレンス
 
-`aam-rs` はAAM設定ファイルのパース、バリデーション、ビルドのための公式Rustライブラリです。PythonライブラリはAAM `aam-py` 同じAPIを公開しています — すべての例で両方の言語を示します。
+`aam-rs` は、AAM 設定ファイルのパース、検証、および作成のための公式 Rust ライブラリです。ディレクティブ (`@import`, `@derive`, `@schema`, `@type`)、スキーマベースの型検証、双方向検索、および深い参照解決をサポートしています。
+
+このクレートは2つの主要な API を提供します：
+- **`AAML` API**: コア/レガシー構造体で、広く使用されており機能が豊富です。
+- **`AAM` API**: パイプラインに基づいた新しい高レベル API で、オプションで AOT (`.aam.bin`) ロードをサポートしています。
+
+---
+
+## アーキテクチャ
+
+このプロジェクトはモジュール化されたアーキテクチャで設計されています：
+
+- **`aaml/`**: パース、検索、および検証のコアロジック。
+- **`pipeline/`**: 5段階のパイプライン (Lexer, Parser, Validator, Executer, Formatter)。
+- **`commands/`**: ディレクティブシステム (`@import`, `@derive` など)。
+- **`types/`**: プリミティブおよびドメイン型の検証型システム。
+- **`aot/`**: 高速起動のためのバイナリキャッシュ（調理済みファイル `.aam.bin`）のサポート。
+- **`builder/`**: `.aam` コンテンツをプログラムで生成するための流暢な API。
+
+---
+
+## フィーチャーフラグ (Feature Flags)
+
+| フラグ | 効果 |
+|:---|:---|
+| `hash-std` | デフォルトのパイプラインハッシャー (`std::collections::hash_map::RandomState`) |
+| `hash-fx` / `hash-ahash` / `hash-rapidhash` / `hash-ripemd` | 代替ハッシャー（排他的） |
+| `perf-hash` | `HashMap` のハッシャーを `ahash::RandomState` に変更し、スループットを向上させます |
+| `aot` | `src/aot/` の調理済みバイナリキャッシュと `AAM::load` 高速パスを有効にします |
+| `ffi` / `python` / `jni` / `csharp` | 言語バインディングを有効にします |
+| `parallel` | パイプラインでのパースタスクの並列事前検証を有効にします |
+| `serde` | `FoundValue`, `SchemaDef`, `AAMBuilder` などで `Serialize`/`Deserialize` を導出します |
 
 ---
 
 ## `AAML`
 
-すべてのAAM操作のメインエントリーポイント。`AAML` はパースされたキーと値のマップ、登録された型定義、スキーマ定義を保持します。
+すべての AAM 操作の主要なエントリポイントです。 `AAML` は、パースされたキーと値のマップ、登録された型定義、およびスキーマ定義を保持します。すべてのディレクティブ (`@derive`, `@schema`, `@import`, `@type`) は、パース時に自動的に処理されます。
 
 ### コンストラクタ
 
-#### `AAML::parse`
+#### `AAML::new`
 
-AAM文字列をパースして新しい完全に設定された `AAML` インスタンスを返します。
+デフォルトのディレクティブハンドラがすべて登録された、新しい空の `AAML` インスタンスを作成します。
 
 ```rust
 use aam_rs::aaml::AAML;
 
-let cfg = AAML::parse("host = localhost\nport = 8080").unwrap();
-assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+let cfg = AAML::new();
 ```
 
-```python
-from aam import AAML
+---
 
-cfg = AAML.parse("host = localhost\nport = 8080")
-assert cfg.find_obj("host") == "localhost"
-```
+#### `AAML::parse`
+
+AAM 文字列をパースし、すべてのデータが入力された新しい `AAML` インスタンスを返します。
+
+| パラメータ | 型 | 説明 |
+|:---|:---|:---|
+| `content` | `&str` | パースする AAM ソーステキスト。 |
+
+**戻り値:** `Result<AAML, AamlError>`
 
 ---
 
 #### `AAML::load`
 
-ディスクからAAMファイルを読み取り、新しい `AAML` インスタンスを返します。
+ディスクから AAM ファイルを読み取り、新しいインスタンスを返します。
 
-```rust
-use aam_rs::aaml::AAML;
+| パラメータ | 型 | 説明 |
+|:---|:---|:---|
+| `file_path` | `impl AsRef<Path>` | `.aam` ファイルへのパス。 |
 
-let cfg = AAML::load("config.aam").unwrap();
-println!("{}", cfg.find_obj("host").unwrap());
-```
-
-```python
-from aam import AAML
-
-cfg = AAML.load("config.aam")
-print(cfg.find_obj("host"))
-```
+**戻り値:** `Result<AAML, AamlError>`
 
 ---
 
-### ルックアップ
+### 検索 (Lookup)
 
 #### `find_obj`
 
-主要なルックアップメソッド。マップで `key` を検索します。一致するキーが見つからない場合、自動的に**逆引きルックアップ**を実行します。
+主要な検索メソッド。マップ内で `key` を探します。見つからない場合は、値による自動的な**逆引き検索**が実行されます。
+
+| パラメータ | 型 | 説明 |
+|:---|:---|:---|
+| `key` | `&str` | 検索するキーまたは値。 |
+
+**戻り値:** `Option<FoundValue>`
 
 ```rust
 use aam_rs::aaml::AAML;
 
 let cfg = AAML::parse("a = b").unwrap();
 
-// 順方向ルックアップ
+// 直接検索
 assert_eq!(cfg.find_obj("a").unwrap().as_str(), "b");
 
-// 逆引きルックアップ（値で検索）
+// 逆引き検索 (値で検索)
 assert_eq!(cfg.find_obj("b").unwrap().as_str(), "a");
 ```
 
 ---
 
-#### `find_deep`
+## `FoundValue`
 
-終端値に達するかサイクルが検出されるまで `key → value → key` ルックアップのチェーンをたどります。
+すべての `AAML` 検索メソッドによって返される型です。生の文字列値をラップし、便利なヘルパーを提供します。
 
-```rust
-use aam_rs::aaml::AAML;
+### メソッド
 
-let cfg = AAML::parse("a = b\nb = c").unwrap();
-// たどる: a → b → c  (cは終端 — キー "c" は存在しない)
-assert_eq!(cfg.find_deep("a").unwrap().as_str(), "c");
-```
+#### `as_str`
+
+内部の値を文字列スライスとして返します。
+
+**戻り値:** `&str`
+
+---
+
+#### `as_list`
+
+型を AAM リストリテラル `[item, item, ...]` としてパースし、要素を `Vec<String>` として返します。
+
+**戻り値:** `Option<Vec<String>>`
 
 ---
 
 ## `AamlError`
 
+パース、検証、および実行の各工程で使用されるエラー列挙型です。
+
+### バリアント
+
 | バリアント | 説明 |
-|----------|------|
-| `IoError(io::Error)` | ファイル読み取り時にI/Oエラーが発生しました。 |
-| `ParseError { line, content, details }` | ソース行が有効なAAMLステートメントとしてパースできませんでした。 |
-| `SchemaValidationError { schema, field, type_name, details }` | パースまたはバリデーション中にスキーマ制約が違反されました。 |
+|:---|:---|
+| `IoError(io::Error)` | ファイル読み取り中の I/O エラー。 |
+| `ParseError { line, content, details }` | 行が有効な AAML 命令としてパースできませんでした。 |
+| `NotFound(String)` | キーまたは型名が見つかりませんでした。 |
+| `InvalidValue(String)` | 値が基本的な型制約に違反しています。 |
+| `InvalidType { type_name, details }` | 値が型に対する検証に失敗しました。 |
+| `DirectiveError(String, String)` | ディレクティブの引数にエラーがありました。 |
+| `SchemaValidationError { ... }` | スキーマ制約に違反しました。 |

@@ -4,9 +4,31 @@ title: "Análise"
 description: "Como analisar ficheiros AAM nos seus projetos"
 ---
 
-# Análise
+# Análise (Parsing)
 
-Esta página cobre todas as formas de carregar e analisar conteúdo AAM na sua aplicação usando `aam-rs` (Rust) ou `aam-py` (Python).
+Esta página cobre todas as formas de carregar e analisar conteúdo AAM na sua aplicação usando as bibliotecas oficiais da AAM. Embora os exemplos enfoquem frequentemente o Rust e o Python, os mesmos princípios aplicam-se a todos as linguagens suportadas.
+
+---
+
+## Sintaxe e Comportamento do Parser
+
+O AAM utiliza um formato de linha `chave = valor` com algumas regras de análise específicas:
+
+### Comentários
+
+O carácter `#` é utilizado para comentários, mas **apenas quando rodeado por espaços em branco**. Isto permite que os valores de cor hexadecimais (como `tint = #ff6600`) sejam analisados corretamente sem serem confundidos com comentários.
+
+```aam
+# Isto é um comentário
+tint = #ff6600  # Isto NÃO é um comentário
+name = #NoSpaceHere # Isto NÃO é um comentário (inválido ou literal)
+```
+
+### Aspas
+
+Os valores de string podem ser opcionalmente envolvidos por aspas duplas (`"`) ou simples (`'`). A utilidade `unwrap_quotes` (disponível na maioria das bibliotecas) pode ser utilizada para removê-las manualmente, se necessário, embora sejam frequentemente tratadas automaticamente pelo parser.
+
+---
 
 ## A partir de um Ficheiro
 

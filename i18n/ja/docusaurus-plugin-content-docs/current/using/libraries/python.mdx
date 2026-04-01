@@ -1,0 +1,60 @@
+---
+sidebar_position: 10
+description: "Python 統合のためのパブリック API リファレンス"
+---
+
+# Python API リファレンス
+
+Python 用の AAM ライブラリは、PyO3 ベースのバインディングを介して、高度な設定パースのためのネイティブ Python インターフェースを提供します。
+
+## 主要クラス
+
+| クラス | 説明 |
+|:---|:---|
+| `AAM` | AAM ドキュメントを操作するための主要なオブジェクト。 |
+
+---
+
+## 構築
+
+| 静的メソッド / コンストラクタ | 戻り値 | 説明 |
+|:---|:---|:---|
+| `AAM()` | `AAM` | 空のドキュメントを作成します。 |
+| `AAM.parse(content: str)` | `AAM` | 文字列からドキュメントを作成します。 |
+| `AAM.load(path: str)` | `AAM` | ディスク上のパスからドキュメントを作成します。 |
+
+---
+
+## 静的ユーティリティメソッド
+
+| 静的メソッド | 戻り値 | 説明 |
+|:---|:---|:---|
+| `AAM.lsp_assist(content: str)` | `tuple[list[str], str | None]` | IDE サポートのための診断情報とフォーマット済みコードを返します。 |
+
+---
+
+## インスタンスメソッド
+
+| メソッド | 戻り値 | 説明 |
+|:---|:---|:---|
+| `format(content: str)` | `str` | AAM コンテンツをフォーマットします。 |
+| `format_range(content: str, start_line: int, end_line: int)` | `str` | 指定された行範囲のコードをフォーマットします。 |
+| `get(key: str)` | `str | None` | キーによる直接検索。 |
+| `keys()` | `list[str]` | ドキュメント内のすべてのキーを返します。 |
+| `to_dict()` | `dict[str, str]` | ライブラリのデータを Python 辞書に変換します。 |
+| `find(query: str)` | `dict[str, str]` | キーまたは値による高度な直接/逆引き検索。 |
+| `deep_search(pattern: str)` | `dict[str, str]` | パターンをサポートした再帰的な参照検索。 |
+| `reverse_search(target_value: str)` | `list[str]` | 指定された値に一致するすべてのキーを検索します。 |
+| `schema_names()` | `list[str]` | 登録されているすべてのスキーマ名をリストします。 |
+| `type_names()` | `list[str]` | 登録されているすべての型名をリストします。 |
+| `close()` | `None` | すべてのネイティブリソースを手動で解放します。 |
+| `is_closed()` | `bool` | ドキュメントが閉じられたかどうかを示します。 |
+
+---
+
+## Python プロトコルメソッド
+
+- `__repr__`: オブジェクトの人間が読める形式の表現。
+- `__len__`: ドキュメント内のキーの数。
+- `__contains__`: `key in aam` を使用した直接的な存在確認。
+- `__getitem__`: `aam[key]` を使用した辞書形式のアクセス。

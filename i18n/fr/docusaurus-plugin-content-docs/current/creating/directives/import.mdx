@@ -6,7 +6,7 @@ description: Comment implémenter la directive @import, la résolution de fichie
 
 # La Directive `@import`
 
-La directive `@import` instruit le parser à **fusionner un fichier `.aam` externe** dans le document actuel. Toutes les paires clé-valeur, les alias de type et les définitions de schéma du fichier importé deviennent disponibles dans le scope actuel.
+La directive `@import` instruit le parser à **fusionner un fichier `.aam` externe** dans le document actuel. Toutes les paires clé-valeur, les alias de type et les définitions de schéma du fichier importado deviennent disponibles dans le scope actuel.
 
 ```aam
 @import chemin/vers/autre.aam
@@ -47,7 +47,58 @@ Lorsque le parser rencontre `@import "fichier.aam"` :
 
 ---
 
-## Protection contre les Dépendances Cycliques {#cyclic-dependency-protection}
+## Implémentation
+
+```rust
+fn process_import(
+    import_path: &str,
+    current_file: &Path,
+    current_doc: &mut AAML,
+    visited: &mut HashSet<PathBuf>,
+) -> Result<(), AamlError> {
+    // 1. Résoudre le chemin relativement au répertoire du fichier actuel
+    let raw_path = current_file
+        .parent()
+        .unwrap_or(Path::new("."))
+        .join(import_path);
+
+    // 2. Canonicaliser pour une identité stable
+    let canonical = raw_path.canonicalize().map_err(|_| {
+        AamlError::FileNotFound { path: raw_path.clone() }
+    })?;
+
+    // 3. Détection de cycles — voir la section ci-dessous
+    if visited.contains(&canonical) {
+        return Err(AamlError::CyclicImport { path: canonical });
+    }
+
+    // 4. Analyser le fichier importé récursivement
+    visited.insert(canonical.clone());
+    let imported_doc = parse_file_recursive(&canonical, visited)?;
+    visited.remove(&canonical);
+
+    // 5. Fusionner : l'enfant (actuel) gagne en cas de conflit
+    for (key, value) in imported_doc.elements {
+        current_doc.elements.entry(key).or_insert(value);
+    }
+    for (name, schema) in imported_doc.schemas {
+        current_doc.schemas.entry(name).or_insert(schema);
+    }
+    for (alias, ty) in imported_doc.type_registry {
+        current_doc.type_registry.entry(alias).or_insert(ty);
+    }
+
+    Ok(())
+}
+```
+
+:::note
+Remarquez l'usage de `.entry(...).or_insert(...)` — cela garantit que le **fichier importateur gagne toujours**. Les valeurs du fichier importé ne sont insérées que lorsque la clé n'existe pas encore dans le document actuel.
+:::
+
+---
+
+## Protection contre les Dépendances Cycliques
 
 :::warning Anti-Boucle — Cette section est obligatoire à implémenter
 Sans détection de cycles, une paire de fichiers qui s'importent mutuellement causera une **récursion infinie** et un débordement de pile. Cette protection n'est pas optionnelle.
@@ -71,7 +122,7 @@ y = 2
 
 Sans protection, analyser `a.aam` déclenche l'analyse de `b.aam`, qui déclenche à nouveau l'analyse de `a.aam` — indéfiniment.
 
-### La solution : un ensemble "Fichiers Visités"
+### La solution : un ensemble "Fichiers Visités" (Visited Files)
 
 Maintenez un `HashSet<PathBuf>` (ou l'équivalent dans votre langage) de **chemins canoniques** qui sont actuellement en cours de traitement sur la pile d'appels. Avant de traiter un import :
 
@@ -79,9 +130,62 @@ Maintenez un `HashSet<PathBuf>` (ou l'équivalent dans votre langage) de **chemi
 2. **Si oui** — retournez immédiatement une erreur `CyclicImport`.
 3. **Si non** — ajoutez-le, faites la récursion, puis **supprimez-le** après le retour de l'appel récursif.
 
+```rust
+fn parse_file_recursive(
+    path: &Path,
+    visited: &mut HashSet<PathBuf>,
+) -> Result<AAML, AamlError> {
+    let canonical = path.canonicalize()?;
+
+    // ── Protection contre les boucles (Anti-loop guard) ──────────────────────
+    if visited.contains(&canonical) {
+        return Err(AamlError::CyclicImport {
+            path: canonical,
+        });
+    }
+    visited.insert(canonical.clone());
+    // ─────────────────────────────────────────────────────────────────────────
+
+    let source = std::fs::read_to_string(&canonical)?;
+    let doc = parse_source(&source, &canonical, visited)?;
+
+    // Supprimer APRÈS la récursion pour que les frères puissent continuer à être importés
+    visited.remove(&canonical);
+
+    Ok(doc)
+}
+```
+
+### Pourquoi des chemins canoniques ?
+
+L'utilisation de chemins bruts n'est pas fiable :
+- `./shared/base.aam`, `shared/base.aam` et `../project/shared/base.aam` peuvent tous se référer au **même fichier**.
+- La canonicalisation les résout tous en un unique chemin absolu, vous donnant une identité stable.
+
 ### Les imports en diamant sont autorisés
 
-`base.aam` est importé à la fois par `a.aam` et `b.aam`. Ce n'est **pas** un cycle — ce sont des chemins de traversée séparés. Le pattern visited-set gère cela correctement car `base.aam` est retiré de l'ensemble après la fin de la première branche, et peut donc être entré de nouveau depuis la deuxième branche.
+```
+      main.aam
+      /      \
+  a.aam     b.aam
+      \      /
+      base.aam
+```
+
+`base.aam` est importé à la fois par `a.aam` et `b.aam`. Ce n'est **pas** un cycle — ce sont des chemins de traversée séparés. Le pattern visited-set gère cela correctement car `base.aam` est retiré de l'ensemble après la fin de la primera branche, et peut donc être entré de nouveau depuis la deuxième branche.
+
+### Rapport d'erreurs
+
+```
+Error: cyclic import detected
+  --> a.aam
+   |
+ 1 | @import "b.aam"
+   |
+   = note: import chain: a.aam → b.aam → a.aam
+```
+
+Reconstituez la chaîne en passant un `Vec<PathBuf>` à côté du `HashSet` pour enregistrer l'ordre du parcours.
 
 ---
 
@@ -91,12 +195,24 @@ Analyser le même fichier plusieurs fois lors d'un seul appel `load()` est ineff
 
 ```rust
 pub struct ParseContext {
-    /// Files currently on the call stack — used for cycle detection.
+    /// Fichiers actuellement dans la pile d'appels — utilisés pour la détection de cycles.
     visited: HashSet<PathBuf>,
 
-    /// Already-parsed documents — avoids redundant I/O and parsing.
+    /// Documents déjà analysés — évite les I/O et les analyses redondantes.
     cache: HashMap<PathBuf, AAML>,
 }
 ```
 
 Le cache est indexé par chemin canonique. Avant d'analyser un fichier, vérifiez d'abord le cache. L'ensemble visited et le cache ont des objectifs différents et ne doivent pas être confondus.
+
+---
+
+## `@import` vs `@derive`
+
+| Caractéristique | `@import` | `@derive` |
+|-----------------|-----------|-----------|
+| Cible | Fichier complet | Un `@schema` spécifique |
+| Respect du schéma | Non | Oui |
+| Résolution de conflits | Child-Wins (L'enfant gagne) | Child-Wins |
+| Protection contre les cycles | Requise | Requise |
+| Cas d'utilisation typique | Valeurs de config partagées | Contrats de données basés sur schéma |

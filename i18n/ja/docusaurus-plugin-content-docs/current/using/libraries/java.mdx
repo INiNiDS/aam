@@ -1,0 +1,44 @@
+---
+sidebar_position: 7
+description: "JVM (Java & Kotlin) 統合のためのパブリック API リファレンス"
+---
+
+# Java / Kotlin API リファレンス
+
+JVM 用 AAM ライブラリは、JNI を介したネイティブ設定パースを、Java と完全に互換性のある開発者フレンドリーな Kotlin インターフェースでラップして提供します。
+
+## 主要な型
+
+| 型 | 説明 |
+|:---|:---|
+| `com.rustgames.aam.AamDocument` | `AutoCloseable` を実装し、主要な操作 API を提供します。 |
+
+---
+
+## 構築
+
+| 静的メソッド | 戻り値 | 説明 |
+|:---|:---|:---|
+| `AamDocument.parse(String content)` | `AamDocument` | 文字列からドキュメントを作成します。 |
+| `AamDocument.load(String path)` | `AamDocument` | ファイルパスからドキュメントを作成します。 |
+
+---
+
+## インスタンスメソッド
+
+| メソッド | 戻り値 | 説明 |
+|:---|:---|:---|
+| `reload(String content)` | `void` | 現在のドキュメントの内容を新しいソースで上書きします。 |
+| `get(String key)` | `String?` | 指定されたキーの値を取得します。 |
+| `deepSearch(String pattern)` | `Map<String, String>` | 再帰的な参照を追跡します。 |
+| `reverseSearch(String value)` | `List<String>` | 特定の値にマップされているすべてのキーを見つけます。 |
+| `schemaNames()` | `List<String>` | 登録されているすべてのスキーマ名を返します。 |
+| `typeNames()` | `List<String>` | 登録されているすべての型名を返します。 |
+| `close()` | `void` | すべてのネイティブリソースを手動で解放します。 |
+
+---
+
+:::note
+- ネイティブライブラリは、実行時にパッケージ化されたリソースから自動的にロードされます。
+- パース・ロードのエラー時、または閉じられたドキュメントを使用しようとしたときに `IllegalStateException` がスローされます。
+:::

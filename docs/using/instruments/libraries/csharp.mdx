@@ -1,0 +1,59 @@
+---
+sidebar_position: 5
+description: "Public API reference for .NET integration"
+---
+
+# C# / .NET API Reference
+
+The C# library provides a native .NET interface for interacting with AAM files, wrapping the core Rust implementation through P/Invoke.
+
+## Main Type
+
+| Type | Description |
+|:---|:---|
+| `AamDocument` | Implements `IDisposable` and provides the primary API for interaction. |
+
+---
+
+## Construction
+
+| Method | Description |
+|:---|:---|
+| `new AamDocument()` | Creates an empty AAM document. |
+| `AamDocument.Parse(string content)` | Static factory method creating an `AamDocument` from a source string. |
+| `AamDocument.Load(string path)` | Static factory method creating an `AamDocument` from a file path. |
+
+---
+
+## Core Methods
+
+| Method | Return | Description |
+|:---|:---|:---|
+| `Format(string content)` | `string` | Formats the input AAM content according to standard rules. |
+| `Merge(string content)` | `void` | Merges new content into the current document instance. |
+| `RecoverSimple(string content)` | `void` | Safely recovers content from corrupted sources. |
+| `FindObj(string key)` | `string?` | Forward/Reverse lookup for a given key or value. |
+| `FindKey(string value)` | `string?` | Explicit reverse lookup for a value. |
+| `FindDeep(string key)` | `string?` | Deep reference resolution for a key. |
+
+---
+
+## Lifecycle
+
+| Property/Method | Description |
+|:---|:---|
+| `bool IsClosed` | Indicates whether the native handle has been disposed. |
+| `void Dispose()` | Releases all native resources associated with the document. |
+
+:::tip
+Always use `using` statements with `AamDocument` to ensure deterministic cleanup of native resources.
+:::
+
+---
+
+## Error Model
+
+The C# library uses standard .NET exception handling:
+
+- Throws `AamException` for native errors during parsing, loading, formatting, etc.
+- Throws `ObjectDisposedException` if you attempt to use a document after calling `Dispose()`.

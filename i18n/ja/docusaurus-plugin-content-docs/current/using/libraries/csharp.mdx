@@ -1,0 +1,59 @@
+---
+sidebar_position: 5
+description: ".NET 統合のためのパブリック API リファレンス"
+---
+
+# C# / .NET API リファレンス
+
+C# ライブラリは、P/Invoke を介して Rust コアの実装をラップし、AAM ファイルを操作するためのネイティブ .NET インターフェースを提供します。
+
+## 主要な型
+
+| 型 | 説明 |
+|:---|:---|
+| `AamDocument` | `IDisposable` を実装し、主要な操作 API を提供します。 |
+
+---
+
+## 構築
+
+| メソッド | 説明 |
+|:---|:---|
+| `new AamDocument()` | 空の AAM ドキュメントを作成します。 |
+| `AamDocument.Parse(string content)` | 文字列から `AamDocument` を作成する静的ファクトリメソッド。 |
+| `AamDocument.Load(string path)` | ファイルパスから `AamDocument` を作成する静的ファクトリメソッド。 |
+
+---
+
+## コアメソッド
+
+| メソッド | 戻り値 | 説明 |
+|:---|:---|:---|
+| `Format(string content)` | `string` | 入力された AAM コンテンツを標準ルールに従ってフォーマットします。 |
+| `Merge(string content)` | `void` | 新しいコンテンツを現在のドキュメントインスタンスにマージします。 |
+| `RecoverSimple(string content)` | `void` | 破損したソースから安全に内容を復元します。 |
+| `FindObj(string key)` | `string?` | 指定されたキーまたは値に対する直接検索/逆引き検索。 |
+| `FindKey(string value)` | `string?` | 値に対する明示的な逆引き検索。 |
+| `FindDeep(string key)` | `string?` | キーに対する深い参照解決。 |
+
+---
+
+## ライフサイクル
+
+| プロパティ/メソッド | 説明 |
+|:---|:---|
+| `bool IsClosed` | ネイティブハンドルが破棄されたかどうかを示します。 |
+| `void Dispose()` | ドキュメントに関連付けられているすべてのネイティブリソースを解放します。 |
+
+:::tip
+ネイティブリソースの確実なクリーンアップを保証するために、 `AamDocument` では常に `using` ステートメントを使用してください。
+:::
+
+---
+
+## エラーモデル
+
+C# ライブラリは標準的な .NET 例外処理を使用します：
+
+- パース、ロード、フォーマットなどの実行中に発生したネイティブエラーに対して `AamException` をスローします。
+- `Dispose()` を呼び出した後にドキュメントを使用しようとすると `ObjectDisposedException` をスローします。

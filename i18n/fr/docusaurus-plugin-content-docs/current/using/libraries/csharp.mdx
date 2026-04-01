@@ -1,0 +1,59 @@
+---
+sidebar_position: 5
+description: "Référence de l'API publique pour l'intégration .NET"
+---
+
+# Référence de l'API C# / .NET
+
+La bibliothèque C# fournit une interface .NET native pour interagir avec les fichiers AAM, enveloppant l'implémentation core Rust via P/Invoke.
+
+## Type Principal
+
+| Type | Description |
+|:---|:---|
+| `AamDocument` | Implémente `IDisposable` et fournit l'API d'interaction principale. |
+
+---
+
+## Construction
+
+| Méthode | Description |
+|:---|:---|
+| `new AamDocument()` | Crée un document AAM vide. |
+| `AamDocument.Parse(string content)` | Méthode de fabrique statique créant un `AamDocument` à partir d'une chaîne. |
+| `AamDocument.Load(string path)` | Méthode de fabrique statique créant un `AamDocument` à partir d'un chemin de fichier. |
+
+---
+
+## Méthodes Core
+
+| Méthode | Retour | Description |
+|:---|:---|:---|
+| `Format(string content)` | `string` | Formate le contenu AAM d'entrée selon les règles standards. |
+| `Merge(string content)` | `void` | Fusionne un nouveau contenu dans l'instance de document actuelle. |
+| `RecoverSimple(string content)` | `void` | Récupère en toute sécurité le contenu de sources corrompues. |
+| `FindObj(string key)` | `string?` | Recherche directe/inverse pour une clé ou une valeur donnée. |
+| `FindKey(string value)` | `string?` | Recherche inverse explicite pour une valeur. |
+| `FindDeep(string key)` | `string?` | Résolution de référence profonde pour une clé. |
+
+---
+
+## Cycle de vie
+
+| Propriété/Méthode | Description |
+|:---|:---|
+| `bool IsClosed` | Indique si le handle natif a été disposé. |
+| `void Dispose()` | Libère toutes les ressources natives associées au document. |
+
+:::tip
+Utilisez toujours des blocs `using` avec `AamDocument` pour garantir un nettoyage déterministe des ressources natives.
+:::
+
+---
+
+## Modèle d'erreur
+
+La bibliothèque C# utilise la gestion standard des exceptions .NET :
+
+- Lève `AamException` pour les erreurs natives pendant l'analyse, le chargement, le formatage, etc.
+- Lève `ObjectDisposedException` si vous essayez d'utiliser un document après avoir appelé `Dispose()`.

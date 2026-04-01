@@ -1,0 +1,51 @@
+---
+sidebar_position: 11
+description: "Ruby 統合のためのパブリック API リファレンス"
+---
+
+# Ruby API リファレンス
+
+Ruby 用の AAM ライブラリは、高性能なパースのためのネイティブ拡張を提供します。
+
+## 主要な名前空間
+
+| 名前空間 | 説明 |
+|:---|:---|
+| `AamRb::AAM` | AAM ドキュメントを操作するための主要なオブジェクト。 |
+
+---
+
+## クラスメソッド
+
+| 静的メソッド | 戻り値 | 説明 |
+|:---|:---|:---|
+| `AamRb::AAM.new` | `AamRb::AAM` | 空のドキュメントを作成します。 |
+| `AamRb::AAM.parse(content)` | `AamRb::AAM` | 文字列からドキュメントを作成します。 |
+| `AamRb::AAM.load(path)` | `AamRb::AAM` | ファイルパスからドキュメントを作成します。 |
+
+---
+
+## インスタンスメソッド
+
+| メソッド | 戻り値 | 説明 |
+|:---|:---|:---|
+| `get(key)` | `String | Nil` | 指定されたキーの値を取得します。 |
+| `keys` | `Array<String>` | すべてのキーを返します。 |
+| `to_map` | `Hash<String, String>` | データを Ruby のハッシュに変換します。 |
+| `find(query)` | `Hash<String, String>` | 高度な直接/逆引き検索。 |
+| `deep_search(pattern)` | `Hash<String, String>` | 再帰的な参照検索。 |
+| `reverse_search(value)` | `Array<String>` | 指定した値に一致するキーを検索します。 |
+| `schema_names` | `Array<String>` | 登録されているスキーマ名を返します。 |
+| `type_names` | `Array<String>` | 登録されている型名を返します。 |
+
+---
+
+## エラーモデル
+
+- パースおよびロードの失敗は、コア実装からのネイティブ `RuntimeError` 例外をスローします。
+
+---
+
+:::note
+既存の Ruby ライブラリの README では軽量なヘルパースタイルが提案されていますが、 `AamRb::AAM` を中心としたネイティブ拡張 API の目標は変わりません。
+:::

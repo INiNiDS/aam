@@ -1,0 +1,51 @@
+---
+sidebar_position: 8
+description: "Referência da API pública para a integração com Node.js"
+---
+
+# Referência da API do Node.js
+
+A biblioteca AAM para Node.js expõe uma interface JS de alto nível para a análise avançada de configurações através de bindings nativos.
+
+## Funções de Nível Superior
+
+| Função | Retorno | Descrição |
+|:---|:---|:---|
+| `parse(content: string)` | `AAM` | Cria um documento a partir de uma string. |
+| `load(path: string)` | `AAM` | Cria um documento a partir de um caminho de ficheiro. |
+| `recoverSimple(content: string)` | `AAM` | Recupera conteúdo de forma segura de fontes corrompidas. |
+| `version()` | `string` | Devolve a versão atual da biblioteca AAM. |
+
+---
+
+## Classe Principal
+
+| Classe | Descrição |
+|:---|:---|
+| `AAM` | O objeto principal para interagir com um documento AAM. |
+
+---
+
+## Métodos de Instância
+
+| Método | Retorno | Descrição |
+|:---|:---|:---|
+| `merge(content: string)` | `void` | Funde novo conteúdo na instância atual. |
+| `mergeContent(content: string)` | `void` | Alias de `merge`. |
+| `mergeFile(path: string)` | `void` | Funde conteúdo de ficheiro na instância atual. |
+| `findObj(key: string)` | `string \| null` | Pesquisa direta/inversa para uma chave ou valor dado. |
+| `findKey(value: string)` | `string \| null` | Pesquisa inversa explícita para um valor. |
+| `findDeep(key: string)` | `string \| null` | Resolução de referência profunda para uma chave. |
+| `findList(key: string)` | `string[] \| null` | Devolve uma lista de valores se a chave aponta para uma. |
+| `findObject(key: string)` | `Record<string, string> \| null` | Devolve um objeto se a chave aponta para um. |
+| `keys()` | `string[]` | Devolve todas as chaves do documento. |
+| `toMap()` | `Record<string, string>` | Transforma todos os dados num objeto JS. |
+| `validateValue(typeName: string, value: string)` | `void` | Validação de tipo básica contra tipos registrados. |
+| `close()` | `void` | Fecha o handle nativo e libera recursos nativos. |
+| `isClosed()` | `boolean` | Indica se o documento foi fechado. |
+
+---
+
+:::tip
+Por conveniência, `AAML`, `JsAam` e `JsAaml` são aliases de `AAM`.
+:::

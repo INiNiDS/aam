@@ -1,0 +1,44 @@
+---
+sidebar_position: 7
+description: "Referencia de la API pública para la integración con JVM (Java y Kotlin)"
+---
+
+# Referencia de la API de Java / Kotlin
+
+La librería AAM para JVM proporciona análisis nativo de configuraciones a través de JNI, envuelto en una interfaz amigable de Kotlin que es totalmente compatible con Java.
+
+## Tipo Principal
+
+| Tipo | Descripción |
+|:---|:---|
+| `com.rustgames.aam.AamDocument` | Implementa `AutoCloseable` y proporciona la API principal de interacción. |
+
+---
+
+## Construcción
+
+| Método Estático | Retorno | Descripción |
+|:---|:---|:---|
+| `AamDocument.parse(String content)` | `AamDocument` | Crea un documento desde una string. |
+| `AamDocument.load(String path)` | `AamDocument` | Crea un documento desde una ruta de fichero. |
+
+---
+
+## Métodos de Instancia
+
+| Método | Retorno | Descripción |
+|:---|:---|:---|
+| `reload(String content)` | `void` | Sobrescribe el contenido del documento actual. |
+| `get(String key)` | `String?` | Recupera un valor para una clave dada. |
+| `deepSearch(String pattern)` | `Map<String, String>` | Sigue referencias recursivas. |
+| `reverseSearch(String value)` | `List<String>` | Encuentra todas las claves que apuntan a un valor específico. |
+| `schemaNames()` | `List<String>` | Devuelve todos los nombres de schema registrados. |
+| `typeNames()` | `List<String>` | Devuelve todos los nombres de tipo registrados. |
+| `close()` | `void` | Libera manualmente todos los recursos nativos. |
+
+---
+
+:::note
+- La librería nativa se carga automáticamente desde los recursos empaquetados en tiempo de ejecución.
+- Se lanza `IllegalStateException` en fallos de análisis/carga o al usar un documento cerrado.
+:::

@@ -1,0 +1,47 @@
+---
+sidebar_position: 6
+description: "Referencia de la API pública para la integración con Go"
+---
+
+# Referencia de la API de Go
+
+La librería AAM de Go es una capa ligera sobre la librería core de Rust, proporcionando una interfaz de Go nativa para el análisis eficiente de configuraciones.
+
+## Tipo Principal
+
+| Tipo | Descripción |
+|:---|:---|
+| `AAM` | La estructura principal usada para interactuar con documentos AAM. |
+
+---
+
+## Constructores
+
+| Método | Retorno | Descripción |
+|:---|:---|:---|
+| `New()` | `(*AAM, error)` | Crea un nuevo documento vacío. |
+| `Parse(content string)` | `(*AAM, error)` | Crea un documento desde una string. |
+| `Load(path string)` | `(*AAM, error)` | Crea un documento desde una ruta de fichero. |
+
+---
+
+## Métodos de Instancia
+
+| Método | Retorno | Descripción |
+|:---|:---|:---|
+| `Format(content string)` | `(string, error)` | Formatea contenido AAM. |
+| `Get(key string)` | `(string, bool)` | Búsqueda directa por clave. |
+| `Find(query string)` | `map[string]string` | Búsqueda avanzada directa/inversa por clave o valor. |
+| `DeepSearch(pattern string)` | `map[string]string` | Búsqueda de referencia recursiva con soporte de patrones. |
+| `ReverseSearch(value string)` | `[]string` | Busca todas las claves que coincidan con un valor dado. |
+| `SchemaNames()` | `[]string` | Obtiene una lista de todos los nombres de schema registrados. |
+| `TypeNames()` | `[]string` | Obtiene una lista de todos los nombres de tipo registrados. |
+| `LastError()` | `string` | Recupera el último mensaje de error del handle nativo. |
+| `Close()` | `void` | Cierra el handle nativo y libera memoria. |
+
+---
+
+:::note
+- `Close()` es idempotente y debe ser llamado tras terminar con un documento.
+- Los métodos en un handle cerrado devuelven valores vacíos o errores, dependiendo del método específico.
+:::

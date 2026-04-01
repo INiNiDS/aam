@@ -1,0 +1,38 @@
+---
+sidebar_position: 9
+description: "Referência da API pública para a integração com PHP"
+---
+
+# Referência da API do PHP
+
+A biblioteca AAM do PHP fornece uma interface conveniente para interagir com ficheiros de configuração AAM através de PHP FFI.
+
+## Classe Principal
+
+| Classe | Descrição |
+|:---|:---|
+| `AamPhp` | O objeto principal para interagir com um documento AAM. |
+
+---
+
+## Construção
+
+| Construtor | Descrição |
+|:---|:---|
+| `new AamPhp(?string $libraryPath = null)` | Cria uma nova instância. O caminho da biblioteca é opcional e pode ser usado para especificar explicitamente a localização da biblioteca nativa partilhada. |
+
+---
+
+## Método Exposto
+
+| Método | Retorno | Descrição |
+|:---|:---|:---|
+| `parseFindObj(string $content, string $query)` | `?string` | Analisa o conteúdo de entrada e realiza uma pesquisa de estilo `find_obj` por query string. |
+
+---
+
+## Notas de Tempo de Execução
+
+- Usa PHP FFI e requer a instalação da biblioteca nativa `aam_rs`.
+- O caminho pode ser especificado diretamente ou será resolvido a partir do env/caminhos por defeito.
+- Suporta queda para pesquisa inversa se a query fornecida não for uma chave.

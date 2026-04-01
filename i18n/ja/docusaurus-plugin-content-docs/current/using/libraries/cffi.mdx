@@ -1,0 +1,49 @@
+---
+sidebar_position: 4
+description: "C / FFI 統合のためのパブリック API リファレンス"
+---
+
+# C FFI API リファレンス
+
+信頼できる情報源: `include/aam.h`。この API は、AAM を他の言語やシステムに統合するための安定した C インターフェースを提供します。
+
+## ハンドルのライフサイクル
+
+| 関数 | 説明 |
+|:---|:---|
+| `AamlHandle *aam_new(void)` | 新しい AAML ハンドルを作成します。 |
+| `void aam_free(AamlHandle *handle)` | 以前に作成されたハンドルを解放します。 |
+
+## パースとロード
+
+| 関数 | 説明 |
+|:---|:---|
+| `int aam_parse(AamlHandle *handle, const char *content)` | 文字列から AAM コンテンツをパースします。 |
+| `int aam_load(AamlHandle *handle, const char *path)` | ディスクから AAM ファイルをロードしてパースします。 |
+| `int aam_merge(AamlHandle *handle, const char *content)` | 新しいコンテンツを既存のハンドルにマージします。 |
+| `int aam_recover_simple(AamlHandle *handle, const char *content)` | 破損した入力のための安全なリカバリパース。 |
+
+**戻り値の規則:** 成功した場合は `0`、エラーの場合は非ゼロ。
+
+## 検索 (Lookup)
+
+| 関数 | 説明 |
+|:---|:---|
+| `char *aam_find_obj(const AamlHandle *handle, const char *key)` | キーによる直接検索、または値による逆引き検索。 |
+| `char *aam_find_key(const AamlHandle *handle, const char *value)` | 明示的な値による逆引き検索。 |
+| `char *aam_find_deep(const AamlHandle *handle, const char *key)` | 再帰的な参照解決。 |
+
+:::important
+返される文字列は Rust が所有しており、メモリリークを避けるために `aam_string_free` を使用して解放する必要があります。
+:::
+
+## メモリとエラー
+
+| 関数 | 説明 |
+|:---|:---|
+| `void aam_string_free(char *s)` | 検索関数のいずれかによって返された文字列を解放します。 |
+| `const char *aam_last_error(const AamlHandle *handle)` | 最後のエラーメッセージを借用文字列 (borrowed string) として返します。 |
+
+:::warning
+`aam_last_error` は内部の借用ポインタを返します。**解放しないでください。**
+:::

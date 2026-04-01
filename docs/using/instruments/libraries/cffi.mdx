@@ -1,0 +1,49 @@
+---
+sidebar_position: 4
+description: "Public API reference for C / FFI integration"
+---
+
+# C FFI API Reference
+
+Source of truth: `include/aam.h`. This API provides a stable C interface for integrating AAM into other languages or systems.
+
+## Handle Lifecycle
+
+| Function | Description |
+|:---|:---|
+| `AamlHandle *aam_new(void)` | Creates a new AAML handle. |
+| `void aam_free(AamlHandle *handle)` | Frees a previously created handle. |
+
+## Parse and Load
+
+| Function | Description |
+|:---|:---|
+| `int aam_parse(AamlHandle *handle, const char *content)` | Parses AAM content from a string. |
+| `int aam_load(AamlHandle *handle, const char *path)` | Loads and parses an AAM file from disk. |
+| `int aam_merge(AamlHandle *handle, const char *content)` | Merges new content into an existing handle. |
+| `int aam_recover_simple(AamlHandle *handle, const char *content)` | Safe recovery parsing for corrupted inputs. |
+
+**Return convention:** `0` on success, non-zero on error.
+
+## Lookup
+
+| Function | Description |
+|:---|:---|
+| `char *aam_find_obj(const AamlHandle *handle, const char *key)` | Forward lookup by key or reverse lookup by value. |
+| `char *aam_find_key(const AamlHandle *handle, const char *value)` | Explicit reverse lookup. |
+| `char *aam_find_deep(const AamlHandle *handle, const char *key)` | Follows recursive references. |
+
+:::important
+Returned strings are owned by Rust and must be released via `aam_string_free` to avoid memory leaks.
+:::
+
+## Memory and Errors
+
+| Function | Description |
+|:---|:---|
+| `void aam_string_free(char *s)` | Frees a string returned by any of the lookup functions. |
+| `const char *aam_last_error(const AamlHandle *handle)` | Returns the last error message as a borrowed string. |
+
+:::warning
+`aam_last_error` returns an internal borrowed pointer. **Do not free it.**
+:::

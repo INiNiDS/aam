@@ -1,0 +1,60 @@
+---
+sidebar_position: 10
+description: "Public API reference for Python integration"
+---
+
+# Python API Reference
+
+The AAM Python library provides a native Python interface for advanced configuration parsing through PyO3-based bindings.
+
+## Main Class
+
+| Class | Description |
+|:---|:---|
+| `AAM` | The primary object for interacting with an AAM document. |
+
+---
+
+## Construction
+
+| Static Method / Constructor | Return | Description |
+|:---|:---|:---|
+| `AAM()` | `AAM` | Creates a new empty document. |
+| `AAM.parse(content: str)` | `AAM` | Creates a document from a source string. |
+| `AAM.load(path: str)` | `AAM` | Creates a document from a file path on disk. |
+
+---
+
+## Utility Static Method
+
+| Static Method | Return | Description |
+|:---|:---|:---|
+| `AAM.lsp_assist(content: str)` | `tuple[list[str], str | None]` | Returns diagnostic information and formatted source for IDE support. |
+
+---
+
+## Instance Methods
+
+| Method | Return | Description |
+|:---|:---|:---|
+| `format(content: str)` | `str` | Formats AAM source content. |
+| `format_range(content: str, start_line: int, end_line: int)` | `str` | Formats a specific line range within the content. |
+| `get(key: str)` | `str | None` | Direct key lookup. |
+| `keys()` | `list[str]` | Returns all keys in the document. |
+| `to_dict()` | `dict[str, str]` | Transforms library data into a Python dictionary. |
+| `find(query: str)` | `dict[str, str]` | Advanced forward/reverse lookup by key or value. |
+| `deep_search(pattern: str)` | `dict[str, str]` | Recursive reference lookup with pattern support. |
+| `reverse_search(target_value: str)` | `list[str]` | Search for all keys matching a given value. |
+| `schema_names()` | `list[str]` | Get a list of all registered schema names. |
+| `type_names()` | `list[str]` | Get a list of all registered type names. |
+| `close()` | `None` | Manually releases all native resources. |
+| `is_closed()` | `bool` | Indicates whether the document has been closed. |
+
+---
+
+## Python Protocol Methods
+
+- `__repr__`: Human-readable object representation.
+- `__len__`: Number of keys in the document.
+- `__contains__`: Direct membership check with `key in aam`.
+- `__getitem__`: Dictionary-style access with `aam[key]`.

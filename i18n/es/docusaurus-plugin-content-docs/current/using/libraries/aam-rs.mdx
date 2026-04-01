@@ -1,27 +1,58 @@
 ---
 sidebar_position: 3
-description: "Referencia completa de la API para las structs AAML, FoundValue y AamlError"
+description: "Referencia completa de la API para la estructura AAML, FoundValue y AamlError"
 ---
 
-# Referencia de API aam-rs
+# Referencia de la API aam-rs
 
-`aam-rs` es la biblioteca Rust oficial para analizar, validar y construir ficheros de configuración AAM. La biblioteca Python `aam-py` expone la misma API — ambos lenguajes se muestran en cada ejemplo.
+`aam-rs` es la librería oficial de Rust para analizar, validar y construir ficheros de configuración AAM. Soporta directivas (`@import`, `@derive`, `@schema`, `@type`), validación de tipos basada en schema, búsqueda bidireccional y resolución de referencia profunda.
 
-> **Nota:** Añade `aam` a tu `Cargo.toml` (Rust) o ejecuta `pip install aam-py` (Python) antes de usar esta API. Consulta la página [Instalación](./installing) para más detalles.
+La crate expone dos APIs principales:
+- **API `AAML`**: La estructura core/legacy, ampliamente usada y rica en funcionalidades.
+- **API `AAM`**: Una API nueva de alto nivel basada en pipeline con soporte opcional de carga AOT (`.aam.bin`).
+
+---
+
+## Arquitectura
+
+El proyecto está diseñado con una arquitectura modular:
+
+- **`aaml/`**: Lógica core para análisis, búsqueda y validación.
+- **`pipeline/`**: Un pipeline de cinco etapas (Lexer, Parser, Validator, Executer, Formatter).
+- **`commands/`**: Sistema de directivas (`@import`, `@derive`, etc.).
+- **`types/`**: Sistema de tipos de validación para primitivos y tipos de dominio.
+- **`aot/`**: Soporte para cachés binarias "cocinadas" (`.aam.bin`) para inicio rápido.
+- **`builder/`**: API fluida para generación programática de contenido `.aam`.
+
+---
+
+## Feature Flags (Flags de Funcionalidades)
+
+| Flag | Efecto |
+|:---|:---|
+| `hash-std` | Hasher por defecto del pipeline (`std::collections::hash_map::RandomState`) |
+| `hash-fx` / `hash-ahash` / `hash-rapidhash` / `hash-ripemd` | Hashers alternativos (mutuamente excluyentes) |
+| `perf-hash` | Cambia el hasher de `HashMap` a `ahash::RandomState` para mejor throughput |
+| `aot` | Habilita caché binaria cocinada en `src/aot/` y ruta rápida `AAM::load` |
+| `ffi` / `python` / `jni` / `csharp` | Habilita superficies de bindings de lenguajes |
+| `parallel` | Habilita pre-validación paralela de tareas en el pipeline |
+| `serde` | Deriva `Serialize`/`Deserialize` en `FoundValue`, `SchemaDef`, `AAMBuilder`, etc. |
 
 ---
 
 ## `AAML`
 
-El punto de entrada principal para todas las operaciones AAM. `AAML` contiene el mapa de clave-valor analizado, definiciones de tipo registradas y definiciones de schema. Todas las directivas (`@derive`, `@schema`, `@import`, `@type`) se procesan automáticamente en tiempo de análisis.
+El punto de entrada principal para todas las operaciones AAM. `AAML` mantiene el mapa clave-valor analizado, definiciones de tipos registradas y definiciones de schema. Todas las directivas (`@derive`, `@schema`, `@import`, `@type`) se procesan automáticamente en el momento del análisis.
 
 ### Constructores
 
 #### `AAML::new`
 
-Crea una nueva instancia `AAML` vacía con todos los manejadores de directivas estándar registrados.
+Crea una nueva instancia vacía de `AAML` con todos los manejadores de directivas por defecto registrados.
 
 ```rust
+use aam_rs::aaml::AAML;
+
 let cfg = AAML::new();
 ```
 
@@ -29,147 +60,88 @@ let cfg = AAML::new();
 
 #### `AAML::parse`
 
-Analiza una string AAM y retorna una nueva instancia `AAML` totalmente poblada.
+Analiza una string AAM y devuelve una nueva instancia de `AAML` totalmente poblada.
 
 | Parámetro | Tipo | Descripción |
-|-----------|------|-------------|
-| `content` | `&str` | Texto de origen AAM a analizar. |
+|:---|:---|:---|
+| `content` | `&str` | Texto fuente AAM a analizar. |
 
-**Retorna:** `Result<AAML, AamlError>`
-
-```rust
-let cfg = AAML::parse("host = localhost\nport = 8080").unwrap();
-assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
-```
+**Retorno:** `Result<AAML, AamlError>`
 
 ---
 
 #### `AAML::load`
 
-Lee un fichero AAM del disco y retorna una nueva instancia `AAML`.
+Lee un fichero AAM del disco y devuelve una nueva instancia.
 
 | Parámetro | Tipo | Descripción |
-|-----------|------|-------------|
+|:---|:---|:---|
 | `file_path` | `impl AsRef<Path>` | Ruta al fichero `.aam`. |
 
-**Retorna:** `Result<AAML, AamlError>`
-
-```rust
-let cfg = AAML::load("config.aam").unwrap();
-println!("{}", cfg.find_obj("host").unwrap());
-```
+**Retorno:** `Result<AAML, AamlError>`
 
 ---
 
-### Fusión
-
-#### `merge_content`
-
-Analiza texto de origen AAM y fusiona los pares clave-valor resultantes en la instancia actual.
-
----
-
-#### `merge_file`
-
-Lee un fichero del disco y fusiona su contenido en la instancia actual.
-
----
-
-### Combinar Instancias
-
-Dos instancias `AAML` pueden combinarse usando los operadores `+` y `+=`. El lado derecho gana en conflictos de clave.
-
-```rust
-let base = AAML::parse("host = localhost\nport = 80").unwrap();
-let overrides = AAML::parse("port = 443").unwrap();
-let combined = base + overrides;
-assert_eq!(combined.find_obj("port").unwrap().as_str(), "443");
-```
-
----
-
-### Búsqueda
+### Búsqueda (Lookup)
 
 #### `find_obj`
 
-El método de búsqueda principal. Busca `key` en el mapa. Si no se encuentra ninguna clave correspondiente, realiza una **búsqueda inversa** automática.
+El método principal de búsqueda. Busca `key` en el mapa. Si no se encuentra, realiza una **búsqueda inversa** automática por valor.
 
-**Retorna:** `Option<FoundValue>`
+| Parámetro | Tipo | Descripción |
+|:---|:---|:---|
+| `key` | `&str` | Clave o valor a encontrar. |
+
+**Retorno:** `Option<FoundValue>`
 
 ```rust
+use aam_rs::aaml::AAML;
+
 let cfg = AAML::parse("a = b").unwrap();
+
+// Búsqueda directa
 assert_eq!(cfg.find_obj("a").unwrap().as_str(), "b");
-assert_eq!(cfg.find_obj("b").unwrap().as_str(), "a"); // búsqueda inversa
+
+// Búsqueda inversa (buscando por valor)
+assert_eq!(cfg.find_obj("b").unwrap().as_str(), "a");
 ```
-
----
-
-#### `find_key`
-
-Búsqueda inversa explícita. Encuentra la **clave** cuyo valor mapeado es igual a `value`.
-
-**Retorna:** `Option<FoundValue>`
-
----
-
-#### `find_deep`
-
-Sigue una cadena de búsquedas `key → value → key` hasta alcanzar un valor terminal o detectar un ciclo.
-
-**Retorna:** `Option<FoundValue>`
-
-```rust
-let cfg = AAML::parse("a = b\nb = c").unwrap();
-assert_eq!(cfg.find_deep("a").unwrap().as_str(), "c");
-```
-
----
-
-### Validación de Schema
-
-#### `get_schema`
-
-Retorna el `SchemaDef` registrado con `name`, o `None`.
-
-#### `apply_schema`
-
-Valida un mapa `data` contra un schema con nombre.
-
-#### `validate_schemas_completeness`
-
-Comprueba cada campo **obligatorio** de cada schema registrado contra el mapa de clave-valor actual.
-
-**Retorna:** `Result<(), AamlError>`
 
 ---
 
 ## `FoundValue`
 
-El tipo retornado por todos los métodos de búsqueda `AAML`. Encapsula el valor de string bruto y proporciona helpers para transformaciones comunes.
+El tipo devuelto por todos los métodos de búsqueda. Envuelve la string cruda y proporciona ayudantes.
 
 ### Métodos
 
-| Método | Retorna | Descripción |
-|--------|---------|-------------|
-| `as_str()` | `&str` | Retorna el valor interno como un slice de string. |
-| `as_list()` | `Option<Vec<String>>` | Analiza el valor como una lista AAM `[...]`. |
-| `as_object()` | `Option<HashMap<...>>` | Analiza el valor como un objeto inline `{...}`. |
-| `is_list()` | `bool` | Verdadero si el valor es un literal de lista. |
-| `is_object()` | `bool` | Verdadero si el valor es un objeto inline. |
-| `remove(target)` | `&mut Self` | Elimina todas las ocurrencias de `target`. |
+#### `as_str`
+
+Devuelve el valor interno como un slice de string.
+
+**Retorno:** `&str`
+
+---
+
+#### `as_list`
+
+Analiza el valor como un literal de lista AAM `[item, item, ...]` y devuelve los elementos como `Vec<String>`.
+
+**Retorno:** `Option<Vec<String>>`
 
 ---
 
 ## `AamlError`
 
-Todos los errores producidos por la pipeline de análisis y validación implementan `std::error::Error` y `Display`.
+Enum de errores usados a lo largo de los caminos de análisis/validación/runtime.
 
 ### Variantes
 
 | Variante | Descripción |
-|----------|-------------|
-| `IoError(io::Error)` | Ocurrió un error de I/O al leer un fichero. |
-| `ParseError { line, content, details }` | Una línea de origen no pudo analizarse. |
-| `NotFound(String)` | Una clave o nombre de tipo no fue encontrado. |
+|:---|:---|
+| `IoError(io::Error)` | Error de I/O al leer un fichero. |
+| `ParseError { line, content, details }` | Una línea no pudo ser analizada como sentencia AAML válida. |
+| `NotFound(String)` | Una clave o nombre de tipo no se encontró. |
 | `InvalidValue(String)` | Un valor falla una restricción de tipo básica. |
-| `SchemaValidationError { schema, field, type_name, details }` | Se violó una restricción de schema. |
+| `InvalidType { type_name, details }` | Un valor falló la validación contra un tipo. |
+| `DirectiveError(String, String)` | Una directiva encontró un error en sus argumentos. |
+| `SchemaValidationError { ... }` | Se violó una restricción de schema. |

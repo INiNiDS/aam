@@ -1,0 +1,47 @@
+---
+sidebar_position: 12
+description: "WebAssembly 統合のためのパブリック API リファレンス"
+---
+
+# WebAssembly API リファレンス
+
+WebAssembly 用 AAM ライブラリは、ブラウザでの高性能なパースのためのネイティブな WASM 実装を提供します。
+
+## エクスポートされたクラス
+
+| クラス | 説明 |
+|:---|:---|
+| `AAM` | JS エコシステムで AAM ドキュメントを操作するための主要なオブジェクト。 |
+
+---
+
+## 構築
+
+| コンストラクタ | 戻り値 | 説明 |
+|:---|:---|:---|
+| `new AAM(content: string)` | `AAM` | 文字列からドキュメントを作成します。 |
+
+---
+
+## 静的ヘルパー
+
+| 静的メソッド | 戻り値 | 説明 |
+|:---|:---|:---|
+| `AAM.lspAssist(content: string)` | `\{ diagnostics: string[]; formatted: string \| null \}` | 言語サーバー実装のための診断ツール。 |
+
+---
+
+## インスタンスメソッド
+
+| メソッド | 戻り値 | 説明 |
+|:---|:---|:---|
+| `format(content: string)` | `string` | AAM コンテンツをフォーマットします。 |
+| `formatRange(content: string, startLine: number, endLine: number)` | `string` | 指定された行範囲をフォーマットします。 |
+| `get(key: string)` | `string | undefined` | キーによる直接検索。 |
+| `keys()` | `string[]` | すべてのキーを返します。 |
+| `toMap()` | `Record<string, string>` | データを JS オブジェクトに変換します。 |
+| `find(query: string)` | `Record<string, string>` | 高度な直接/逆引き検索。 |
+| `deepSearch(pattern: string)` | `Record<string, string>` | 再帰的な参照検索。 |
+| `reverseSearch(value: string)` | `string[]` | 指定した値に一致するキーを検索します。 |
+| `schemaNames()` | `string[]` | 登録されているスキーマ名を返します。 |
+| `typeNames()` | `string[]` | 登録されている型名を返します。 |

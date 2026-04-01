@@ -1,41 +1,47 @@
-# Website
+# AAM (Abstract Alias Mapping)
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+A robust and lightweight configuration parser `that supports key-value pairs, recursive dependency resolution, file imports, and bidirectional lookups. Designed for applications that need flexible configuration files with references, aliases, and a modular structure.
 
-## Installation
+## Features
 
-```bash
-yarn
+- **Simple syntax**: A `key = value` format that is easy to read and write.
+- **Import support**: The `@import` directive lets you split configuration into multiple files.
+- **Comments support**: Lines starting with `#` are treated as comments.
+- **Deep resolution (`find_deep`)**: Automatically resolves chains of references (e.g., `A -> B -> C`) to find the final value.
+- **Loop detection**: Safely handles circular dependencies (e.g., `A -> B -> A`) without stack overflows.
+- **Bidirectional lookup (`find_obj`)**: Looks up a value by key, or performs a reverse lookup (finds a key by value) when the key is missing.
+- **Config builder (`AAMBuilder`)**: Programmatically generate and save `.aam` files.
+- **Configuration merging**: Supports the `+` operator to combine two `AAML` instances.
+- **Typed errors**: Detailed parsing and I/O error handling via `AamlError`.
+
+## Format
+You can find documentation and examples for the format in the [docs](https://aam.ininids.in.rs/)
+Example:
+```aam
+# My config
+@import base.aam
+app_name = rustgames
+version = 1.0
 ```
 
-## Local Development
+## Libraries
+- [Rust](https://crates.io/crates/aam-rs) (official implementation)
+- [Go](https://github.com/ininids/aam-rs) (official Go port)
+- [Python](https://pypi.org/project/aam-py/) (official Python port)
+- [JavaScript](https://www.npmjs.com/package/aam-js) (official JavaScript port) (Will be published at 2.0.0 version)
+- [Java/Kotlin](https://central.sonatype.com/artifact/rs.in.ininids/aam-jv) (official JVM port)
+- [C#/.NET](https://www.nuget.org/packages/Aam.Rs/) (official .NET port)
+- [Ruby, PHP, WASM, C and others.](https:://github.com/ininids/aam-rs) (Official ports)
 
-```bash
-yarn start
-```
+### Libraries documentation
+- [Rust](https://docs.rs/aam_rs/)
+- [README](github.com/INiNiDS/aam-rs?tab=readme-ov-file)
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+# Coming Soon
 
-## Build
-
-```bash
-yarn build
-```
-
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
-
-## Deployment
-
-Using SSH:
-
-```bash
-USE_SSH=true yarn deploy
-```
-
-Not using SSH:
-
-```bash
-GIT_USER=<Your GitHub username> yarn deploy
-```
-
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+- AAM CLI for terminal
+- More languages
+- AAM v2
+- Performance optimizations
+- More examples
+- New documentation site update

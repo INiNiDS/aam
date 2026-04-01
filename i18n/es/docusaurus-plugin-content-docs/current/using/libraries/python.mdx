@@ -1,0 +1,60 @@
+---
+sidebar_position: 10
+description: "Referencia de la API pública para la integración con Python"
+---
+
+# Referencia de la API de Python
+
+La librería AAM de Python proporciona una interfaz de Python nativa para el análisis avanzado de configuraciones a través de bindings basados en PyO3.
+
+## Clase Principal
+
+| Clase | Descripción |
+|:---|:---|
+| `AAM` | El objeto principal para interactuar con un documento AAM. |
+
+---
+
+## Construcción
+
+| Método Estático / Constructor | Retorno | Descripción |
+|:---|:---|:---|
+| `AAM()` | `AAM` | Crea un documento vacío. |
+| `AAM.parse(content: str)` | `AAM` | Crea un documento desde una string. |
+| `AAM.load(path: str)` | `AAM` | Crea un documento desde una ruta de fichero. |
+
+---
+
+## Método Estático de Utilidad
+
+| Método Estático | Retorno | Descripción |
+|:---|:---|:---|
+| `AAM.lsp_assist(content: str)` | `tuple[list[str], str | None]` | Devuelve información de diagnóstico y código formateado para soporte de IDE. |
+
+---
+
+## Métodos de Instancia
+
+| Método | Retorno | Descripción |
+|:---|:---|:---|
+| `format(content: str)` | `str` | Formatea contenido AAM. |
+| `format_range(content: str, start_line: int, end_line: int)` | `str` | Formatea un rango de líneas específico. |
+| `get(key: str)` | `str | None` | Búsqueda directa por clave. |
+| `keys()` | `list[str]` | Devuelve todas las claves del documento. |
+| `to_dict()` | `dict[str, str]` | Transforma los datos de la librería en un diccionario Python. |
+| `find(query: str)` | `dict[str, str]` | Búsqueda avanzada directa/inversa por clave o valor. |
+| `deep_search(pattern: str)` | `dict[str, str]` | Búsqueda de referencia recursiva con soporte de patrones. |
+| `reverse_search(target_value: str)` | `list[str]` | Busca todas las claves que coincidan con un valor dado. |
+| `schema_names()` | `list[str]` | Lista todos los nombres de schema registrados. |
+| `type_names()` | `list[str]` | Lista todos los nombres de tipo registrados. |
+| `close()` | `None` | Libera manualmente todos los recursos nativos. |
+| `is_closed()` | `bool` | Indica si el documento ha sido cerrado. |
+
+---
+
+## Métodos de Protocolo Python
+
+- `__repr__`: Representación humana del objeto.
+- `__len__`: Número de claves en el documento.
+- `__contains__`: Comprobación directa de membresía con `key in aam`.
+- `__getitem__`: Acceso estilo diccionario con `aam[key]`.

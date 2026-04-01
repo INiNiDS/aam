@@ -1,0 +1,44 @@
+---
+sidebar_position: 7
+description: "Public API reference for JVM integration (Java & Kotlin)"
+---
+
+# Java / Kotlin API Reference
+
+The AAM JVM library provides native configuration parsing for the JVM through JNI, wrapped in a developer-friendly Kotlin interface that is fully compatible with Java.
+
+## Main Type
+
+| Type | Description |
+|:---|:---|
+| `com.rustgames.aam.AamDocument` | Implements `AutoCloseable` and provides the primary API for document interaction. |
+
+---
+
+## Construction
+
+| Static Method | Return | Description |
+|:---|:---|:---|
+| `AamDocument.parse(String content)` | `AamDocument` | Creates a document from a string. |
+| `AamDocument.load(String path)` | `AamDocument` | Creates a document from a file path. |
+
+---
+
+## Instance Methods
+
+| Method | Return | Description |
+|:---|:---|:---|
+| `reload(String content)` | `void` | Overwrites the current document content with new source content. |
+| `get(String key)` | `String?` | Retrieves a value for a given key. |
+| `deepSearch(String pattern)` | `Map<String, String>` | Follows recursive references. |
+| `reverseSearch(String value)` | `List<String>` | Finds all keys that map to a specific value. |
+| `schemaNames()` | `List<String>` | Returns all registered schema names. |
+| `typeNames()` | `List<String>` | Returns all registered type names. |
+| `close()` | `void` | Manually releases all native resources. |
+
+---
+
+:::note
+- The native library is automatically loaded from packaged resources at runtime.
+- `IllegalStateException` is thrown on parse/load failures or when attempting to use a closed document.
+:::

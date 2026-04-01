@@ -1,0 +1,51 @@
+---
+sidebar_position: 11
+description: "Referencia de la API pública para la integración con Ruby"
+---
+
+# Referencia de la API de Ruby
+
+La librería AAM de Ruby proporciona una extensión nativa para el análisis de alta performance.
+
+## Namespace Principal
+
+| Namespace | Descripción |
+|:---|:---|
+| `AamRb::AAM` | El objeto principal para interactuar con un documento AAM. |
+
+---
+
+## Métodos de Clase
+
+| Método Estático | Retorno | Descripción |
+|:---|:---|:---|
+| `AamRb::AAM.new` | `AamRb::AAM` | Crea un documento vacío. |
+| `AamRb::AAM.parse(content)` | `AamRb::AAM` | Crea un documento desde una string. |
+| `AamRb::AAM.load(path)` | `AamRb::AAM` | Crea un documento desde una ruta de fichero. |
+
+---
+
+## Métodos de Instancia
+
+| Método | Retorno | Descripción |
+|:---|:---|:---|
+| `get(key)` | `String | Nil` | Recupera un valor para una clave dada. |
+| `keys` | `Array<String>` | Devuelve todas las claves. |
+| `to_map` | `Hash<String, String>` | Transforma los datos en un hash de Ruby. |
+| `find(query)` | `Hash<String, String>` | Búsqueda avanzada directa/inversa. |
+| `deep_search(pattern)` | `Hash<String, String>` | Búsqueda de referencia recursiva. |
+| `reverse_search(value)` | `Array<String>` | Busca claves que coincidan con un valor. |
+| `schema_names` | `Array<String>` | Devuelve nombres de schema registrados. |
+| `type_names` | `Array<String>` | Devuelve nombres de tipo registrados. |
+
+---
+
+## Modelo de Errores
+
+- Fallos de análisis y carga lanzan excepciones nativas `RuntimeError`.
+
+---
+
+:::note
+La documentación README existente utiliza estilos ligeros. El objetivo de la API nativa centrada en `AamRb::AAM` permanece.
+:::

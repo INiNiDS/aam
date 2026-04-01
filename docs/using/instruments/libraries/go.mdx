@@ -1,0 +1,47 @@
+---
+sidebar_position: 6
+description: "Public API reference for Go integration"
+---
+
+# Go API Reference
+
+The Go AAM library is a thin wrapper over the core Rust library, providing a native Go interface for efficient configuration parsing.
+
+## Main Type
+
+| Type | Description |
+|:---|:---|
+| `AAM` | The primary struct used to interact with AAM documents. |
+
+---
+
+## Constructors
+
+| Method | Return | Description |
+|:---|:---|:---|
+| `New()` | `(*AAM, error)` | Creates a new empty document. |
+| `Parse(content string)` | `(*AAM, error)` | Creates a document from a source string. |
+| `Load(path string)` | `(*AAM, error)` | Creates a document from a file path. |
+
+---
+
+## Instance Methods
+
+| Method | Return | Description |
+|:---|:---|:---|
+| `Format(content string)` | `(string, error)` | Formats AAM source content. |
+| `Get(key string)` | `(string, bool)` | Direct key lookup. |
+| `Find(query string)` | `map[string]string` | Advanced forward/reverse lookup by key or value. |
+| `DeepSearch(pattern string)` | `map[string]string` | Recursive reference lookup with pattern support. |
+| `ReverseSearch(value string)` | `[]string` | Search for all keys matching a given value. |
+| `SchemaNames()` | `[]string` | Get a list of all registered schema names. |
+| `TypeNames()` | `[]string` | Get a list of all registered type names. |
+| `LastError()` | `string` | Retrieve the last error message from the native handle. |
+| `Close()` | `void` | Close the native handle and free memory. |
+
+---
+
+:::note
+- `Close()` is idempotent and should be called when done with a document.
+- Methods on a closed handle return empty values or errors, depending on the specific method.
+:::

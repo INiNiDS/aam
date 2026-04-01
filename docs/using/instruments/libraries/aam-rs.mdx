@@ -5,9 +5,38 @@ description: "Full API reference for the AAML struct, FoundValue, and AamlError"
 
 # aam-rs API Reference
 
-`aam-rs` is the official Rust library for parsing, validating, and building AAM configuration files. The Python library `aam-py` exposes the same API — both languages are shown for every example.
+`aam-rs` is the official Rust library for parsing, validating, and building AAM configuration files. It supports directives (`@import`, `@derive`, `@schema`, `@type`), schema-based type validation, bidirectional lookup, and deep reference resolution.
 
-> **Note:** Add `aam` to your `Cargo.toml` (Rust) or run `pip install aam-py` (Python) before using this API. See the [Installing](./installing) page for details.
+The crate exposes two main APIs:
+- **`AAML` API**: The legacy/core struct, widely used and feature-rich.
+- **`AAM` API**: A newer, high-level pipeline-backed API with optional AOT (`.aam.bin`) loading support.
+
+---
+
+## Architecture
+
+The project is designed with a modular architecture:
+
+- **`aaml/`**: Core logic for parsing, lookup, and validation.
+- **`pipeline/`**: A five-stage pipeline (Lexer, Parser, Validator, Executer, Formatter).
+- **`commands/`**: Directive system (`@import`, `@derive`, etc.).
+- **`types/`**: Validation type system for primitives and domain types.
+- **`aot/`**: Support for "cooked" binary caches (`.aam.bin`) for fast startup.
+- **`builder/`**: Fluent API for programmatic `.aam` generation.
+
+---
+
+## Feature Flags
+
+| Flag | Effect |
+|:---|:---|
+| `hash-std` | Default pipeline hasher (`std::collections::hash_map::RandomState`) |
+| `hash-fx` / `hash-ahash` / `hash-rapidhash` / `hash-ripemd` | Alternate pipeline hashers (mutually exclusive) |
+| `perf-hash` | Swaps `HashMap` hasher to `ahash::RandomState` for better throughput |
+| `aot` | Enables `src/aot/` cooked binary cache and `AAM::load` fast-path |
+| `ffi` / `python` / `jni` / `csharp` | Enables language binding surfaces |
+| `parallel` | Enables parallel parse-task pre-validation in pipeline |
+| `serde` | Derives `Serialize`/`Deserialize` on `FoundValue`, `SchemaDef`, `AAMBuilder`, etc. |
 
 ---
 

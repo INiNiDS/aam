@@ -1,0 +1,49 @@
+---
+sidebar_position: 4
+description: "Référence de l'API publique pour l'intégration C / FFI"
+---
+
+# Référence de l'API C FFI
+
+Source de vérité : `include/aam.h`. Cette API fournit une interface C stable pour intégrer AAM dans d'autres langages ou systèmes.
+
+## Cycle de vie du Handle
+
+| Fonction | Description |
+|:---|:---|
+| `AamlHandle *aam_new(void)` | Crée un nouveau handle AAML. |
+| `void aam_free(AamlHandle *handle)` | Libère un handle précédemment créé. |
+
+## Analyse et Chargement
+
+| Fonction | Description |
+|:---|:---|
+| `int aam_parse(AamlHandle *handle, const char *content)` | Analyse le contenu AAM à partir d'une chaîne. |
+| `int aam_load(AamlHandle *handle, const char *path)` | Charge et analyse un fichier AAM depuis le disque. |
+| `int aam_merge(AamlHandle *handle, const char *content)` | Fusionne un nouveau contenu dans un handle existant. |
+| `int aam_recover_simple(AamlHandle *handle, const char *content)` | Analyse de récupération sécurisée pour les entrées corrompues. |
+
+**Convention de retour :** `0` en cas de succès, non nul en cas d'erreur.
+
+## Recherche (Lookup)
+
+| Fonction | Description |
+|:---|:---|
+| `char *aam_find_obj(const AamlHandle *handle, const char *key)` | Recherche directe par clé ou inverse par valeur. |
+| `char *aam_find_key(const AamlHandle *handle, const char *value)` | Recherche inverse explicite. |
+| `char *aam_find_deep(const AamlHandle *handle, const char *key)` | Résolution de références récursive. |
+
+:::important
+Les chaînes retournées appartiennent à Rust et doivent être libérées via `aam_string_free` pour éviter les fuites de mémoire.
+:::
+
+## Mémoire et Erreurs
+
+| Fonction | Description |
+|:---|:---|
+| `void aam_string_free(char *s)` | Libère une chaîne retournée par l'une des fonctions de recherche. |
+| `const char *aam_last_error(const AamlHandle *handle)` | Retourne le dernier message d'erreur sous forme de chaîne empruntée (borrowed). |
+
+:::warning
+`aam_last_error` retourne un pointeur interne emprunté. **Ne le libérez pas.**
+:::

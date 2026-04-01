@@ -7,16 +7,20 @@ description: "Learn how to install AAM libraries in your project"
 # Installing
 ## What use?
 You need to choose library for your programming language. Authorized libraries:
-| Language | Library                                | Description            |
-|----------|----------------------------------------|------------------------|
-| Rust     | [aam-rs](https://crates.io/crates/aam) | AAM library for Rust   |
-| Python   | aam-py (Coming soon)                   | AAM library for Python |
-Now it's all.
+# AAM Ecosystem Libraries
+| Language          | Library                                                              | Description                                     |
+|:------------------|:---------------------------------------------------------------------|:------------------------------------------------|
+| **Rust**          | [aam-rs](https://crates.io/crates/aam-rs)                            | Official core implementation                    |
+| **Go**            | [aam-rs (Go)](https://github.com/ininids/aam-rs)                     | Official Go port                                |
+| **Python**        | [aam-py](https://pypi.org/project/aam-py/)                           | Official Python port                            |
+| **JavaScript**    | [aam-js](https://www.npmjs.com/package/aam-js)                       | Official JS port (Releasing with v2.0.0)        |
+| **Java / Kotlin** | [aam-jv](https://central.sonatype.com/artifact/rs.in.ininids/aam-jv) | Official JVM port                               |
+| **C# / .NET**     | [Aam.Rs](https://www.nuget.org/packages/Aam.Rs/)                     | Official .NET port                              |
+| **Others**        | [Ports](https://github.com/ininids/aam-rs)                           | Official ports for Ruby, PHP, WASM, C, and more |
 ## Installing aam-rs
 To install `aam-rs`, add the following to your `Cargo.toml`:
-```toml
-[dependencies]
-aam = "1.1.0"
+```bash
+cargo add aam-rs
 ```
 Then, you can use it in your Rust code:
 ```rust

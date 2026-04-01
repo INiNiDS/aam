@@ -1,0 +1,51 @@
+---
+sidebar_position: 8
+description: "Public API reference for Node.js integration"
+---
+
+# Node.js API Reference
+
+The AAM Node.js library exposes a high-level JS interface for advanced configuration parsing through native bindings.
+
+## Top-Level Functions
+
+| Function | Return | Description |
+|:---|:---|:---|
+| `parse(content: string)` | `AAM` | Creates a document from a source string. |
+| `load(path: string)` | `AAM` | Creates a document from a file path on disk. |
+| `recoverSimple(content: string)` | `AAM` | Safely recovers content from corrupted sources. |
+| `version()` | `string` | Returns the current AAM library version. |
+
+---
+
+## Main Class
+
+| Class | Description |
+|:---|:---|
+| `AAM` | The primary object for interacting with an AAM document. |
+
+---
+
+## Instance Methods
+
+| Method | Return | Description |
+|:---|:---|:---|
+| `merge(content: string)` | `void` | Merges new content into the current document instance. |
+| `mergeContent(content: string)` | `void` | Alias for `merge`. |
+| `mergeFile(path: string)` | `void` | Merges file content into the current document instance. |
+| `findObj(key: string)` | `string \| null` | Forward/Reverse lookup for a given key or value. |
+| `findKey(value: string)` | `string \| null` | Explicit reverse lookup for a value. |
+| `findDeep(key: string)` | `string \| null` | Deep reference resolution for a key. |
+| `findList(key: string)` | `string[] \| null` | Returns a list of values if the key maps to one. |
+| `findObject(key: string)` | `Record<string, string> \| null` | Returns an object if the key maps to one. |
+| `keys()` | `string[]` | Returns all keys in the document. |
+| `toMap()` | `Record<string, string>` | Transforms all data in the document into a JS object. |
+| `validateValue(typeName: string, value: string)` | `void` | Basic type validation against registered types. |
+| `close()` | `void` | Close the native handle and free native resources. |
+| `isClosed()` | `boolean` | Indicates whether the document has been closed. |
+
+---
+
+:::tip
+For convenience, `AAML`, `JsAam`, and `JsAaml` are used as aliases for `AAM`.
+:::

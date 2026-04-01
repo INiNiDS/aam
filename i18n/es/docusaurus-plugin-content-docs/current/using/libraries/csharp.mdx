@@ -1,0 +1,59 @@
+---
+sidebar_position: 5
+description: "Referencia de la API pública para la integración con .NET"
+---
+
+# Referencia de la API C# / .NET
+
+La librería C# proporciona una interfaz nativa .NET para interactuar con ficheros AAM, envolviendo la implementación core de Rust a través de P/Invoke.
+
+## Tipo Principal
+
+| Tipo | Descripción |
+|:---|:---|
+| `AamDocument` | Implementa `IDisposable` y proporciona la API principal de interacción. |
+
+---
+
+## Construcción
+
+| Método | Descripción |
+|:---|:---|
+| `new AamDocument()` | Crea un documento AAM vacío. |
+| `AamDocument.Parse(string content)` | Método de factoría estático que crea un `AamDocument` desde una string. |
+| `AamDocument.Load(string path)` | Método de factoría estático que crea un `AamDocument` desde una ruta de fichero. |
+
+---
+
+## Métodos Core
+
+| Método | Retorno | Descripción |
+|:---|:---|:---|
+| `Format(string content)` | `string` | Formatea el contenido AAM de entrada según las reglas estándar. |
+| `Merge(string content)` | `void` | Fusiona nuevo contenido en la instancia de documento actual. |
+| `RecoverSimple(string content)` | `void` | Recupera contenido de forma segura de fuentes corruptas. |
+| `FindObj(string key)` | `string?` | Búsqueda directa/inversa para una clave o valor dado. |
+| `FindKey(string value)` | `string?` | Búsqueda inversa explícita para un valor. |
+| `FindDeep(string key)` | `string?` | Resolución de referencia profunda para una clave. |
+
+---
+
+## Ciclo de Vida
+
+| Propiedad/Método | Descripción |
+|:---|:---|
+| `bool IsClosed` | Indica si el handle nativo ha sido disposable. |
+| `void Dispose()` | Libera todos los recursos nativos asociados con el documento. |
+
+:::tip
+Usa siempre sentencias `using` con `AamDocument` para asegurar la limpieza determinista de los recursos nativos.
+:::
+
+---
+
+## Modelo de Errores
+
+La librería C# usa el manejo de excepciones estándar de .NET:
+
+- Lanza `AamException` para errores nativos durante el análisis, carga, formateo, etc.
+- Lanza `ObjectDisposedException` si intentas usar un documento tras llamar a `Dispose()`.

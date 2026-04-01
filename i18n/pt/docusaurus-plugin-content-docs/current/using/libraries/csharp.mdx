@@ -1,0 +1,59 @@
+---
+sidebar_position: 5
+description: "Referência da API pública para a integração com .NET"
+---
+
+# Referência da API C# / .NET
+
+A biblioteca C# fornece uma interface nativa .NET para interagir com ficheiros AAM, envolvendo a implementação core de Rust através de P/Invoke.
+
+## Tipo Principal
+
+| Tipo | Descrição |
+|:---|:---|
+| `AamDocument` | Implementa `IDisposable` e fornece a API principal de interação. |
+
+---
+
+## Construção
+
+| Método | Descrição |
+|:---|:---|
+| `new AamDocument()` | Cria um documento AAM vazio. |
+| `AamDocument.Parse(string content)` | Método de fábrica estático que cria um `AamDocument` a partir de uma string. |
+| `AamDocument.Load(string path)` | Método de fábrica estático que cria um `AamDocument` a partir de um caminho de ficheiro. |
+
+---
+
+## Métodos Core
+
+| Método | Retorno | Descrição |
+|:---|:---|:---|
+| `Format(string content)` | `string` | Formata o conteúdo AAM de entrada segundo as regras padrão. |
+| `Merge(string content)` | `void` | Funde novo conteúdo na instância de documento atual. |
+| `RecoverSimple(string content)` | `void` | Recupera conteúdo de forma segura de fontes corrompidas. |
+| `FindObj(string key)` | `string?` | Pesquisa direta/inversa para uma chave ou valor dado. |
+| `FindKey(string value)` | `string?` | Pesquisa inversa explícita para um valor. |
+| `FindDeep(string key)` | `string?` | Resolução de referência profunda para uma chave. |
+
+---
+
+## Ciclo de Vida
+
+| Propriedade/Método | Descrição |
+|:---|:---|
+| `bool IsClosed` | Indica se o handle nativo foi disposable. |
+| `void Dispose()` | Libera todos os recursos nativos associados ao documento. |
+
+:::tip
+Use sempre sentenças `using` com `AamDocument` para garantir a limpeza determinística dos recursos nativos.
+:::
+
+---
+
+## Modelo de Erros
+
+A biblioteca C# usa o manejo de exceções padrão de .NET:
+
+- Lança `AamException` para erros nativos durante a análise, carga, formatação, etc.
+- Lança `ObjectDisposedException` se tentar usar um documento após chamar `Dispose()`.

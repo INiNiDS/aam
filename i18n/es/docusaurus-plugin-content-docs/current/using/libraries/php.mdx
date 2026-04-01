@@ -1,0 +1,38 @@
+---
+sidebar_position: 9
+description: "Referencia de la API pública para la integración con PHP"
+---
+
+# Referencia de la API de PHP
+
+La librería AAM de PHP proporciona una interfaz conveniente para interactuar con ficheros de configuración AAM a través de PHP FFI.
+
+## Clase Principal
+
+| Clase | Descripción |
+|:---|:---|
+| `AamPhp` | El objeto principal para interactuar con un documento AAM. |
+
+---
+
+## Construcción
+
+| Constructor | Descripción |
+|:---|:---|
+| `new AamPhp(?string $libraryPath = null)` | Crea una nueva instancia. La ruta de la librería es opcional y puede usarse para especificar explícitamente la ubicación de la librería nativa compartida. |
+
+---
+
+## Método Expuesto
+
+| Método | Retorno | Descripción |
+|:---|:---|:---|
+| `parseFindObj(string $content, string $query)` | `?string` | Analiza el contenido de entrada y realiza una búsqueda de estilo `find_obj`. |
+
+---
+
+## Notas de Tiempo de Ejecución
+
+- Usa PHP FFI y requiere la instalación de la librería nativa `aam_rs`.
+- La ruta puede especificarse directamente o se resolverá desde el env/rutas por defecto.
+- Soporta caída a búsqueda inversa si la query proporcionada no es una clave.

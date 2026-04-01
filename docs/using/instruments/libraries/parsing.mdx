@@ -6,7 +6,29 @@ description: "How to parse AAM files in your projects"
 
 # Parsing
 
-This page covers all the ways you can load and parse AAM content into your application using `aam-rs` (Rust) or `aam-py` (Python).
+This page covers all the ways you can load and parse AAM content into your application using official AAM libraries. While examples often focus on Rust and Python, the same principles apply across all supported languages.
+
+---
+
+## Syntax & Parsing Behavior
+
+AAM uses a line-based `key = value` format with some specific parsing rules:
+
+### Comments
+
+The `#` character is used for comments, but **only when surrounded by whitespace**. This allows hex color values (like `tint = #ff6600`) to be parsed correctly without being mistaken for comments.
+
+```aam
+# This is a comment
+tint = #ff6600  # This is NOT a comment
+name = #NoSpaceHere # This is NOT a comment (invalid or literal)
+```
+
+### Quotes
+
+String values can optionally be wrapped in double (`"`) or single (`'`) quotes. The `unwrap_quotes` utility method (available in most libraries) can be used to strip these manually if needed, though they are often handled automatically by the parser.
+
+---
 
 ## From a File
 
@@ -132,6 +154,6 @@ try:
     print("host =", cfg.find_obj("host"))
 except AamlError as e:
     print(f"Error: {e}")
-```
 
-> **Note:** For a full description of every `AamlError` variant, see the [aam-rs API Reference](./aam-rs#aamlerror).
+> **Note:** For a full description of every `AamlError` variant, see the [aam-rs API Reference](./aam-rs#aa
+```mlerror).

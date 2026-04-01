@@ -1,0 +1,51 @@
+---
+sidebar_position: 8
+description: "Node.js 統合のためのパブリック API リファレンス"
+---
+
+# Node.js API リファレンス
+
+Node.js 用 AAM ライブラリは、ネイティブバインディングを介した高度な設定パースのための高レベル JS インターフェースを公開しています。
+
+## トップレベル関数
+
+| 関数 | 戻り値 | 説明 |
+|:---|:---|:---|
+| `parse(content: string)` | `AAM` | 文字列からドキュメントを作成します。 |
+| `load(path: string)` | `AAM` | ディスク上のパスからドキュメントを作成します。 |
+| `recoverSimple(content: string)` | `AAM` | 破損したソースから安全に内容を復元します。 |
+| `version()` | `string` | 現在の AAM ライブラリのバージョンを返します。 |
+
+---
+
+## 主要クラス
+
+| クラス | 説明 |
+|:---|:---|
+| `AAM` | AAM ドキュメントを操作するための主要なオブジェクト。 |
+
+---
+
+## インスタンスメソッド
+
+| メソッド | 戻り値 | 説明 |
+|:---|:---|:---|
+| `merge(content: string)` | `void` | 新しいコンテンツを現在のインスタンスにマージします。 |
+| `mergeContent(content: string)` | `void` | `merge` のエイリアス。 |
+| `mergeFile(path: string)` | `void` | ファイルの内容を現在のインスタンスにマージします。 |
+| `findObj(key: string)` | `string \| null` | 指定されたキーまたは値に対する直接検索/逆引き検索。 |
+| `findKey(value: string)` | `string \| null` | 値に対する明示的な逆引き検索。 |
+| `findDeep(key: string)` | `string \| null` | キーに対する深い参照解決。 |
+| `findList(key: string)` | `string[] \| null` | キーがリストにマップされている場合は、値のリストを返します。 |
+| `findObject(key: string)` | `Record<string, string> \| null` | キーがオブジェクトにマップされている場合は、オブジェクトを返します。 |
+| `keys()` | `string[]` | ドキュメント内のすべてのキーを返します。 |
+| `toMap()` | `Record<string, string>` | すべてのドキュメントデータを JS オブジェクトに変換します。 |
+| `validateValue(typeName: string, value: string)` | `void` | 登録された型に対する基本的な値の検証。 |
+| `close()` | `void` | ネイティブハンドルを閉じ、ネイティブリソースを解放します。 |
+| `isClosed()` | `boolean` | ドキュメントが閉じられたかどうかを示します。 |
+
+---
+
+:::tip
+便宜上、 `AAML`、 `JsAam`、および `JsAaml` は `AAM` のエイリアスとして使用されます。
+:::

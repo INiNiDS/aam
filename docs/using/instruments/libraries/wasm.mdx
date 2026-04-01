@@ -1,0 +1,47 @@
+---
+sidebar_position: 12
+description: "Public API reference for WebAssembly integration"
+---
+
+# WebAssembly API Reference
+
+The AAM WebAssembly library provides a native WASM implementation for high-performance configuration parsing in the browser.
+
+## Exported Class
+
+| Class | Description |
+|:---|:---|
+| `AAM` | The primary object for interacting with an AAM document within the JS ecosystem. |
+
+---
+
+## Construction
+
+| Constructor | Return | Description |
+|:---|:---|:---|
+| `new AAM(content: string)` | `AAM` | Creates a new document from a source string. |
+
+---
+
+## Static Helper
+
+| Static Method | Return | Description |
+|:---|:---|:---|
+| `AAM.lspAssist(content: string)` | `\{ diagnostics: string[]; formatted: string \| null \}` | Diagnostic tools for language server implementation. |
+
+---
+
+## Instance Methods
+
+| Method | Return | Description |
+|:---|:---|:---|
+| `format(content: string)` | `string` | Formats AAM source content. |
+| `formatRange(content: string, startLine: number, endLine: number)` | `string` | Formats a specific line range within the content. |
+| `get(key: string)` | `string | undefined` | Direct key lookup. |
+| `keys()` | `string[]` | Returns all keys in the document. |
+| `toMap()` | `Record<string, string>` | Transforms library data into a JS object. |
+| `find(query: string)` | `Record<string, string>` | Advanced forward/reverse lookup by key or value. |
+| `deepSearch(pattern: string)` | `Record<string, string>` | Recursive reference lookup with pattern support. |
+| `reverseSearch(value: string)` | `string[]` | Search for all keys matching a given value. |
+| `schemaNames()` | `string[]` | Returns all registered schema names. |
+| `typeNames()` | `string[]` | Returns all registered type names. |

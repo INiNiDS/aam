@@ -1,0 +1,51 @@
+---
+sidebar_position: 11
+description: "Public API reference for Ruby integration"
+---
+
+# Ruby API Reference
+
+The Ruby AAM library provides a native Ruby extension for high-performance configuration parsing.
+
+## Main Namespace
+
+| Namespace | Description |
+|:---|:---|
+| `AamRb::AAM` | The primary object for interacting with an AAM document. |
+
+---
+
+## Class Methods
+
+| Static Method | Return | Description |
+|:---|:---|:---|
+| `AamRb::AAM.new` | `AamRb::AAM` | Creates a new empty document. |
+| `AamRb::AAM.parse(content)` | `AamRb::AAM` | Creates a document from a string. |
+| `AamRb::AAM.load(path)` | `AamRb::AAM` | Creates a document from a file path. |
+
+---
+
+## Instance Methods
+
+| Method | Return | Description |
+|:---|:---|:---|
+| `get(key)` | `String | Nil` | Retrieves a value for a given key. |
+| `keys` | `Array<String>` | Returns all keys in the document. |
+| `to_map` | `Hash<String, String>` | Transforms library data into a Ruby hash. |
+| `find(query)` | `Hash<String, String>` | Advanced forward/reverse lookup by key or value. |
+| `deep_search(pattern)` | `Hash<String, String>` | Recursive reference lookup with pattern support. |
+| `reverse_search(value)` | `Array<String>` | Search for all keys matching a given value. |
+| `schema_names` | `Array<String>` | Returns all registered schema names. |
+| `type_names` | `Array<String>` | Returns all registered type names. |
+
+---
+
+## Error Model
+
+- Parse and load failures raise native `RuntimeError` exceptions from the core implementation.
+
+---
+
+:::note
+Existing README documentation for the AAM Ruby library provides lightweight helper styles. The core objective of the native extension API remains focused on `AamRb::AAM`.
+:::

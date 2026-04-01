@@ -47,7 +47,58 @@ Quando o parser encontra `@import "ficheiro.aam"`:
 
 ---
 
-## Proteção de Dependências Cíclicas {#cyclic-dependency-protection}
+## Implementação
+
+```rust
+fn process_import(
+    import_path: &str,
+    current_file: &Path,
+    current_doc: &mut AAML,
+    visited: &mut HashSet<PathBuf>,
+) -> Result<(), AamlError> {
+    // 1. Resolver o caminho relativo ao diretório do ficheiro atual
+    let raw_path = current_file
+        .parent()
+        .unwrap_or(Path::new("."))
+        .join(import_path);
+
+    // 2. Canonicalizar para uma identidade estável
+    let canonical = raw_path.canonicalize().map_err(|_| {
+        AamlError::FileNotFound { path: raw_path.clone() }
+    })?;
+
+    // 3. Deteção de ciclos — veja a secção abaixo
+    if visited.contains(&canonical) {
+        return Err(AamlError::CyclicImport { path: canonical });
+    }
+
+    // 4. Analisar o ficheiro importado recursivamente
+    visited.insert(canonical.clone());
+    let imported_doc = parse_file_recursive(&canonical, visited)?;
+    visited.remove(&canonical);
+
+    // 5. Fundir: o filho (atual) vence em caso de conflito
+    for (key, value) in imported_doc.elements {
+        current_doc.elements.entry(key).or_insert(value);
+    }
+    for (name, schema) in imported_doc.schemas {
+        current_doc.schemas.entry(name).or_insert(schema);
+    }
+    for (alias, ty) in imported_doc.type_registry {
+        current_doc.type_registry.entry(alias).or_insert(ty);
+    }
+
+    Ok(())
+}
+```
+
+:::note
+Note o uso de `.entry(...).or_insert(...)` — isto garante que o **ficheiro importador sempre vence**. Valores do ficheiro importado só são inseridos quando a chave ainda não existe no documento atual.
+:::
+
+---
+
+## Proteção de Dependências Cíclicas
 
 :::warning Anti-Ciclo — Esta secção é obrigatória implementar
 Sem deteção de ciclos, um par de ficheiros que se importam mutuamente causará **recursão infinita** e um estouro de pilha. Esta proteção não é opcional.
@@ -71,32 +122,97 @@ y = 2
 
 Sem proteção, analisar `a.aam` desencadeia a análise de `b.aam`, que desencadeia novamente a análise de `a.aam` — indefinidamente.
 
-### A solução: um conjunto "Ficheiros Visitados"
+### A solução: um conjunto "Ficheros Visitados" (Visited Files)
 
-Mantenha um `HashSet<PathBuf>` (ou equivalente na sua linguagem) de **caminhos canónicos** que estão a ser processados atualmente na pilha de chamadas. Antes de processar qualquer importação:
+Mantenha um `HashSet<PathBuf>` (ou equivalente na sua linguagem) de **caminhos canónicos** que estão a ser processados atualmente na pilha de chamadas. Antes de processar cualquier importação:
 
 1. Verifique se o caminho canónico já está no conjunto.
 2. **Se sim** — retorne imediatamente um erro `CyclicImport`.
 3. **Se não** — adicione-o, faça a recursão e depois **remova-o** após o retorno da chamada recursiva.
 
+```rust
+fn parse_file_recursive(
+    path: &Path,
+    visited: &mut HashSet<PathBuf>,
+) -> Result<AAML, AamlError> {
+    let canonical = path.canonicalize()?;
+
+    // ── Proteção contra loops (Anti-loop guard) ─────────────────────────────
+    if visited.contains(&canonical) {
+        return Err(AamlError::CyclicImport {
+            path: canonical,
+        });
+    }
+    visited.insert(canonical.clone());
+    // ─────────────────────────────────────────────────────────────────────────
+
+    let source = std::fs::read_to_string(&canonical)?;
+    let doc = parse_source(&source, &canonical, visited)?;
+
+    // Remova DEPOIS da recursão para que as irmãs possam continuar a ser importadas
+    visited.remove(&canonical);
+
+    Ok(doc)
+}
+```
+
+### Porquê caminhos canónicos?
+
+O uso de caminhos de strings brutos não é confiável:
+- `./shared/base.aam` e `shared/base.aam` e `../project/shared/base.aam` podem referir-se todos ao **mesmo ficheiro**.
+- A canonicalização resolve tudo isto para um único caminho absoluto, dando-lhe uma identidade estável.
+
 ### Importações em diamante são permitidas
 
+```
+      main.aam
+      /      \
+  a.aam     b.aam
+      \      /
+      base.aam
+```
+
 `base.aam` é importado tanto por `a.aam` como por `b.aam`. Isto **não** é um ciclo — são caminhos de travessia separados. O padrão visited-set trata corretamente desta situação porque `base.aam` é removido do conjunto após o términus do primeiro ramo, e pode portanto ser entrado novamente a partir do segundo ramo.
+
+### Relato de erros
+
+```
+Error: cyclic import detected
+  --> a.aam
+   |
+ 1 | @import "b.aam"
+   |
+   = note: import chain: a.aam → b.aam → a.aam
+```
+
+Reconstrua a cadeia passando um `Vec<PathBuf>` junto ao `HashSet` para registrar a ordem de travessia.
 
 ---
 
 ## Cache
 
-Analisar o mesmo ficheiro múltiplas vezes durante uma única chamada `load()` é ineficiente. Mantenha uma **cache de documentos** (`HashMap<PathBuf, AAML>`) que é separada do conjunto `visited`:
+Analisar o mesmo ficheiro múltiplas vezes durante uma única chamada `load()` é ineficiente. Mantenha uma **cache de documentos** (`HashMap<PathBuf, AAML>`) que seja separada do conjunto `visited`:
 
 ```rust
 pub struct ParseContext {
-    /// Files currently on the call stack — used for cycle detection.
+    /// Ficheiros atualmente na pilha de chamadas — usados para deteção de ciclos.
     visited: HashSet<PathBuf>,
 
-    /// Already-parsed documents — avoids redundant I/O and parsing.
+    /// Documentos já analisados — evita I/O e análises redundantes.
     cache: HashMap<PathBuf, AAML>,
 }
 ```
 
 A cache tem como chave o caminho canónico. Antes de analisar um ficheiro, verifique primeiro a cache. O conjunto visited e a cache servem propósitos diferentes e não devem ser confundidos.
+
+---
+
+## `@import` vs `@derive`
+
+| Característica | `@import` | `@derive` |
+|----------------|-----------|-----------|
+| Alvo | Ficheiro completo | Um `@schema` específico |
+| Obrigação de schema | Não | Sim |
+| Resolução de conflitos | Child-Wins (O filho vence) | Child-Wins |
+| Proteção contra ciclos | Requerida | Requerida |
+| Caso de uso típico | Valores de config partilhados | Contratos de dados baseados em schema |

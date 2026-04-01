@@ -1,0 +1,49 @@
+---
+sidebar_position: 4
+description: "Referência da API pública para a integração de C / FFI"
+---
+
+# Referência da API C FFI
+
+Fonte de verdade: `include/aam.h`. Esta API fornece uma interface C estável para integrar AAM noutros idiomas ou sistemas.
+
+## Ciclo de Vida do Handle
+
+| Função | Descrição |
+|:---|:---|
+| `AamlHandle *aam_new(void)` | Cria um novo handle de AAML. |
+| `void aam_free(AamlHandle *handle)` | Libera um handle criado anteriormente. |
+
+## Analisar e Carregar
+
+| Função | Descrição |
+|:---|:---|
+| `int aam_parse(AamlHandle *handle, const char *content)` | Analisa o conteúdo de AAM a partir de uma string. |
+| `int aam_load(AamlHandle *handle, const char *path)` | Carrega e analisa um ficheiro AAM a partir do disco. |
+| `int aam_merge(AamlHandle *handle, const char *content)` | Funde novo conteúdo num handle existente. |
+| `int aam_recover_simple(AamlHandle *handle, const char *content)` | Análise de recuperação segura para entradas corrompidas. |
+
+**Convenção de retorno:** `0` em caso de sucesso, diferente de zero em caso de erro.
+
+## Pesquisa (Lookup)
+
+| Função | Descrição |
+|:---|:---|
+| `char *aam_find_obj(const AamlHandle *handle, const char *key)` | Pesquisa direta por chave ou pesquisa inversa por valor. |
+| `char *aam_find_key(const AamlHandle *handle, const char *value)` | Pesquisa inversa explícita. |
+| `char *aam_find_deep(const AamlHandle *handle, const char *key)` | Resolução de referências recursiva. |
+
+:::important
+As strings devolvidas são propriedade de Rust e devem ser libertadas através de `aam_string_free` para evitar fugas de memória.
+:::
+
+## Memória e Erros
+
+| Função | Descrição |
+|:---|:---|
+| `void aam_string_free(char *s)` | Liberta uma string devolvida por qualquer uma das funções de pesquisa. |
+| `const char *aam_last_error(const AamlHandle *handle)` | Devolve a última mensagem de erro como uma string emprestada (borrowed). |
+
+:::warning
+`aam_last_error` devolve um ponteiro interno emprestado. **Não o liberte.**
+:::

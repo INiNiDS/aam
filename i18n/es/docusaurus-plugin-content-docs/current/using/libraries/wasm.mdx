@@ -1,0 +1,47 @@
+---
+sidebar_position: 12
+description: "Referencia de la API pública para la integración con WebAssembly"
+---
+
+# Referencia de la API de WebAssembly
+
+La librería AAM de WebAssembly proporciona una implementación nativa de WASM para análisis de alta performance en el navegador.
+
+## Clase Exportada
+
+| Clase | Descripción |
+|:---|:---|
+| `AAM` | El objeto principal para interactuar con un documento AAM en el ecosistema JS. |
+
+---
+
+## Construcción
+
+| Constructor | Retorno | Descripción |
+|:---|:---|:---|
+| `new AAM(content: string)` | `AAM` | Crea un documento desde una string. |
+
+---
+
+## Ayudante Estático
+
+| Método Estático | Retorno | Descripción |
+|:---|:---|:---|
+| `AAM.lspAssist(content: string)` | `\{ diagnostics: string[]; formatted: string \| null \}` | Herramientas de diagnóstico para implementación de servidores de lenguaje. |
+
+---
+
+## Métodos de Instancia
+
+| Método | Retorno | Descripción |
+|:---|:---|:---|
+| `format(content: string)` | `string` | Formatea contenido AAM. |
+| `formatRange(content: string, startLine: number, endLine: number)` | `string` | Formatea un rango de líneas específico. |
+| `get(key: string)` | `string | undefined` | Búsqueda directa por clave. |
+| `keys()` | `string[]` | Devuelve todas las claves. |
+| `toMap()` | `Record<string, string>` | Transforma los datos en un objeto JS. |
+| `find(query: string)` | `Record<string, string>` | Búsqueda avanzada directa/inversa. |
+| `deepSearch(pattern: string)` | `Record<string, string>` | Búsqueda de referencia recursiva. |
+| `reverseSearch(value: string)` | `string[]` | Busca claves que coincidan con un valor. |
+| `schemaNames()` | `string[]` | Devuelve nombres de schema registrados. |
+| `typeNames()` | `string[]` | Devuelve nombres de tipo registrados. |
