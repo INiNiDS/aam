@@ -28,5 +28,5 @@ port = 8080
 ```
 
 Isso é tudo. Se você disser `localhost`, você obterá o `host` da configuração.
-"O que é localhost? É um \{AAML::find_obj("localhost")\}"
+"O que é localhost? É um \{AAM::get("localhost")\}"
 Realmente fácil, sim?

@@ -1,15 +1,13 @@
 ---
 sidebar_position: 3
-description: "Полный справочник API для структуры AAML, FoundValue и AamlError"
+description: "Полный справочник API для структуры AAM, FoundValue и AamlError"
 ---
 
 # Справочник API aam-rs
 
-`aam-rs` — это официальная библиотека Rust для разбора, валидации и создания файлов конфигурации AAM. Она поддерживает директивы (`@import`, `@derive`, `@schema`, `@type`), валидацию типов на основе схем, двунаправленный поиск и глубокое разрешение ссылок.
+`aam-rs` — это официальная библиотека Rust для разбора, валидации и создания файлов конфигурации AAM. Она поддерживает директивы (`@import`, `@derive`, `@schema`, `@type`), валидацию типов на основе схем, двунаправленный поиск, глубокий поиск по шаблону и инкрементальное форматирование через многоэтапный конвейер.
 
-Crate предоставляет два основных API:
-- **API `AAML`**: Основная/устаревшая структура, широко используемая и многофункциональная.
-- **API `AAM`**: Новый высокоуровневый API на базе пайплайна с дополнительной поддержкой загрузки AOT (`.aam.bin`).
+`AAM` — это единая структура для всех операций: разбора, загрузки, поиска, форматирования и интроспекции схем.
 
 ---
 
@@ -17,12 +15,12 @@ Crate предоставляет два основных API:
 
 Проект имеет модульную архитектуру:
 
-- **`aaml/`**: Основная логика разбора, поиска и валидации.
+- **`aam/`**: Единая точка входа (структура `AAM`) для всех операций.
 - **`pipeline/`**: Пятиэтапный конвейер (Lexer, Parser, Validator, Executer, Formatter).
 - **`commands/`**: Система директив (`@import`, `@derive` и др.).
-- **`types/`**: Система типов валидации для примитивов и доменных типов.
-- **`aot/`**: Поддержка бинарных кэшей ("приготовленных" файлов `.aam.bin`) для быстрого запуска.
-- **`builder/`**: Fluent-интерфейс для программной генерации содержимого `.aam`.
+- **`builder/`**: Fluent-интерфейс для программной генерации `.aam`.
+- **`aot/`**: Поддержка "приготовленных" бинарных кэшей (`.aam.bin`) для быстрого запуска.
+- **`error/`**: Структурированные типы ошибок с диагностическими подсказками.
 
 ---
 
@@ -36,159 +34,568 @@ Crate предоставляет два основных API:
 | `aot` | Включает приготовленный бинарный кэш `src/aot/` и быстрый путь `AAM::load` |
 | `ffi` / `python` / `jni` / `csharp` | Включает интерфейсы привязок к языкам |
 | `parallel` | Включает параллельную предварительную валидацию задач разбора в конвейере |
-| `serde` | Добавляет реализацию `Serialize`/`Deserialize` для `FoundValue`, `SchemaDef`, `AAMBuilder` и др. |
+| `serde` | Добавляет реализацию `Serialize`/`Deserialize` для `SchemaInfo`, `AAMBuilder` и др. |
 
 ---
 
-## `AAML`
+## `AAM`
 
-Основная точка входа для всех операций AAM. `AAML` хранит отпарсенную карту ключ-значение, зарегистрированные определения типов и определения схем. Все директивы (`@derive`, `@schema`, `@import`, `@type`) обрабатываются автоматически во время разбора.
+Основная точка входа для всех операций AAM. `AAM` хранит отпарсенную карту ключ-значение, зарегистрированные определения типов и определения схем. Все директивы (`@derive`, `@schema`, `@import`, `@type`) обрабатываются автоматически во время разбора.
 
 ### Конструкторы
 
-#### `AAML::new`
+#### `AAM::new`
 
-Создает новый пустой экземпляр `AAML` со всеми зарегистрированными по умолчанию обработчиками директив (`@import`, `@derive`, `@schema`, `@type`).
+Создает новый пустой экземпляр `AAM`.
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
-let cfg = AAML::new();
+let cfg = AAM::new();
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM()
 ```
 
 ---
 
-#### `AAML::parse`
+#### `AAM::parse`
 
-Разбирает строку AAM и возвращает новый, полностью заполненный экземпляр `AAML`. Все найденные в строке директивы обрабатываются до завершения метода.
+Разбирает строку AAM и возвращает новый, полностью заполненный экземпляр `AAM`. Если строка является путем к существующему файлу, она читает и разбирает файл с полной поддержкой исходного каталога.
 
-| Параметр | Тип | Описание |
-|:---|:---|:---|
-| `content` | `&str` | Исходный текст AAM для разбора. |
+| Параметр | Тип   | Описание               |
+|-----------|--------|---------------------------|
+| `content` | `&str` | Исходный текст AAM для разбора (или путь к файлу). |
 
-**Возвращает:** `Result<AAML, AamlError>`
+**Возвращает:** `Result<AAM, Vec<AamlError>>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("host = localhost\nport = 8080").unwrap();
+assert_eq!(cfg.get("host").unwrap(), "localhost");
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("host = localhost\nport = 8080")
+assert cfg.get("host") == "localhost"
+```
 
 ---
 
-#### `AAML::load`
+#### `AAM::load`
 
-Читает файл AAM с диска и возвращает новый экземпляр `AAML`. Эквивалентно ручному чтению файла и вызову `AAML::parse`.
+Читает файл AAM с диска и возвращает новый экземпляр `AAM`. При включенной функции `aot` (по умолчанию) используется приготовленный кэш `.aam.bin` в качестве основного пути для zero-copy отображения памяти.
 
-| Параметр | Тип | Описание |
-|:---|:---|:---|
+| Параметр   | Тип               | Описание              |
+|-------------|--------------------|--------------------------|
 | `file_path` | `impl AsRef<Path>` | Путь к файлу `.aam`. |
 
-**Возвращает:** `Result<AAML, AamlError>`
+**Возвращает:** `Result<AAM, Vec<AamlError>>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::load("config.aam").unwrap();
+println!("{}", cfg.get("host").unwrap());
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.load("config.aam")
+print(cfg.get("host"))
+```
 
 ---
 
-### Слияние
+#### `AAM::from_pipeline`
 
-Эти методы добавляют содержимое в **существующий** экземпляр `AAML`, а не создают новый. Они полезны для компоновки конфигураций из нескольких источников во время выполнения.
+Создает экземпляр `AAM` из настроенного конвейера `Pipeline`. Используйте это, если вам нужно зарегистрировать пользовательские команды, парсеры или валидаторы перед разбором.
 
-#### `merge_content`
+| Параметр  | Тип       | Описание                        |
+|------------|------------|------------------------------------|
+| `pipeline` | `&Pipeline`| Настроенный экземпляр конвейера.      |
+| `text`     | `&str`     | Исходный текст AAM (или путь к файлу).    |
 
-Разбирает исходный текст AAM и объединяет полученные пары ключ-значение и определения схем с текущим экземпляром. Существующие ключи перезаписываются входящими значениями.
+**Возвращает:** `Result<AAM, Vec<AamlError>>`
 
-| Параметр | Тип | Описание |
-|:---|:---|:---|
-| `content` | `&str` | Исходный текст AAM для разбора. |
+```rust
+use aam_rs::aam::AAM;
+use aam_rs::pipeline::{Pipeline, DefaultLexer, DefaultParser};
 
-**Возвращает:** `Result<(), AamlError>`
-
----
-
-#### `merge_file`
-
-Читает файл с диска и объединяет его содержимое с текущим экземпляром. Эквивалентно чтению файла и вызову `merge_content`.
-
-| Параметр | Тип | Описание |
-|:---|:---|:---|
-| `file_path` | `impl AsRef<Path>` | Путь к файлу `.aam`. |
-
-**Возвращает:** `Result<(), AamlError>`
+let pipeline = Pipeline::new();
+let cfg = AAM::from_pipeline(&pipeline, "key = value").unwrap();
+```
 
 ---
 
 ### Поиск (Lookup)
 
-Эти методы извлекают значения из отпарсенной карты ключ-значение. Все они возвращают `FoundValue` при успехе.
+Эти методы извлекают значения из отпарсенной карты ключ-значение.
 
-#### `find_obj`
+#### `get`
 
-Основной метод поиска. Ищет `key` в карте. Если совпадающий ключ не найден, выполняется автоматический **обратный поиск** — поиск любой записи, чье *значение* равно `key`.
+Извлекает значение по ключу. Выполняет простой прямой поиск за O(1) — без автоматического запасного варианта.
 
-| Параметр | Тип | Описание |
-|:---|:---|:---|
-| `key` | `&str` | Ключ или значение для поиска. |
+| Параметр | Тип   | Описание    |
+|-----------|--------|----------------|
+| `key`     | `&str` | Ключ для поиска.   |
 
-**Возвращает:** `Option<FoundValue>`
+**Возвращает:** `Option<&str>`
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
-let cfg = AAML::parse("a = b").unwrap();
+let cfg = AAM::parse("host = localhost").unwrap();
 
-// Прямой поиск
-assert_eq!(cfg.find_obj("a").unwrap().as_str(), "b");
+assert_eq!(cfg.get("host").unwrap(), "localhost");
+assert!(cfg.get("unknown").is_none());
+```
 
-// Обратный поиск (по значению)
-assert_eq!(cfg.find_obj("b").unwrap().as_str(), "a");
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("host = localhost")
+assert cfg.get("host") == "localhost"
+assert cfg.get("unknown") is None
 ```
 
 ---
 
-#### `find_key`
+#### `reverse_search`
 
-Явный обратный поиск. Находит **ключ**, соответствующее значение которого равно `value`.
+Находит все ключи, чье значение равно указанному.
 
-| Параметр | Тип | Описание |
-|:---|:---|:---|
-| `value` | `&str` | Значение для поиска. |
+| Параметр | Тип   | Описание          |
+|-----------|--------|----------------------|
+| `value`   | `&str` | Значение для поиска.  |
 
-**Возвращает:** `Option<FoundValue>` — ключ как `FoundValue` или `None`.
+**Возвращает:** `Vec<&str>`
 
----
+```rust
+use aam_rs::aam::AAM;
 
-#### `find_deep`
+let cfg = AAM::parse("a = x\nb = y\nc = x").unwrap();
+let keys = cfg.reverse_search("x");
+assert_eq!(keys, vec!["a", "c"]);
+```
 
-Следует по цепочке поисков `ключ → значение → ключ`, пока не будет достигнуто конечное значение или не будет обнаружен цикл. Полезно для обхода связанных сопоставлений.
+```python
+from aam_py import AAM
 
-| Параметр | Тип | Описание |
-|:---|:---|:---|
-| `key` | `&str` | Начальный ключ для следования. |
-
-**Возвращает:** `Option<FoundValue>` — итоговое конечное значение или `None`.
-
----
-
-## `FoundValue`
-
-Тип, возвращаемый всеми методами поиска `AAML`. Он оборачивает исходное строковое значение и предоставляет вспомогательные методы для common-преобразований.
-
-### Методы
-
-#### `as_str`
-
-Возвращает внутреннее значение как срез строки.
-
-**Возвращает:** `&str`
+cfg = AAM.parse("a = x\nb = y\nc = x")
+keys = cfg.reverse_search("x")
+assert keys == ["a", "c"]
+```
 
 ---
 
-#### `as_list`
+#### `deep_search`
 
-Разбирает значение как литерал списка AAM `[item, item, ...]` и возвращает элементы как `Vec<String>`. Возвращает `None`, если значение не в формате `[...]`.
+Находит все пары ключ-значение, где ключ содержит указанный шаблон (поиск подстроки).
 
-**Возвращает:** `Option<Vec<String>>`
+| Параметр | Тип   | Описание              |
+|-----------|--------|--------------------------|
+| `pattern` | `&str` | Подстрока для поиска в ключах. |
+
+**Возвращает:** `Vec<(&str, &str)>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("app_host = localhost\napp_port = 8080\ndbg = true").unwrap();
+let pairs = cfg.deep_search("app_");
+assert_eq!(pairs.len(), 2);
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("app_host = localhost\napp_port = 8080\ndbg = true")
+pairs = cfg.deep_search("app_")
+assert len(pairs) == 2
+```
 
 ---
 
-#### `as_object`
+#### `find`
 
-Разбирает значение как литерал встроенного объекта AAM `{ k = v, ... }` и возвращает `HashMap<String, String>` его полей. Возвращает `None`, если значение не может быть разобрано как встроенный объект.
+Комбинированный поиск ключ-значение. Сначала выполняет прямой поиск по ключу за O(1); если ключ не существует, выполняет запасной проход по значениям за O(N). Возвращает **все** подходящие пары.
 
-**Возвращает:** `Option<HashMap<String, String>>`
+| Параметр | Тип   | Описание                        |
+|-----------|--------|------------------------------------|
+| `query`   | `&str` | Ключ для поиска; запасной вариант — поиск по значению. |
+
+**Возвращает:** `Vec<(&str, &str)>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("a = b\nx = y").unwrap();
+
+// Key exists → O(1) lookup
+let result = cfg.find("a");
+assert_eq!(result, vec![("a", "b")]);
+
+// Key missing → value scan
+let result = cfg.find("y");
+assert_eq!(result, vec![("x", "y")]);
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("a = b\nx = y")
+
+# Key exists → direct lookup
+result = cfg.find("a")
+assert result == {"a": "b"}
+
+# Key missing → value scan
+result = cfg.find("y")
+assert result == {"x": "y"}
+```
+
+---
+
+#### `find_by`
+
+Расширенный поиск с использованием пользовательской функции-предиката. Перебирает все пары и возвращает те, для которых предикат возвращает `true`.
+
+| Параметр   | Тип                                 | Описание                   |
+|-------------|--------------------------------------|-------------------------------|
+| `predicate` | `impl Fn(&str, &str) -> bool`        | Пользовательская функция соответствия.        |
+
+**Возвращает:** `Vec<(&str, &str)>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("host = localhost\nport = 8080\nversion = 3").unwrap();
+
+// Find all pairs where the value starts with "8"
+let pairs = cfg.find_by(|_key, value| value.starts_with('8'));
+assert_eq!(pairs, vec![("port", "8080")]);
+```
+
+---
+
+#### `iter`
+
+Перебирает все пары ключ-значение без выделения памяти. Поддерживает как динамический `HashMap`, так и AOT-бэкенды с отображением памяти.
+
+**Возвращает:** `Box<dyn Iterator<Item = (&str, &str)>>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("a = 1\nb = 2").unwrap();
+for (key, value) in cfg.iter() {
+    println!("{key} = {value}");
+}
+```
+
+---
+
+#### `keys`
+
+Возвращает все ключи, хранящиеся в данный момент. Для итерации без выделения памяти предпочтительнее использовать `iter`.
+
+**Возвращает:** `Vec<&str>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("a = 1\nb = 2").unwrap();
+for key in cfg.keys() {
+    println!("{key}");
+}
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("a = 1\nb = 2")
+for key in cfg.keys():
+    print(key)
+```
+
+---
+
+#### `to_map`
+
+Возвращает все пары ключ-значение в виде стандартной выделенной карты. Для итерации без выделения памяти предпочтительнее использовать `iter`.
+
+**Возвращает:** `HashMap<String, String>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("a = 1\nb = 2").unwrap();
+let map = cfg.to_map();
+assert_eq!(map.get("a").unwrap(), "1");
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("a = 1\nb = 2")
+d = cfg.to_dict()
+assert d == {"a": "1", "b": "2"}
+```
+
+---
+
+### Доступ к схемам и типам (Schema & Type Accessors)
+
+Эти методы предоставляют доступ только для чтения к схемам и типам, обнаруженным во время разбора. Они возвращают `None`, если конфигурация была загружена через AOT-отображение памяти (zero-copy режим).
+
+#### `schemas`
+
+Возвращает ссылку на все зарегистрированные схемы.
+
+**Возвращает:** `Option<&HashMap<SmolStr, SchemaInfo>>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("@schema Player { name: string, id: i32 }").unwrap();
+if let Some(schemas) = cfg.schemas() {
+    for (name, info) in schemas {
+        println!("Schema: {name}");
+    }
+}
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("@schema Player { name: string, id: i32 }")
+for name in cfg.schema_names():
+    print(name)
+```
+
+---
+
+#### `get_schema`
+
+Возвращает схему, зарегистрированную под именем `name`, или `None`.
+
+| Параметр | Тип   | Описание             |
+|-----------|--------|-------------------------|
+| `name`    | `&str` | Имя схемы для поиска. |
+
+**Возвращает:** `Option<&SchemaInfo>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("@schema Player { name: string, id: i32 }").unwrap();
+let schema = cfg.get_schema("Player").unwrap();
+println!("{:?}", schema.fields);
+```
+
+---
+
+#### `types`
+
+Возвращает ссылку на все зарегистрированные типы.
+
+**Возвращает:** `Option<&HashMap<SmolStr, TypeInfo>>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("@type pos = math::vector3").unwrap();
+if let Some(types) = cfg.types() {
+    for (name, info) in types {
+        println!("Type: {name} -> {}", info.spec);
+    }
+}
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("@type pos = math::vector3")
+for name in cfg.type_names():
+    print(name)
+```
+
+---
+
+#### `get_type`
+
+Возвращает информацию о типе, зарегистрированном под именем `name`, или `None`.
+
+| Параметр | Тип   | Описание              |
+|-----------|--------|--------------------------|
+| `name`    | `&str` | Имя зарегистрированного типа. |
+
+**Возвращает:** `Option<&TypeInfo>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::new();
+let info = cfg.get_type("i32");
+```
+
+---
+
+### Форматирование (Formatting)
+
+Эти методы форматируют содержимое AAM с помощью парсера и форматтера конвейера.
+
+#### `format`
+
+Разбирает и форматирует произвольное содержимое AAM. Возвращает отформатированную строку при успехе.
+
+| Параметр | Тип                                    | Описание         |
+|-----------|-----------------------------------------|---------------------|
+| `content` | `&str`                                  | Исходный код AAM для форматирования. |
+| `options` | `&FormattingOptions`                    | Правила форматирования.   |
+
+**Возвращает:** `Result<String, AamlError>`
+
+```rust
+use aam_rs::aam::AAM;
+use aam_rs::pipeline::formatter::FormattingOptions;
+
+let cfg = AAM::new();
+let formatted = cfg.format("key=value", &FormattingOptions::default()).unwrap();
+assert_eq!(formatted, "key = value\n");
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM()
+formatted = cfg.format("key=value")
+assert formatted == "key = value\n"
+```
+
+---
+
+#### `format_range`
+
+Форматирует только выбранный диапазон строк произвольного содержимого AAM.
+
+| Параметр | Тип                                    | Описание              |
+|-----------|-----------------------------------------|--------------------------|
+| `content` | `&str`                                  | Исходный код AAM для форматирования.   |
+| `range`   | `FormatRange`                           | Диапазон строк для форматирования.   |
+| `options` | `&FormattingOptions`                    | Правила форматирования.        |
+
+**Возвращает:** `Result<String, AamlError>`
+
+```rust
+use aam_rs::aam::AAM;
+use aam_rs::pipeline::formatter::{FormatRange, FormattingOptions};
+
+let cfg = AAM::new();
+let range = FormatRange { start_line: 1, end_line: 2 };
+let result = cfg.format_range("a = 1\nb = 2\nc = 3", range, &FormattingOptions::default());
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM()
+result = cfg.format_range("a = 1\nb = 2\nc = 3", 1, 2)
+```
+
+---
+
+#### `lsp_assist`
+
+Вспомогательный метод для LSP-серверов: разбирает с восстановлением после ошибок и опциональным результатом форматирования. Возвращает диагностику плюс отформатированный вывод (если ошибок нет).
+
+| Параметр | Тип                                    | Описание         |
+|-----------|-----------------------------------------|---------------------|
+| `content` | `&str`                                  | Исходный код AAM для обработки. |
+| `options` | `&FormattingOptions`                    | Правила форматирования.   |
+
+**Возвращает:** `AamLspAssist`
+
+```rust
+use aam_rs::aam::AAM;
+use aam_rs::pipeline::formatter::FormattingOptions;
+
+let result = AAM::lsp_assist("key=value", &FormattingOptions::default());
+for diag in &result.diagnostics {
+    eprintln!("{diag}");
+}
+if let Some(formatted) = &result.formatted {
+    println!("{formatted}");
+}
+```
+
+```python
+from aam_py import AAM
+
+diagnostics, formatted = AAM.lsp_assist("key=value")
+for d in diagnostics:
+    print(d)
+```
+
+---
+
+## `AamLspAssist`
+
+Тип возвращаемого значения `AAM::lsp_assist`. Содержит диагностику и опциональный отформатированный вывод.
+
+```rust
+pub struct AamLspAssist {
+    pub diagnostics: Vec<AamlError>,
+    pub formatted: Option<String>,
+}
+```
+
+---
+
+## `SchemaInfo`
+
+Тип, возвращаемый методом [`AAM::get_schema`](#get_schema) и содержащийся в карте из [`AAM::schemas`](#schemas). Представляет разобранное определение `@schema`.
+
+### Поля
+
+| Поле    | Тип                                            | Описание                                         |
+|----------|-------------------------------------------------|-----------------------------------------------------|
+| `name`   | `SmolStr`                                       | Имя схемы.                                        |
+| `fields` | `HashMap<SmolStr, (SmolStr, bool)>`              | Сопоставляет имена полей с `(имя_типа, является_необязательным)`.     |
+| `line`   | `usize`                                         | Строка исходного кода, где была определена схема.           |
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("@schema Player { name: string, id*: i32 }").unwrap();
+let schema = cfg.get_schema("Player").unwrap();
+
+for (field_name, (type_name, is_optional)) in &schema.fields {
+    println!("{field_name}: {type_name} (optional={is_optional})");
+}
+```
+
+---
+
+## `TypeInfo`
+
+Тип, возвращаемый методом [`AAM::get_type`](#get_type). Представляет зарегистрированный псевдоним типа.
+
+### Поля
+
+| Поле       | Тип               | Описание                                          |
+|-------------|--------------------|------------------------------------------------------|
+| `name`      | `SmolStr`          | Имя типа.                                           |
+| `spec`      | `SmolStr`          | Спецификация типа (напр. `"i32"`, `"math::vector3"`). |
+| `validator` | `Option<SmolStr>`  | Опциональное пользовательское правило валидации.                     |
 
 ---
 
@@ -199,11 +606,123 @@ assert_eq!(cfg.find_obj("b").unwrap().as_str(), "a");
 ### Варианты
 
 | Вариант | Описание |
-|:---|:---|
-| `IoError(io::Error)` | Произошла ошибка ввода-вывода при чтении файла. |
-| `ParseError { line, content, details }` | Строка исходного кода не может быть разобрана как валидная инструкция AAML. |
-| `NotFound(String)` | Имя ключа или типа не найдено в реестре или карте. |
-| `InvalidValue(String)` | Значение не соответствует базовому ограничению типа (не схема). |
-| `InvalidType { type_name, details }` | Значение не прошло валидацию против зарегистрированного или встроенного типа. |
-| `DirectiveError(String, String)` | Директива столкнулась с ошибкой в своих аргументах. |
-| `SchemaValidationError { ... }` | Нарушение ограничения схемы во время разбора или валидации. |
+|---------|-------------|
+| `IoError { details, diagnostics }` | Ошибка ввода-вывода при чтении файла. |
+| `ParseError { line, content, details, diagnostics }` | Строка не может быть разобрана как валидная инструкция AAM. |
+| `NotFound { key, context, diagnostics }` | Ключ или тип не найден. |
+| `InvalidValue { details, expected, diagnostics }` | Значение не соответствует базовому ограничению типа. |
+| `InvalidType { type_name, details, provided, diagnostics }` | Значение не прошло валидацию против зарегистрированного/встроенного типа. |
+| `DirectiveError { directive, message, diagnostics }` | Директива получила недопустимые аргументы. |
+| `SchemaValidationError { schema, field, type_name, details, diagnostics }` | Нарушение ограничения схемы во время разбора. |
+| `MissingRequiredField { schema, field, field_type, diagnostics }` | Отсутствует обязательное поле схемы. |
+| `CircularDependency { path, diagnostics }` | Обнаружена циклическая зависимость импорта или наследования. |
+| `TypeRegistrationConflict { type_name, existing, new, diagnostics }` | Имя типа зарегистрировано с конфликтующими определениями. |
+| `NestingDepthExceeded { depth, context, diagnostics }` | Превышен лимит глубины рекурсии. |
+| `MalformedLiteral { literal_type, content, diagnostics }` | Некорректный литерал встроенного объекта или массива. |
+| `DirectiveSyntaxError { directive, provided_syntax, expected_syntax, diagnostics }` | Неправильный синтаксис директивы. |
+| `TypeConversionError { from_type, to_type, value, diagnostics }` | Ошибка преобразования типа. |
+| `LexError` | Ошибка лексического анализа. |
+
+### Пример обработки ошибок
+
+```rust
+use aam_rs::aam::AAM;
+use aam_rs::error::AamlError;
+
+match AAM::load("config.aam") {
+    Ok(cfg) => println!("Loaded successfully"),
+    Err(errors) => {
+        for err in &errors {
+            match err {
+                AamlError::IoError { details, .. } => {
+                    eprintln!("Could not read file: {details}");
+                }
+                AamlError::ParseError { line, content, details, .. } => {
+                    eprintln!("Parse error at line {line}: '{content}' — {details}");
+                }
+                AamlError::SchemaValidationError { schema, field, type_name, details, .. } => {
+                    eprintln!("Schema '{schema}': field '{field}' ({type_name}) — {details}");
+                }
+                _ => eprintln!("Error: {err}"),
+            }
+        }
+    }
+}
+```
+
+```python
+from aam_py import AAM, AamlError
+
+try:
+    cfg = AAM.load("config.aam")
+except AamlError as e:
+    print(f"Error: {e}")
+```
+
+---
+
+## `FoundValue`
+
+Автономный вспомогательный тип для работы со строковыми значениями AAM. **Примечание:** Метод `AAM::get` возвращает `Option<&str>` напрямую, а не `FoundValue`. Используйте `FoundValue`, когда вам нужны вспомогательные методы для разбора списков/объектов на сырых строках.
+
+### `FoundValue::new`
+
+| Параметр | Тип   | Описание     |
+|-----------|--------|----------------|
+| `value`   | `&str` | Сырая строка. |
+
+**Возвращает:** `FoundValue`
+
+```rust
+use aam_rs::found_value::FoundValue;
+
+let v = FoundValue::new("hello");
+assert_eq!(v.as_str(), "hello");
+```
+
+```python
+from aam_py import FoundValue  # if available in your binding
+
+v = FoundValue("hello")
+assert str(v) == "hello"
+```
+
+### Методы
+
+| Метод | Описание |
+|--------|-------------|
+| `as_str() -> &str` | Возвращает внутреннее значение как срез строки. |
+| `as_list() -> Option<Vec<String>>` | Разбирает как список `[item, item, ...]`. |
+| `as_object() -> Option<HashMap<String, String>>` | Разбирает как встроенный объект `{ k = v, ... }`. |
+| `is_list() -> bool` | Возвращает `true`, если значение является литералом списка. |
+| `is_object() -> bool` | Возвращает `true`, если значение является литералом встроенного объекта. |
+| `remove(target: &str) -> &mut Self` | Удаляет все вхождения `target` из значения. |
+
+```rust
+use aam_rs::found_value::FoundValue;
+
+let v = FoundValue::new("[rust, aam, config]");
+let items = v.as_list().unwrap();
+assert_eq!(items, vec!["rust", "aam", "config"]);
+
+let v = FoundValue::new("{ x = 1.0, y = 2.0 }");
+let map = v.as_object().unwrap();
+assert_eq!(map["x"], "1.0");
+```
+
+```python
+from aam_py import FoundValue
+
+v = FoundValue("[rust, aam, config]")
+items = v.as_list()
+assert items == ["rust", "aam", "config"]
+```
+
+### Реализации трейтов
+
+| Трейт | Поведение |
+|------|-----------|
+| `Display` | Выводит сырую внутреннюю строку. |
+| `Deref<Target=String>` | Разыменовывается во внутреннюю `String`. |
+| `PartialEq<&str>` | Прямое сравнение с `&str`. |
+| `Clone` | Независимая копия значения. |

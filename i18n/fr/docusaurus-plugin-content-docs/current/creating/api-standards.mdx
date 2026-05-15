@@ -16,14 +16,12 @@ Pour fournir une expérience cohérente de "Moteur de Configuration", les biblio
 
 ### 1. API Loader Principale
 
-Ces méthodes gèrent l'analyse et la fusion de texte brut dans la structure `AAML` :
+Ces méthodes gèrent l'analyse et la fusion de texte brut dans la structure `AAM` :
 
 | Méthode Générique | Description |
 |---|---|
 | `parse(content: String)` | Analyse une chaîne brute dans l'objet en mémoire. |
 | `load(file_path: Path)` | Charge et analyse un fichier depuis le disque, en résolvant les directives `@import` automatiquement. |
-| `merge_content(content: String)` | Analyse une chaîne et la fusionne dans l'objet *actuel*, en écrasant les clés existantes. |
-| `merge_file(file_path: Path)` | Charge un fichier et le fusionne dans l'objet actuel. |
 
 ### 2. API de Requête
 
@@ -31,9 +29,17 @@ Ces méthodes régissent la façon dont les développeurs lisent depuis l'arbre 
 
 | Méthode Générique | Description |
 |---|---|
-| `find_obj(key: String)` | Recherche bidirectionnelle intelligente. Si `key` existe, retourne sa valeur. Sinon, retourne la clé dont la valeur est `key`. |
-| `find_deep(key: String)` | Recherche récursive. Suit la chaîne de valeurs jusqu'à atteindre une valeur terminale qui n'est pas une clé. Doit inclure la détection de boucles ! |
-| `find_key(value: String)` | Recherche inversée stricte. Trouve la première clé contenant la valeur donnée. |
+| `get(key: &str) -> Option<&str>` | Recherche directe simple. Retourne la valeur d'une clé donnée, ou `None` si elle n'est pas trouvée. |
+| `reverse_search(value: &str) -> Vec<&str>` | Recherche inversée de valeur. Trouve toutes les clés contenant la valeur donnée. |
+| `find(query: &str) -> Vec<(&str, &str)>` | Recherche combinée clé+valeur. Cherche à la fois dans les clés et les valeurs un contenu correspondant à la requête. Doit inclure la détection de boucles ! |
+| `deep_search(pattern: &str) -> Vec<(&str, &str)>` | Recherche récursivement dans toute la structure de l'arbre un motif. |
+| `iter() -> Iterator` | Retourne un itérateur sur toutes les paires clé-valeur. |
+| `keys() -> Vec<&str>` | Retourne une liste de toutes les clés du document. |
+| `to_map() -> HashMap` | Convertit le document en une représentation `HashMap` plate. |
+| `schemas() -> Option<&HashMap>` | Retourne les définitions de schéma, s'il y en a. |
+| `types() -> Option<&HashMap>` | Retourne les définitions d'alias de type, s'il y en a. |
+| `format(content, options) -> Result<String>` | Formate le contenu AAM selon les règles de formatage. |
+| `lsp_assist(content, options) -> LspAssist` | Fournit une assistance LSP pour le contenu AAM. |
 
 ### 3. API du Constructeur
 
@@ -112,7 +118,7 @@ Tous les fichiers `.aam` sont encodés en **UTF-8**. Les bibliothèques doivent 
 
 ## Sécurité des Threads
 
-Les objets `AAML` analysés doivent être **sûrs en lecture pour plusieurs threads**. Si le langage le permet, marquez le type comme `Send + Sync` (Rust) ou équivalent, afin que les documents puissent être partagés entre threads sans verrouillage.
+Les objets `AAM` analysés doivent être **sûrs en lecture pour plusieurs threads**. Si le langage le permet, marquez le type comme `Send + Sync` (Rust) ou équivalent, afin que les documents puissent être partagés entre threads sans verrouillage.
 
 Si votre bibliothèque expose un constructeur mutable (`AAMBuilder`), il **n'a pas** besoin d'être sûr pour les threads par défaut, mais documentez-le clairement.
 
@@ -125,6 +131,8 @@ Chaque bibliothèque doit être accompagnée d'une suite de tests couvrant :
 - [ ] Analyse basique de `key = value` pour chaque type primitif
 - [ ] Résolution de fichier `@import` et annexion
 - [ ] Correction du formatage `@schema`
-- [ ] `find_obj` identifie correctement les clés inverses
-- [ ] `find_deep` prévient les boucles infinies sur les dépendances `A -> A`
+- [ ] `get` effectue une recherche directe simple par clé
+- [ ] `reverse_search` trouve correctement les clés par valeur
+- [ ] `find` effectue une recherche combinée clé+valeur sans boucles infinies
+- [ ] `deep_search` parcourt l'arbre en toute sécurité
 - [ ] Aller-retour du sérialiseur : `parse(builder.to_string()) == état_analysé`

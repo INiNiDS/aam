@@ -60,6 +60,23 @@ y crear una lista:
 ```aam
 items = ["Hello", "World"]
 ```
+### Elementos entre Comillas en Listas
+Los elementos de lista se pueden envolver entre comillas dobles (`"`) o simples (`'`). Las comas dentro de elementos entre comillas se manejan correctamente y no se tratan como separadores:
+```aam
+fruits = ["apple, banana", 'orange, grape', plain]
+```
+Esto crea una lista con tres elementos: `apple, banana`, `orange, grape` y `plain`.
+Las comillas se eliminan automáticamente y se pueden mezclar elementos entre comillas y sin comillas.
+### Objetos en Línea
+AAM también soporta objetos en línea como valores usando la sintaxis `{ key = value }`. Los campos están separados por comas:
+```aam
+config = { host = "localhost", port = 8080, debug = true }
+```
+Los objetos en línea pueden anidarse:
+```aam
+server = { base = { host = "localhost", port = 8080 }, tls = true }
+```
+Puedes acceder a los campos de objetos en línea mediante `as_object()`, que devuelve un mapa clave-valor.
 ## Tipos Propios
 ### Schemas
 Puedes usar tus propios schemas como tipos. Por ejemplo:

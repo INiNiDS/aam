@@ -60,6 +60,23 @@ e criar uma lista:
 ```aam
 items = ["Hello", "World"]
 ```
+### Itens Entre Aspas em Listas
+Os itens da lista podem ser envolvidos por aspas duplas (`"`) ou simples (`'`). Vírgulas dentro de itens entre aspas são corretamente tratadas e não são consideradas separadores:
+```aam
+fruits = ["apple, banana", 'orange, grape', plain]
+```
+Isso cria uma lista com três itens: `apple, banana`, `orange, grape` e `plain`.
+As aspas são automaticamente removidas e pode misturar itens entre aspas e sem aspas livremente.
+### Objetos Inline
+O AAM também suporta objetos inline como valores usando a sintaxe `{ key = value }`. Os campos são separados por vírgulas:
+```aam
+config = { host = "localhost", port = 8080, debug = true }
+```
+Objetos inline podem ser aninhados:
+```aam
+server = { base = { host = "localhost", port = 8080 }, tls = true }
+```
+Pode aceder aos campos de objetos inline através de `as_object()`, que retorna um mapa chave-valor.
 ## Tipos Próprios
 ### Schemas
 Pode usar os seus próprios schemas como tipos. Por exemplo:

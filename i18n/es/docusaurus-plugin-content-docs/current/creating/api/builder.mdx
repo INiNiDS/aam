@@ -131,7 +131,7 @@ Método de conveniencia: llama a `build()` y escribe el resultado en un fichero,
 pub fn build(self) -> Result<String, AamlError> {
     let text = self.render();
     // Use the Loader to parse and validate the generated text as a final sanity check
-    AAML::parse(&text)?;
+    AAM::parse(&text)?;
     Ok(text)
 }
 ```

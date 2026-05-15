@@ -20,11 +20,11 @@ aam = "1.1.0"
 ```
 然后，您可以在Rust代码中使用它：
 ```rust
-use aam::aaml::AAML;
+use aam_rs::aam::AAM;
 
 fn main() {
-    let aaml = AAML::load("config.aam").unwrap();
-    println!("{:#?}", aaml.find_obj("key"));
+    let aaml = AAM::load("config.aam").unwrap();
+    println!("{:#?}", aaml.get("key"));
 }
 ```
 ## 安装 aam-py
@@ -34,10 +34,10 @@ pip install aam-py
 ```
 然后，您可以在Python代码中使用它：
 ```python
-from aam import AAML
+from aam_py import AAM
 
-aaml = AAML.load("config.aam")
-print(aaml.find_obj("key"))
+aaml = AAM.load("config.aam")
+print(aaml.get("key"))
 ```
 ## API文档
 - [aam-rs API文档](https://docs.rs/aam/latest/aam/)

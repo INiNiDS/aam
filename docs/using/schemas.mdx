@@ -30,7 +30,7 @@ Once you have defined a schema, you can use `@derive` directive to create instan
 ```aam
 # main.aam
 @derive file.aam::Player
-name = "Alice"
+name = "Luna"
 id = 1
 ```
 In this example, we derive the `Player` schema from `file.aam` and then set the `name` and `id` fields for an instance of the `Player` schema.
@@ -38,7 +38,7 @@ In this example, we derive the `Player` schema from `file.aam` and then set the 
 By default, all fields in a schema are required. This means that when you create an instance of a schema, you must provide values for all fields. If you try to create an instance without providing values for all required fields, AAM will throw an error. For example:
 ```aam
 @derive file.aam::Player
-name = "Alice"  # This will throw an error because 'id' is required but not provided
+name = "Luna"  # This will throw an error because 'id' is required but not provided
 ```
 But if we add a `*` after the field name, it becomes optional:
 ```aam
@@ -50,7 +50,7 @@ But if we add a `*` after the field name, it becomes optional:
 In this case, the `id` field is optional, and you can create an instance of the `Player` schema without providing a value for `id`:
 ```aam
 @derive file.aam::Player
-name = "Alice"  # This is valid because 'id' is optional
+name = "Luna"  # This is valid because 'id' is optional
 ```
 ## Checking
 ### Checking Types
@@ -64,5 +64,5 @@ id = "abc"  # This will throw an error because 'id' is defined as i32
 AAM also checks that all required fields are provided when creating an instance of a schema. If you omit a required field, AAM will throw an error. For example:
 ```aam
 @derive file.aam::SchemaName
-name = "Alice"  # This will throw an error because 'id' is required but not provided
+name = "Luna"  # This will throw an error because 'id' is required but not provided
 ```

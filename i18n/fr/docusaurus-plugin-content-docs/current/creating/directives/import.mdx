@@ -53,7 +53,7 @@ Lorsque le parser rencontre `@import "fichier.aam"` :
 fn process_import(
     import_path: &str,
     current_file: &Path,
-    current_doc: &mut AAML,
+    current_doc: &mut AAM,
     visited: &mut HashSet<PathBuf>,
 ) -> Result<(), AamlError> {
     // 1. Résoudre le chemin relativement au répertoire du fichier actuel
@@ -134,7 +134,7 @@ Maintenez un `HashSet<PathBuf>` (ou l'équivalent dans votre langage) de **chemi
 fn parse_file_recursive(
     path: &Path,
     visited: &mut HashSet<PathBuf>,
-) -> Result<AAML, AamlError> {
+) -> Result<AAM, AamlError> {
     let canonical = path.canonicalize()?;
 
     // ── Protection contre les boucles (Anti-loop guard) ──────────────────────
@@ -191,7 +191,7 @@ Reconstituez la chaîne en passant un `Vec<PathBuf>` à côté du `HashSet` pour
 
 ## Mise en Cache
 
-Analyser le même fichier plusieurs fois lors d'un seul appel `load()` est inefficace. Maintenez un **cache de documents** (`HashMap<PathBuf, AAML>`) séparé de l'ensemble `visited` :
+Analyser le même fichier plusieurs fois lors d'un seul appel `load()` est inefficace. Maintenez un **cache de documents** (`HashMap<PathBuf, AAM>`) séparé de l'ensemble `visited` :
 
 ```rust
 pub struct ParseContext {
@@ -199,7 +199,7 @@ pub struct ParseContext {
     visited: HashSet<PathBuf>,
 
     /// Documents déjà analysés — évite les I/O et les analyses redondantes.
-    cache: HashMap<PathBuf, AAML>,
+    cache: HashMap<PathBuf, AAM>,
 }
 ```
 

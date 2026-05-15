@@ -53,7 +53,7 @@ When the parser encounters `@import "file.aam"`:
 fn process_import(
     import_path: &str,
     current_file: &Path,
-    current_doc: &mut AAML,
+    current_doc: &mut AAM,
     visited: &mut HashSet<PathBuf>,
 ) -> Result<(), AamlError> {
     // 1. Resolve the path relative to the current file's directory
@@ -134,7 +134,7 @@ Maintain a `HashSet<PathBuf>` (or equivalent in your language) of **canonical pa
 fn parse_file_recursive(
     path: &Path,
     visited: &mut HashSet<PathBuf>,
-) -> Result<AAML, AamlError> {
+) -> Result<AAM, AamlError> {
     let canonical = path.canonicalize()?;
 
     // ── Anti-loop guard ──────────────────────────────────────────────────────
@@ -191,7 +191,7 @@ Reconstruct the chain by passing a `Vec<PathBuf>` alongside the `HashSet` to rec
 
 ## Caching
 
-Parsing the same file multiple times during a single `load()` call is wasteful. Maintain a **document cache** (`HashMap<PathBuf, AAML>`) that is separate from the `visited` set:
+Parsing the same file multiple times during a single `load()` call is wasteful. Maintain a **document cache** (`HashMap<PathBuf, AAM>`) that is separate from the `visited` set:
 
 ```rust
 pub struct ParseContext {
@@ -199,7 +199,7 @@ pub struct ParseContext {
     visited: HashSet<PathBuf>,
 
     /// Already-parsed documents — avoids redundant I/O and parsing.
-    cache: HashMap<PathBuf, AAML>,
+    cache: HashMap<PathBuf, AAM>,
 }
 ```
 

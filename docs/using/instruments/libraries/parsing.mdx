@@ -26,88 +26,120 @@ name = #NoSpaceHere # This is NOT a comment (invalid or literal)
 
 ### Quotes
 
-String values can optionally be wrapped in double (`"`) or single (`'`) quotes. The `unwrap_quotes` utility method (available in most libraries) can be used to strip these manually if needed, though they are often handled automatically by the parser.
+String values can optionally be wrapped in double (`"`) or single (`'`) quotes. Quotes are stripped automatically during parsing, and commas inside quoted values are preserved.
+
+```aam
+title = "Hello, World!"
+items = ["rust, aam", 'single, quoted', plain_value]
+```
 
 ---
 
 ## From a File
 
-The most common entry point is `AAML::load`, which reads an `.aam` file from disk, processes all directives, and returns a ready-to-use `AAML` instance.
+The most common entry point is `AAM::load`, which reads an `.aam` file from disk, processes all directives, and returns a ready-to-use `AAM` instance.
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
-let cfg = AAML::load("config.aam").unwrap();
-println!("{}", cfg.find_obj("host").unwrap());
+let cfg = AAM::load("config.aam").unwrap();
+println!("{}", cfg.get("host").unwrap());
 ```
 
 ```python
-from aam_py import AAML
+from aam_py import AAM
 
-cfg = AAML.load("config.aam")
-print(cfg.find_obj("host"))
+cfg = AAM.load("config.aam")
+print(cfg.get("host"))
 ```
 
 ## From a String
 
-Use `AAML::parse` to parse AAM content that is already in memory as a string. This is useful for inline configurations, unit tests, or content fetched from a remote source.
+Use `AAM::parse` to parse AAM content that is already in memory as a string. Note that `parse` also auto-detects file paths — if the string looks like a path to an existing file, it loads the file instead.
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
 let source = "host = localhost\nport = 8080";
-let cfg = AAML::parse(source).unwrap();
+let cfg = AAM::parse(source).unwrap();
 
-assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+assert_eq!(cfg.get("host").unwrap(), "localhost");
 ```
 
 ```python
-from aam_py import AAML
+from aam_py import AAM
 
 source = "host = localhost\nport = 8080"
-cfg = AAML.parse(source)
+cfg = AAM.parse(source)
 
-assert cfg.find_obj("host") == "localhost"
+assert cfg.get("host") == "localhost"
 ```
 
-## Merging Multiple Sources
+## Lookups
 
-Sometimes configuration comes from more than one file or string. Use `merge_content` and `merge_file` to load additional content into an existing `AAML` instance. When a key appears in both the existing instance and the merged source, the **incoming value wins**.
+The primary way to retrieve values is via `get(key)`, which does an O(1) lookup:
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
-let mut cfg = AAML::new();
-cfg.merge_file("base.aam").unwrap();
-cfg.merge_content("debug = true").unwrap(); // adds or overrides 'debug'
+let cfg = AAM::parse("host = localhost").unwrap();
+let host = cfg.get("host");          // Some("localhost")
+let missing = cfg.get("unknown");    // None
 ```
 
 ```python
-from aam_py import AAML
+from aam_py import AAM
 
-cfg = AAML()
-cfg.merge_file("base.aam")
-cfg.merge_content("debug = true")   # adds or overrides 'debug'
+cfg = AAM.parse("host = localhost")
+host = cfg.get("host")      # "localhost"
+missing = cfg.get("unknown") # None
 ```
 
-You can also merge two `AAML` instances together with the `+` operator:
+### Reverse Search
+
+To find all keys that hold a specific value:
 
 ```rust
-use aam_rs::aaml::AAML;
-
-let base      = AAML::load("base.aam").unwrap();
-let overrides = AAML::load("env.aam").unwrap();
-
-let cfg = base + overrides; // right-hand side wins on conflict
+let keys: Vec<&str> = cfg.reverse_search("localhost");
 ```
 
 ```python
-from aam_py import AAML
+keys: list[str] = cfg.reverse_search("localhost")
+```
 
-base      = AAML.load("base.aam")
-overrides = AAML.load("env.aam")
+### Pattern Search
 
-cfg = base + overrides   # right-hand side wins on conflict
+To find all key-value pairs where the key contains a pattern:
+
+```rust
+let pairs: Vec<(&str, &str)> = cfg.deep_search("host");
+```
+
+```python
+pairs: dict[str, str] = cfg.deep_search("host")
+```
+
+### Combined Find
+
+Search by key first, then fall back to value matching:
+
+```rust
+let pairs: Vec<(&str, &str)> = cfg.find("query");
+```
+
+## Iteration
+
+You can iterate over all key-value pairs without allocating:
+
+```rust
+for (key, value) in &cfg {
+    println!("{key} = {value}");
+}
+```
+
+```python
+for key, value in cfg.to_dict().items():
+    print(f"{key} = {value}")
 ```
 
 ## Directives Processed at Parse Time
@@ -123,37 +155,40 @@ All AAM directives are resolved automatically during parsing — you do not need
 
 ## Error Handling
 
-`AAML::load` and `AAML::parse` both return `Result<AAML, AamlError>`. Always handle errors in production code:
+`AAM::load` and `AAM::parse` both return `Result<AAM, AamlError>`. Always handle errors in production code:
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 use aam_rs::error::AamlError;
 
-match AAML::load("config.aam") {
+match AAM::load("config.aam") {
     Ok(cfg) => {
-        println!("host = {}", cfg.find_obj("host").unwrap());
+        println!("host = {}", cfg.get("host").unwrap());
     }
-    Err(AamlError::IoError(e)) => {
-        eprintln!("Could not read file: {e}");
+    Err(errors) => {
+        for err in errors {
+            match err {
+                AamlError::IoError { details, .. } => {
+                    eprintln!("Could not read file: {details}");
+                }
+                AamlError::ParseError { line, content, details, .. } => {
+                    eprintln!("Parse error at line {line}: '{content}' — {details}");
+                }
+                _ => eprintln!("Error: {err}"),
+            }
+        }
     }
-    Err(AamlError::ParseError { line, content, details }) => {
-        eprintln!("Parse error at line {line}: '{content}' — {details}");
-    }
-    Err(AamlError::SchemaValidationError { schema, field, type_name, details }) => {
-        eprintln!("Schema '{schema}': field '{field}' ({type_name}) — {details}");
-    }
-    Err(e) => eprintln!("Unexpected error: {e}"),
 }
 ```
 
 ```python
-from aam_py import AAML, AamlError
+from aam_py import AAM, AamlError
 
 try:
-    cfg = AAML.load("config.aam")
-    print("host =", cfg.find_obj("host"))
+    cfg = AAM.load("config.aam")
+    print("host =", cfg.get("host"))
 except AamlError as e:
     print(f"Error: {e}")
+```
 
-> **Note:** For a full description of every `AamlError` variant, see the [aam-rs API Reference](./aam-rs#aa
-```mlerror).
+> **Note:** For a full description of every `AamlError` variant, see the [aam-rs API Reference](./aam-rs#aamlerror).

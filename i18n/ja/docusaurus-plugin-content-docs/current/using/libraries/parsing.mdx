@@ -26,68 +26,115 @@ name = #NoSpaceHere # これはコメントではありません（無効また�
 
 ### 引用符
 
-文字列値は、オプションで二重引用符 (`"`) または一重引用符 (`'`) で囲むことができます。必要に応じて、手動でこれらを取り除くために `unwrap_quotes` ユーティリティ（ほとんどのライブラリで利用可能）を使用できますが、多くの場合はパーサーによって自動的に処理されます。
+文字列値は、オプションで二重引用符 (`"`) または一重引用符 (`'`) で囲むことができます。引用符は解析中に自動的に除去されます。
 
 ---
 
 ## ファイルから
 
-最も一般的なエントリーポイントは `AAML::load` で、ディスクから `.aam` ファイルを読み取り、すべてのディレクティブを処理し、すぐに使用できる `AAML` インスタンスを返します。
+最も一般的なエントリーポイントは `AAM::load` で、ディスクから `.aam` ファイルを読み取り、すべてのディレクティブを処理し、すぐに使用できる `AAM` インスタンスを返します。
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
-let cfg = AAML::load("config.aam").unwrap();
-println!("{}", cfg.find_obj("host").unwrap());
+let cfg = AAM::load("config.aam").unwrap();
+println!("{}", cfg.get("host").unwrap());
 ```
 
 ```python
-from aam_py import AAML
+from aam_py import AAM
 
-cfg = AAML.load("config.aam")
-print(cfg.find_obj("host"))
+cfg = AAM.load("config.aam")
+print(cfg.get("host"))
 ```
 
 ## 文字列から
 
-すでにメモリ内に文字列としてあるAAMコンテンツをパースするには `AAML::parse` を使用します。これはインライン設定、ユニットテスト、またはリモートソースから取得したコンテンツに便利です。
+すでにメモリ内に文字列としてあるAAMコンテンツをパースするには `AAM::parse` を使用します。これはインライン設定、ユニットテスト、またはリモートソースから取得したコンテンツに便利です。
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
 let source = "host = localhost\nport = 8080";
-let cfg = AAML::parse(source).unwrap();
+let cfg = AAM::parse(source).unwrap();
 
-assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+assert_eq!(cfg.get("host").unwrap().as_str(), "localhost");
 ```
 
 ```python
-from aam_py import AAML
+from aam_py import AAM
 
 source = "host = localhost\nport = 8080"
-cfg = AAML.parse(source)
+cfg = AAM.parse(source)
 
-assert cfg.find_obj("host") == "localhost"
+assert cfg.get("host") == "localhost"
 ```
 
-## 複数のソースのマージ
+## ルックアップ
 
-設定が複数のファイルや文字列から来る場合があります。`merge_content` と `merge_file` を使用して、既存の `AAML` インスタンスに追加のコンテンツを読み込みます。キーが既存のインスタンスとマージされるソースの両方に存在する場合、**受信値が勝ちます**。
+値の取得方法は、O(1)のルックアップを行う `get(key)` が基本です：
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
-let mut cfg = AAML::new();
-cfg.merge_file("base.aam").unwrap();
-cfg.merge_content("debug = true").unwrap(); // 'debug' を追加またはオーバーライド
+let cfg = AAM::parse("host = localhost").unwrap();
+let host = cfg.get("host");          // Some("localhost")
+let missing = cfg.get("unknown");    // None
 ```
 
 ```python
-from aam_py import AAML
+from aam_py import AAM
 
-cfg = AAML()
-cfg.merge_file("base.aam")
-cfg.merge_content("debug = true")   # 'debug' を追加またはオーバーライド
+cfg = AAM.parse("host = localhost")
+host = cfg.get("host")      # "localhost"
+missing = cfg.get("unknown") # None
+```
+
+### 逆引き検索
+
+特定の値を持つすべてのキーを見つけるには：
+
+```rust
+let keys: Vec<&str> = cfg.reverse_search("localhost");
+```
+
+```python
+keys: list[str] = cfg.reverse_search("localhost")
+```
+
+### パターン検索
+
+キーにパターンが含まれるすべてのキーと値のペアを見つけるには：
+
+```rust
+let pairs: Vec<(&str, &str)> = cfg.deep_search("host");
+```
+
+```python
+pairs: dict[str, str] = cfg.deep_search("host")
+```
+
+### 複合検索
+
+最初にキーで検索し、見つからない場合は値で検索します：
+
+```rust
+let pairs: Vec<(&str, &str)> = cfg.find("query");
+```
+
+## イテレーション
+
+メモリを追加で割り当てることなく、すべてのキーと値のペアを反復処理できます：
+
+```rust
+for (key, value) in &cfg {
+    println!("{key} = {value}");
+}
+```
+
+```python
+for key, value in cfg.to_dict().items():
+    print(f"{key} = {value}")
 ```
 
 ## パース時に処理されるディレクティブ
@@ -104,12 +151,12 @@ cfg.merge_content("debug = true")   # 'debug' を追加またはオーバーラ�
 ## エラーハンドリング
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 use aam_rs::error::AamlError;
 
-match AAML::load("config.aam") {
+match AAM::load("config.aam") {
     Ok(cfg) => {
-        println!("host = {}", cfg.find_obj("host").unwrap());
+        println!("host = {}", cfg.get("host").unwrap());
     }
     Err(AamlError::IoError(e)) => {
         eprintln!("ファイルを読み取れませんでした: {e}");
@@ -122,11 +169,11 @@ match AAML::load("config.aam") {
 ```
 
 ```python
-from aam_py import AAML, AamlError
+from aam_py import AAM, AamlError
 
 try:
-    cfg = AAML.load("config.aam")
-    print("host =", cfg.find_obj("host"))
+    cfg = AAM.load("config.aam")
+    print("host =", cfg.get("host"))
 except AamlError as e:
     print(f"エラー: {e}")
 ```

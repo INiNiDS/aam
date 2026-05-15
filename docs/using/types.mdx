@@ -60,6 +60,23 @@ and create list:
 ```aam
 items = ["Hello", "World"]
 ```
+### Quoted Items in Lists
+List items can be wrapped in double (`"`) or single (`'`) quotes. Commas inside quoted items are correctly handled and not treated as separators:
+```aam
+fruits = ["apple, banana", 'orange, grape', plain]
+```
+This creates a list with three items: `apple, banana`, `orange, grape`, and `plain`.
+Quotes are automatically stripped from the final values, and you can mix quoted and unquoted items freely.
+### Inline Objects
+AAM also supports inline objects as values using the `{ key = value }` syntax. Fields are comma-separated:
+```aam
+config = { host = "localhost", port = 8080, debug = true }
+```
+Inline objects can be nested:
+```aam
+server = { base = { host = "localhost", port = 8080 }, tls = true }
+```
+You can access inline object fields via `as_object()` which returns a key-value map.
 ## Own types
 ### Schemas
 You can use your own schemas as types. For example:

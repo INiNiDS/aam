@@ -16,14 +16,12 @@ To provide a consistent "Configuration Engine" experience, libraries must implem
 
 ### 1. Core Loader API
 
-These methods manage parsing and merging raw text into the `AAML` structure:
+These methods manage parsing and merging raw text into the `AAM` structure:
 
 | Generic Method | Description |
 |---|---|
 | `parse(content: String)` | Parses a raw string into the in-memory object. |
 | `load(file_path: Path)` | Loads and parses a file from disk, resolving `@import` directives automatically. |
-| `merge_content(content: String)` | Parses a string and merges it into the *current* object, overwriting existing keys. |
-| `merge_file(file_path: Path)` | Loads a file and merges it into the current object. |
 
 ### 2. Query API
 
@@ -31,9 +29,17 @@ These methods govern how developers read from the tree:
 
 | Generic Method | Description |
 |---|---|
-| `find_obj(key: String)` | Smart bidirectional lookup. If `key` exists, returns its value. If not, returns the key whose value is `key`. |
-| `find_deep(key: String)` | Recursive search. Follows the chain of values until it hits a terminal value that is not a key. Must include loop detection! |
-| `find_key(value: String)` | Strict reverse lookup. Finds the first key that holds the given value. |
+| `get(key: &str) -> Option<&str>` | Simple forward lookup. Returns the value for a given key, or `None` if not found. |
+| `reverse_search(value: &str) -> Vec<&str>` | Reverse value lookup. Finds all keys that hold the given value. |
+| `find(query: &str) -> Vec<(&str, &str)>` | Combined key+value search. Searches both keys and values for content matching the query. Must include loop detection! |
+| `deep_search(pattern: &str) -> Vec<(&str, &str)>` | Recursively searches the entire tree structure for a pattern. |
+| `iter() -> Iterator` | Returns an iterator over all key-value pairs. |
+| `keys() -> Vec<&str>` | Returns a list of all keys in the document. |
+| `to_map() -> HashMap` | Converts the document to a flat `HashMap` representation. |
+| `schemas() -> Option<&HashMap>` | Returns the schema definitions, if any. |
+| `types() -> Option<&HashMap>` | Returns the type alias definitions, if any. |
+| `format(content, options) -> Result<String>` | Formats AAM content according to the formatting rules. |
+| `lsp_assist(content, options) -> LspAssist` | Provides LSP assistance for AAM content. |
 
 ### 3. Builder API
 
@@ -112,7 +118,7 @@ All `.aam` files are **UTF-8** encoded. Libraries must:
 
 ## Thread Safety
 
-Parsed `AAML` objects should be **thread-safe** for reading. If a language supports it, mark the type as `Send + Sync` (Rust) or equivalent, so documents can be shared across threads without locking.
+Parsed `AAM` objects should be **thread-safe** for reading. If a language supports it, mark the type as `Send + Sync` (Rust) or equivalent, so documents can be shared across threads without locking.
 
 If your library exposes a mutable builder (`AAMBuilder`), it does **not** need to be thread-safe by default, but document this clearly.
 
@@ -125,7 +131,9 @@ Every library must ship with a test suite that covers:
 - [ ] Basic `key = value` parsing for every primitive type
 - [ ] `@import` file resolution and appending
 - [ ] `@schema` formatting correctness
-- [ ] `find_obj` correctly identifies reverse keys
-- [ ] `find_deep` prevents infinite loops on `A -> A` dependencies
+- [ ] `get` performs simple forward key lookup
+- [ ] `reverse_search` correctly finds keys by value
+- [ ] `find` performs combined key+value search without infinite loops
+- [ ] `deep_search` traverses the tree safely
 - [ ] Serializer round-trip: `parse(builder.to_string()) == parsed_state`
 

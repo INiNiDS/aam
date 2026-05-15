@@ -7,11 +7,11 @@ A robust and lightweight configuration parser `that supports key-value pairs, re
 - **Simple syntax**: A `key = value` format that is easy to read and write.
 - **Import support**: The `@import` directive lets you split configuration into multiple files.
 - **Comments support**: Lines starting with `#` are treated as comments.
-- **Deep resolution (`find_deep`)**: Automatically resolves chains of references (e.g., `A -> B -> C`) to find the final value.
+- **Deep search (`deep_search`)**: Finds all key-value pairs whose key contains a given pattern.
+- **Reverse search (`reverse_search`)**: Finds all keys whose value matches a given value.
+- **Combined search (`find`)**: First tries a key lookup; if the key does not exist, searches by value.
 - **Loop detection**: Safely handles circular dependencies (e.g., `A -> B -> A`) without stack overflows.
-- **Bidirectional lookup (`find_obj`)**: Looks up a value by key, or performs a reverse lookup (finds a key by value) when the key is missing.
 - **Config builder (`AAMBuilder`)**: Programmatically generate and save `.aam` files.
-- **Configuration merging**: Supports the `+` operator to combine two `AAML` instances.
 - **Typed errors**: Detailed parsing and I/O error handling via `AamlError`.
 
 ## Format

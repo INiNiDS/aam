@@ -16,7 +16,7 @@ Les noms de méthodes dans ce document utilisent `snake_case`. Adaptez la casse 
 
 ## Points d'Entrée Principaux
 
-### `parse(source: string) → AAML`
+### `parse(source: string) → AAM`
 
 Analyse une chaîne AAM brute déjà en mémoire. **N'effectue** aucune I/O sur le système de fichiers.
 
@@ -26,7 +26,7 @@ Analyse une chaîne AAM brute déjà en mémoire. **N'effectue** aucune I/O sur 
 
 ---
 
-### `load(path: string) → AAML`
+### `load(path: string) → AAM`
 
 Lit un fichier `.aam` depuis le disque et retourne un document entièrement résolu et validé.
 
@@ -40,21 +40,21 @@ C'est la **méthode principale** pour la plupart des utilisateurs de la biblioth
 
 ## Lire des Valeurs via le Moteur de Requête
 
-### `find_obj(key: &str) → Option<FoundValue>`
+### `get(key: &str) → Option<FoundValue>`
 
 Recherche bidirectionnelle intelligente. Retourne le `FoundValue` (un wrapper de chaîne) pour la clé donnée. Si la clé n'existe pas directement, il suppose que l'argument était une valeur et effectue une recherche inversée pour trouver la clé correspondante.
 
 ---
 
-### `find_deep(key: &str) → Option<FoundValue>`
+### `find(key: &str) → Option<FoundValue>`
 
 Recherche profonde récursive. Conçue pour suivre les chaînes d'alias AAM (p. ex., `current = base`, `base = /dir`). Doit implémenter la détection anti-boucle.
 
 ---
 
-### `find_key(value: &str) → Option<String>`
+### `reverse_search(value: &str) → Option<String>`
 
-Recherche inversée stricte. Recherche dans les éléments AAML pour trouver la première clé contenant la valeur désignée exacte.
+Recherche inversée stricte. Recherche dans les éléments AAM pour trouver la première clé contenant la valeur désignée exacte.
 
 ---
 
@@ -102,9 +102,9 @@ Une bibliothèque AAM conforme doit implémenter au minimum :
 |--------| -------|
 | `parse(source)` | ✅ |
 | `load(path)` | ✅ |
-| `find_obj(key)` | ✅ |
-| `find_deep(key)` | ✅ |
-| `find_key(value)` | ✅ |
+| `get(key)` | ✅ |
+| `find(key)` | ✅ |
+| `reverse_search(value)` | ✅ |
 | `validate()` | ✅ |
 | `schema(name)` | Recommandé |
 | `load_from_reader(reader, base_dir)` | Recommandé |

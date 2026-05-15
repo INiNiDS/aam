@@ -24,11 +24,11 @@ cargo add aam-rs
 ```
 Then, you can use it in your Rust code:
 ```rust
-use aam::aaml::AAML;
+use aam_rs::aam::AAM;
 
 fn main() {
-    let aaml = AAML::load("config.aam").unwrap();
-    println!("{:#?}", aaml.find_obj("key");
+    let cfg = AAM::load("config.aam").unwrap();
+    println!("{}", cfg.get("key").unwrap());
 }
 ```
 ## Installing aam-py
@@ -38,10 +38,10 @@ pip install aam-py
 ```
 Then, you can use it in your Python code:
 ```python
-from aam import AAML
+from aam_py import AAM
 
-aaml = AAML.load("config.aam")
-print(aaml.find_obj("key"))
+cfg = AAM.load("config.aam")
+print(cfg.get("key"))
 ```
 ## API Documentation
 - [aam-rs API Documentation](https://docs.rs/aam/latest/aam/)

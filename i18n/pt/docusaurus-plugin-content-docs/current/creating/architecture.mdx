@@ -9,11 +9,11 @@ description: Os mecanismos principais de cada biblioteca AAM como Motor de Confi
 Cada biblioteca AAM moderna, independentemente da linguagem alvo, é construída como um **Motor de Configuração**. Seguindo a arquitetura da implementação de referência `aam-rs`, o motor é composto por três subsistemas primários. Compreender as suas responsabilidades é o primeiro passo para uma implementação correta.
 
 ```
-┌─────────────┐     texto     ┌─────────────┐   Objeto AAML   ┌─────────────┐
+┌─────────────┐     texto     ┌─────────────┐   Objeto AAM   ┌─────────────┐
 │  ficheiro   │  ──────────►  │   Loader    │  ─────────────► │Motor Consulta│
 │   .aam      │               └──────┬──────┘                 └─────────────┘
 └─────────────┘                      │  ▲
-                               Objeto AAML (fundido)
+                               Objeto AAM (fundido)
                                      │  │
                                ┌─────▼───────┐
                                │  Construtor  │
@@ -31,7 +31,7 @@ Cada biblioteca AAM moderna, independentemente da linguagem alvo, é construída
 
 ## 1. Parser & Loader
 
-O loader é o **ponto de entrada** da sua biblioteca. Lê texto AAM bruto (ou um caminho de ficheiro) e produz uma representação unificada em memória—tipicamente chamada `AAML` ou um struct/map equivalente na sua linguagem.
+O loader é o **ponto de entrada** da sua biblioteca. Lê texto AAM bruto (ou um caminho de ficheiro) e produz uma representação unificada em memória—tipicamente chamada `AAM` ou um struct/map equivalente na sua linguagem.
 
 ### Responsabilidades
 
@@ -41,11 +41,11 @@ O loader é o **ponto de entrada** da sua biblioteca. Lê texto AAM bruto (ou um
 
 ### Modelo de Dados Interno
 
-Um objeto `AAML` mínimo em memória normalmente parece algo assim (traduzido para Rust, Python e Go):
+Um objeto `AAM` mínimo em memória normalmente parece algo assim (traduzido para Rust, Python e Go):
 
 **Rust (`struct`)**
 ```rust
-pub struct AAML {
+pub struct AAM {
     /// Preserves insertion order for deterministic serialization.
     pub elements: IndexMap<String, String>,
     pub schemas: HashMap<String, Schema>,
@@ -54,7 +54,7 @@ pub struct AAML {
 
 **Python (`dict`)**
 ```python
-class AAML:
+class AAM:
     def __init__(self):
         # Python dicts preserve insertion order in modern versions
         self.elements: dict[str, str] = {}
@@ -63,7 +63,7 @@ class AAML:
 
 **Go (`map` e slices)**
 ```go
-type AAML struct {
+type AAM struct {
     // Go maps don't preserve order, so a separate keys slice is often used
     Elements map[string]string
     Keys     []string
@@ -79,14 +79,14 @@ O motor de consulta é o que torna o AAM poderoso. Em vez de apenas expor um map
 
 ### Responsabilidades
 
-1. **Pesquisas Bidirecionais (`find_obj`)** — Às vezes um programador conhece a chave; outras vezes conhece o valor e precisa de encontrar a chave. O seu motor deve tentar primeiro uma pesquisa direta por chave, e se falhar, realizar uma pesquisa reversa.
-2. **Resolução Recursiva (`find_deep`)** — Os utilizadores de AAM frequentemente usam aliases (por exemplo, `current_path = base_path`). O motor de consulta deve seguir a cadeia de valores até encontrar um valor terminal que não é uma chave.
-3. **Deteção de Ciclos** — Uma vez que o AAM é declarativo, os utilizadores podem facilmente criar referências circulares (por exemplo, `a = b` e `b = a`). A função `find_deep` deve detetar ciclos e retornar o último valor único visitado para prevenir recursões infinitas e estouros de pilha.
+1. **Pesquisas Bidirecionais (`get`)** — Às vezes um programador conhece a chave; outras vezes conhece o valor e precisa de encontrar a chave. O seu motor deve tentar primeiro uma pesquisa direta por chave, e se falhar, realizar uma pesquisa reversa.
+2. **Resolução Recursiva (`find`)** — Os utilizadores de AAM frequentemente usam aliases (por exemplo, `current_path = base_path`). O motor de consulta deve seguir a cadeia de valores até encontrar um valor terminal que não é uma chave.
+3. **Deteção de Ciclos** — Uma vez que o AAM é declarativo, os utilizadores podem facilmente criar referências circulares (por exemplo, `a = b` e `b = a`). A função `find` deve detetar ciclos e retornar o último valor único visitado para prevenir recursões infinitas e estouros de pilha.
 4. **Encapsulamento Abstrato de Valores (`FoundValue`)** — Em vez de retornar strings brutas, encapsule o resultado num tipo rico (como uma classe ou struct personalizada) que permite fácil conversão para inteiros, booleanos ou manipulação de strings no local.
 
 ### Fluxo do Motor de Consulta
 
-Quando um utilizador chama `config.find_deep(chave)`:
+Quando um utilizador chama `config.find(chave)`:
 
 ```
 Fase 1: Pesquisa Direta
@@ -143,7 +143,7 @@ import aam
 config = aam.load("config.aam")
 
 # 2. Consulta inteligente (Resolução Profunda)
-caminho_terminal = config.find_deep("app_path")
+caminho_terminal = config.find("app_path")
 print(f"Caminho resolvido: {caminho_terminal}")
 
 # 3. Criar uma nova configuração programaticamente

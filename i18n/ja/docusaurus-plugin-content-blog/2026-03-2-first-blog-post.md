@@ -28,5 +28,5 @@ port = 8080
 ```
 
 これですべてです。`localhost`と言えば、設定から`host`を取得します。
-"localhostとは何ですか？それは \{AAML::find_obj("localhost")\} です"
+"localhostとは何ですか？それは \{AAM::get("localhost")\} です"
 本当に簡単ですよね？

@@ -4,4 +4,14 @@ You can import files using the `@import` directive:
 ```aam
 @import file.aam
 ```
-This will import all the contents of `file.aam` into the current file, allowing you to use any schemas, mappings, or other definitions from `file.aam` in your current configuration. You can also import specific items from a file using the `@derive` directive, which allows you to create instances of schemas defined in another file. For example:
+This will import all the contents of `file.aam` into the current file, allowing you to use any schemas, mappings, or other definitions from `file.aam` in your current configuration.
+
+### Relative Path Resolution
+Import and derive paths are resolved relative to the importing file's location:
+```aam
+@import ./schemas/user.aam
+@derive ./schemas/base.aam::Player
+```
+This makes it easy to organize your AAM files into directories without hardcoding absolute paths.
+
+You can also import specific items from a file using the `@derive` directive, which allows you to create instances of schemas defined in another file. For example:

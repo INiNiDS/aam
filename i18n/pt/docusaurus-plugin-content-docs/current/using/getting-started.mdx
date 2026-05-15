@@ -73,3 +73,28 @@ Para manter o seu projeto limpo e consistente, o AAM usa convenções de nomencl
     ```aam
     @schema PlayerData { ... } ou @type UserProfile = string
     ```
+
+### Objetos Inline
+Os valores podem ser objetos inline usando a sintaxe `{ key = value }`:
+```aam
+server = { host = "localhost", port = 8080, debug = true }
+```
+Objetos aninhados são suportados:
+```aam
+config = { database = { host = "db.local", port = 5432 }, cache = { ttl = 3600 } }
+```
+
+### Strings Entre Aspas
+Os valores e itens de lista podem ser envolvidos por aspas duplas (`"`) ou simples (`'`). Isto é especialmente útil quando os valores contêm vírgulas ou carateres especiais:
+```aam
+title = "Olá, Mundo!"
+items = ["rust, aam", 'single, quoted', plain_value]
+```
+As aspas são automaticamente removidas durante a análise e as sequências de escape (`\\`) são suportadas dentro de strings entre aspas.
+
+### Formatador
+O AAM inclui um formatador integrado que pode formatar automaticamente os seus ficheiros AAM. Suporta:
+- **Formatação inteligente de schemas** — reduz schemas pequenos (`@schema Name { field: type }`) a uma linha, expande os grandes em várias linhas
+- **Elevação de diretivas** — move as diretivas `@import` e `@derive` para o topo do documento
+- **Indentação configurável** — tabs vs espaços, tamanho de indentação, largura de linha
+- **Ordenação de chaves e preservação de linhas em branco**

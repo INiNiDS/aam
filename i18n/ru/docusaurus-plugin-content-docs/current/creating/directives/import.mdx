@@ -53,7 +53,7 @@ description: Как реализовать директиву @import, разр�
 fn process_import(
     import_path: &str,
     current_file: &Path,
-    current_doc: &mut AAML,
+    current_doc: &mut AAM,
     visited: &mut HashSet<PathBuf>,
 ) -> Result<(), AamlError> {
     // 1. Разрешение пути относительно директории текущего файла
@@ -134,7 +134,7 @@ y = 2
 fn parse_file_recursive(
     path: &Path,
     visited: &mut HashSet<PathBuf>,
-) -> Result<AAML, AamlError> {
+) -> Result<AAM, AamlError> {
     let canonical = path.canonicalize()?;
 
     // ── Защита от циклов (Anti-loop guard) ──────────────────────────────────
@@ -191,7 +191,7 @@ Error: cyclic import detected
 
 ## Кэширование
 
-Парсинг одного и того же файла несколько раз во время одного вызова `load()` неэффективен. Поддерживайте **кэш документов** (`HashMap<PathBuf, AAML>`), который отделен от набора `visited`:
+Парсинг одного и того же файла несколько раз во время одного вызова `load()` неэффективен. Поддерживайте **кэш документов** (`HashMap<PathBuf, AAM>`), который отделен от набора `visited`:
 
 ```rust
 pub struct ParseContext {
@@ -199,7 +199,7 @@ pub struct ParseContext {
     visited: HashSet<PathBuf>,
 
     /// Уже отпарсенные документы — позволяет избежать повторного ввода-вывода и парсинга.
-    cache: HashMap<PathBuf, AAML>,
+    cache: HashMap<PathBuf, AAM>,
 }
 ```
 

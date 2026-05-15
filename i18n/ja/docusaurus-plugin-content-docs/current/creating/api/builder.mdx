@@ -126,13 +126,13 @@ builder.derive("entities/base.aam", "Entity");
 
 ```rust
 builder
-    .add("name", "Alice")
+    .add("name", "Luna")
     .add("level", 10i32)
     .add("active", true);
 ```
 
 ```aam
-name = "Alice"
+name = "Luna"
 level = 10
 active = true
 ```
@@ -167,7 +167,7 @@ builder.write_to_file("output/config.aam")?;
 pub fn build(self) -> Result<String, AamlError> {
     let text = self.render();
     // ローダーを使用して生成されたテキストをパースし、最終的な健全性チェックとして検証します
-    AAML::parse(&text)?;
+    AAM::parse(&text)?;
     Ok(text)
 }
 ```

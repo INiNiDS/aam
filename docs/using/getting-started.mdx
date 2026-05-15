@@ -73,3 +73,28 @@ To keep your project clean and consistent, AAM uses specific naming conventions 
     ```aam
     @schema PlayerData { ... } or @type UserProfile = string
     ```
+
+### Inline Objects
+Values can be inline objects using `{ key = value }` syntax:
+```aam
+server = { host = "localhost", port = 8080, debug = true }
+```
+Nested objects are supported:
+```aam
+config = { database = { host = "db.local", port = 5432 }, cache = { ttl = 3600 } }
+```
+
+### Quoted Strings
+Values and list items can be wrapped in double (`"`) or single (`'`) quotes. This is especially useful when values contain commas or special characters:
+```aam
+title = "Hello, World!"
+items = ["rust, aam", 'single, quoted', plain_value]
+```
+Quotes are automatically stripped during parsing, and escape sequences (`\\`) are supported inside quoted strings.
+
+### Formatter
+AAM includes a built-in formatter that can automatically format your AAM files. It supports:
+- **Smart schema formatting** — collapses small schemas (`@schema Name { field: type }`) to a single line, expands large ones across multiple lines
+- **Directive hoisting** — moves `@import` and `@derive` directives to the top of the document
+- **Configurable indentation** — tabs vs spaces, indent size, line width
+- **Key sorting and blank line preservation**

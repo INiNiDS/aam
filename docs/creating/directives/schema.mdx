@@ -97,7 +97,7 @@ When the parser sees `@schema Name {`:
 ```rust
 fn parse_schema_block(
     tokens: &mut TokenStream,
-    doc: &mut AAML,
+    doc: &mut AAM,
 ) -> Result<(), AamlError> {
     let name = tokens.expect_identifier()?;
     tokens.expect(Token::LBrace)?;
@@ -229,5 +229,5 @@ A schema name can be used as a field type inside another schema. When validating
 }
 ```
 
-When validating the `address` field, look up the `Address` schema in the `AAML` engine's schema registry and validate the nested object against it.
+When validating the `address` field, look up the `Address` schema in the `AAM` engine's schema registry and validate the nested object against it.
 

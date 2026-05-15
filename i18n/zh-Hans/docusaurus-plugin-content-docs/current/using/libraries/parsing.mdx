@@ -10,54 +10,109 @@ description: "如何在项目中解析AAM文件"
 
 ## 从文件
 
-最常见的入口点是 `AAML::load`，它从磁盘读取 `.aam` 文件，处理所有指令，并返回可立即使用的 `AAML` 实例。
+最常见的入口点是 `AAM::load`，它从磁盘读取 `.aam` 文件，处理所有指令，并返回可立即使用的 `AAM` 实例。
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
-let cfg = AAML::load("config.aam").unwrap();
-println!("{}", cfg.find_obj("host").unwrap());
+let cfg = AAM::load("config.aam").unwrap();
+println!("{}", cfg.get("host").unwrap());
 ```
 
 ```python
-from aam_py import AAML
+from aam_py import AAM
 
-cfg = AAML.load("config.aam")
-print(cfg.find_obj("host"))
+cfg = AAM.load("config.aam")
+print(cfg.get("host"))
 ```
 
 ## 从字符串
 
-使用 `AAML::parse` 解析已作为字符串在内存中的AAM内容。这对于内联配置、单元测试或从远程来源获取的内容非常有用。
+使用 `AAM::parse` 解析已作为字符串在内存中的AAM内容。这对于内联配置、单元测试或从远程来源获取的内容非常有用。
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
 let source = "host = localhost\nport = 8080";
-let cfg = AAML::parse(source).unwrap();
+let cfg = AAM::parse(source).unwrap();
 
-assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+assert_eq!(cfg.get("host").unwrap().as_str(), "localhost");
 ```
 
 ```python
-from aam_py import AAML
+from aam_py import AAM
 
 source = "host = localhost\nport = 8080"
-cfg = AAML.parse(source)
+cfg = AAM.parse(source)
 
-assert cfg.find_obj("host") == "localhost"
+assert cfg.get("host") == "localhost"
 ```
 
-## 合并多个来源
+## 查询 (Lookups)
 
-有时配置来自多个文件或字符串。使用 `merge_content` 和 `merge_file` 将额外内容加载到现有 `AAML` 实例中。当键在现有实例和合并源中都出现时，**传入值获胜**。
+检索值的主要方式是通过 `get(key)`，它执行 O(1) 的查找：
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
-let mut cfg = AAML::new();
-cfg.merge_file("base.aam").unwrap();
-cfg.merge_content("debug = true").unwrap(); // 添加或覆盖 'debug'
+let cfg = AAM::parse("host = localhost").unwrap();
+let host = cfg.get("host");          // Some("localhost")
+let missing = cfg.get("unknown");    // None
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("host = localhost")
+host = cfg.get("host")      # "localhost"
+missing = cfg.get("unknown") # None
+```
+
+### 反向搜索
+
+查找所有包含特定值的键：
+
+```rust
+let keys: Vec<&str> = cfg.reverse_search("localhost");
+```
+
+```python
+keys: list[str] = cfg.reverse_search("localhost")
+```
+
+### 模式搜索
+
+查找所有键包含指定模式（pattern）的键值对：
+
+```rust
+let pairs: Vec<(&str, &str)> = cfg.deep_search("host");
+```
+
+```python
+pairs: dict[str, str] = cfg.deep_search("host")
+```
+
+### 组合搜索
+
+先按键搜索，再按值匹配：
+
+```rust
+let pairs: Vec<(&str, &str)> = cfg.find("query");
+```
+
+## 迭代
+
+你可以在不分配额外内存的情况下遍历所有键值对：
+
+```rust
+for (key, value) in &cfg {
+    println!("{key} = {value}");
+}
+```
+
+```python
+for key, value in cfg.to_dict().items():
+    print(f"{key} = {value}")
 ```
 
 ---
@@ -76,12 +131,12 @@ cfg.merge_content("debug = true").unwrap(); // 添加或覆盖 'debug'
 ## 错误处理
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 use aam_rs::error::AamlError;
 
-match AAML::load("config.aam") {
+match AAM::load("config.aam") {
     Ok(cfg) => {
-        println!("host = {}", cfg.find_obj("host").unwrap());
+        println!("host = {}", cfg.get("host").unwrap());
     }
     Err(AamlError::IoError(e)) => {
         eprintln!("无法读取文件: {e}");
@@ -94,11 +149,11 @@ match AAML::load("config.aam") {
 ```
 
 ```python
-from aam_py import AAML, AamlError
+from aam_py import AAM, AamlError
 
 try:
-    cfg = AAML.load("config.aam")
-    print("host =", cfg.find_obj("host"))
+    cfg = AAM.load("config.aam")
+    print("host =", cfg.get("host"))
 except AamlError as e:
     print(f"错误: {e}")
 ```

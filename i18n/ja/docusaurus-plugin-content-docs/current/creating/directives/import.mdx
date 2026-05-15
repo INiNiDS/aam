@@ -53,7 +53,7 @@ description: "@importディレクティブの実装方法、ファイル解決�
 fn process_import(
     import_path: &str,
     current_file: &Path,
-    current_doc: &mut AAML,
+    current_doc: &mut AAM,
     visited: &mut HashSet<PathBuf>,
 ) -> Result<(), AamlError> {
     // 1. 現在のファイルのディレクトリからの相対パスを解決
@@ -134,7 +134,7 @@ y = 2
 fn parse_file_recursive(
     path: &Path,
     visited: &mut HashSet<PathBuf>,
-) -> Result<AAML, AamlError> {
+) -> Result<AAM, AamlError> {
     let canonical = path.canonicalize()?;
 
     // ── サイクル保護 (Anti-loop guard) ──────────────────────────────────
@@ -191,7 +191,7 @@ Error: cyclic import detected
 
 ## キャッシュ
 
-1回の `load()` 呼び出し中に同じファイルを複数回パースするのは非効率的です。 `visited` セットとは別に、**ドキュメントキャッシュ** (`HashMap<PathBuf, AAML>`) を保持してください。
+1回の `load()` 呼び出し中に同じファイルを複数回パースするのは非効率的です。 `visited` セットとは別に、**ドキュメントキャッシュ** (`HashMap<PathBuf, AAM>`) を保持してください。
 
 ```rust
 pub struct ParseContext {
@@ -199,7 +199,7 @@ pub struct ParseContext {
     visited: HashSet<PathBuf>,
 
     /// すでにパース済みのドキュメント — 重複するI/Oとパースを回避
-    cache: HashMap<PathBuf, AAML>,
+    cache: HashMap<PathBuf, AAM>,
 }
 ```
 

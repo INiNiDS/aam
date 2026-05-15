@@ -73,3 +73,28 @@ Pour garder votre projet propre et cohérent, AAM utilise des conventions de nom
     ```aam
     @schema PlayerData { ... } ou @type UserProfile = string
     ```
+
+### Objets en Ligne
+Les valeurs peuvent être des objets en ligne utilisant la syntaxe `{ key = value }` :
+```aam
+server = { host = "localhost", port = 8080, debug = true }
+```
+Les objets imbriqués sont supportés :
+```aam
+config = { database = { host = "db.local", port = 5432 }, cache = { ttl = 3600 } }
+```
+
+### Chaînes Entre Guillemets
+Les valeurs et les éléments de liste peuvent être entourés de guillemets doubles (`"`) ou simples (`'`). C'est particulièrement utile lorsque les valeurs contiennent des virgules ou des caractères spéciaux :
+```aam
+title = "Bonjour, le Monde !"
+items = ["rust, aam", 'single, quoted', plain_value]
+```
+Les guillemets sont automatiquement supprimés lors de l'analyse et les séquences d'échappement (`\\`) sont supportées dans les chaînes entre guillemets.
+
+### Formateur
+AAM inclut un formateur intégré qui peut formater automatiquement vos fichiers AAM. Il supporte :
+- **Formatage intelligent des schémas** — réduit les petits schémas (`@schema Name { field: type }`) sur une seule ligne, développe les grands sur plusieurs lignes
+- **Remontée des directives** — déplace les directives `@import` et `@derive` en haut du document
+- **Indentation configurable** — tabs vs espaces, taille d'indentation, largeur de ligne
+- **Tri des clés et préservation des lignes vides**

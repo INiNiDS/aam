@@ -7,7 +7,7 @@ description: "API reference for AAMBuilder and SchemaField — build AAM configu
 
 The `builder` module provides a fluent API for constructing AAM configuration content programmatically — without writing raw `.aam` strings by hand. It is useful for code generators, test fixtures, and applications that need to produce configuration files at runtime.
 
-> **Note:** The builder produces a plain `String` of AAM source text. You can pass it directly to [`AAML::parse`](./aam-rs#aamlparse) or write it to disk with [`to_file`](#to_file).
+> **Note:** The builder produces a plain `String` of AAM source text. You can pass it directly to [`AAM::parse`](./aam-rs#aamparse) or write it to disk with [`to_file`](#to_file).
 
 ---
 
@@ -33,7 +33,7 @@ assert!(content.contains("host = localhost"));
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 b = AAMBuilder()
 b.add_line("host", "localhost")
@@ -61,7 +61,7 @@ b.add_line("key", "value");
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 b = AAMBuilder.with_capacity(1024)
 b.add_line("key", "value")
@@ -99,7 +99,7 @@ println!("{}", b.build());
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 b = AAMBuilder()
 b.add_line("host", "localhost") \
@@ -138,7 +138,7 @@ assert!(out.contains("# Server configuration"));
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 b = AAMBuilder()
 b.comment("Server configuration").add_line("host", "localhost")
@@ -178,7 +178,7 @@ assert!(b.build().contains("@schema Player {"));
 ```
 
 ```python
-from aam import AAMBuilder, SchemaField
+from aam_py import AAMBuilder, SchemaField
 
 b = AAMBuilder()
 b.schema("Player", [
@@ -224,7 +224,7 @@ assert!(out.contains("    host: string"));
 ```
 
 ```python
-from aam import AAMBuilder, SchemaField
+from aam_py import AAMBuilder, SchemaField
 
 b = AAMBuilder()
 b.schema_multiline("Server", [
@@ -270,7 +270,7 @@ assert!(b2.build().contains("@derive base.aam"));
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 # Derive specific schemas
 b = AAMBuilder()
@@ -304,7 +304,7 @@ assert!(b.build().contains("@import shared.aam"));
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 b = AAMBuilder()
 b.import_("shared.aam")
@@ -333,7 +333,7 @@ assert!(b.build().contains("@type pos = math::vector3"));
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 b = AAMBuilder()
 b.type_alias("pos", "math::vector3")
@@ -375,7 +375,7 @@ println!("{}", content);
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 b = AAMBuilder()
 b.add_line("host", "localhost")
@@ -406,7 +406,7 @@ println!("full:     {}", b.build());
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 b = AAMBuilder()
 b.add_line("host", "localhost")
@@ -441,7 +441,7 @@ b.to_file("output.aam").unwrap();
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 b = AAMBuilder()
 b.add_line("host", "localhost").add_line("port", "8080")
@@ -468,7 +468,7 @@ Fields declared as **optional** are rendered with a `*` suffix (`name*: type`), 
 
 ### `SchemaField::required` and `SchemaField::optional`
 
-| Method                               | Rendered AAML form | Description                                        |
+| Method                               | Rendered AAM form | Description                                        |
 |--------------------------------------|--------------------|----------------------------------------------------|
 | `SchemaField::required(name, type_name)` | `name: type`   | Field that **must** be present in the data map.    |
 | `SchemaField::optional(name, type_name)` | `name*: type`  | Field that **may** be absent; validated if present.|
@@ -504,7 +504,7 @@ assert opt.to_aaml() == "debug*: bool"
 
 ### `SchemaField::to_aaml`
 
-Renders the field as an AAML field declaration string (`name: type` or `name*: type`).
+Renders the field as an AAM field declaration string (`name: type` or `name*: type`).
 
 **Returns:** `String`
 
@@ -512,11 +512,11 @@ Renders the field as an AAML field declaration string (`name: type` or `name*: t
 
 ## End-to-End Example
 
-The following example builds a complete `.aam` configuration file programmatically, writes it to disk, and then parses it back with `AAML::load`:
+The following example builds a complete `.aam` configuration file programmatically, writes it to disk, and then parses it back with `AAM::load`:
 
 ```rust
 use aam_rs::builder::{AAMBuilder, SchemaField};
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
 // Build the configuration
 let mut b = AAMBuilder::new();
@@ -531,19 +531,15 @@ b.comment("Server configuration")
  .add_line("port", "8080")
  .add_line("debug", "true");
 
-// Write to disk
-b.to_file("server.aam").unwrap();
+// Parse back
+let cfg = AAM::load("server.aam").unwrap();
 
-// Parse back and validate
-let cfg = AAML::load("server.aam").unwrap();
-cfg.validate_schemas_completeness().unwrap();
-
-assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
-assert_eq!(cfg.find_obj("port").unwrap().as_str(), "8080");
+assert_eq!(cfg.get("host").unwrap(), "localhost");
+assert_eq!(cfg.get("port").unwrap(), "8080");
 ```
 
 ```python
-from aam import AAMBuilder, SchemaField, AAML
+from aam_py import AAMBuilder, SchemaField, AAM
 
 # Build the configuration
 b = AAMBuilder()
@@ -561,10 +557,9 @@ b.comment("Server configuration") \
 # Write to disk
 b.to_file("server.aam")
 
-# Parse back and validate
-cfg = AAML.load("server.aam")
-cfg.validate_schemas_completeness()
+# Parse back
+cfg = AAM.load("server.aam")
 
-assert cfg.find_obj("host") == "localhost"
-assert cfg.find_obj("port") == "8080"
+assert cfg.get("host") == "localhost"
+assert cfg.get("port") == "8080"
 ```

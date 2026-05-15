@@ -96,7 +96,7 @@ pub struct Schema {
 ```rust
 fn parse_schema_block(
     tokens: &mut TokenStream,
-    doc: &mut AAML,
+    doc: &mut AAM,
 ) -> Result<(), AamlError> {
     let name = tokens.expect_identifier()?;
     tokens.expect(Token::LBrace)?;
@@ -228,4 +228,4 @@ Error: unknown field `debug`
 }
 ```
 
-При валидации поля `address` найдите схему `Address` в реестре схем движка `AAML` и валидируйте вложенный объект по ней.
+При валидации поля `address` найдите схему `Address` в реестре схем движка `AAM` и валидируйте вложенный объект по ней.

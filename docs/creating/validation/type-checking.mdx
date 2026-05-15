@@ -6,7 +6,7 @@ description: How to validate parsed AAM values against the type system, map prim
 
 # Type Checking
 
-During the parsing phase, a high-quality Loader Engine must confirm that **every value is compatible with its declared type**. This page describes how to perform that check for each category of AAM type before finalizing the `AAML` map.
+During the parsing phase, a high-quality Loader Engine must confirm that **every value is compatible with its declared type**. This page describes how to perform that check for each category of AAM type before finalizing the `AAM` map.
 
 ---
 
@@ -20,7 +20,7 @@ Type checking proceeds in two phases:
 ```rust
 fn check_value(
     key: &str,
-    value: &ParsedValue, // Represents internal node before saving to AAML
+    value: &ParsedValue, // Represents internal node before saving to AAM
     declared_ty: &String,
     registry: &HashMap<String, String>,
 ) -> Result<(), AamlError> {

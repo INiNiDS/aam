@@ -20,11 +20,11 @@ aam = "1.1.0"
 ```
 Ensuite, vous pouvez l'utiliser dans votre code Rust :
 ```rust
-use aam::aaml::AAML;
+use aam_rs::aam::AAM;
 
 fn main() {
-    let aaml = AAML::load("config.aam").unwrap();
-    println!("{:#?}", aaml.find_obj("key");
+    let aaml = AAM::load("config.aam").unwrap();
+    println!("{:#?}", aaml.get("key");
 }
 ```
 ## Installer aam-py
@@ -34,10 +34,10 @@ pip install aam-py
 ```
 Ensuite, vous pouvez l'utiliser dans votre code Python :
 ```python
-from aam import AAML
+from aam_py import AAM
 
-aaml = AAML.load("config.aam")
-print(aaml.find_obj("key"))
+aaml = AAM.load("config.aam")
+print(aaml.get("key"))
 ```
 ## Documentation API
 - [Documentation API aam-rs](https://docs.rs/aam/latest/aam/)

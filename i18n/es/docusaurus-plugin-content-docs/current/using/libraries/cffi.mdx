@@ -11,17 +11,17 @@ Fuente de verdad: `include/aam.h`. Esta API proporciona una interfaz C estable p
 
 | Función | Descripción |
 |:---|:---|
-| `AamlHandle *aam_new(void)` | Crea un nuevo handle de AAML. |
-| `void aam_free(AamlHandle *handle)` | Libera un handle creado previamente. |
+| `AamHandle *aam_new(void)` | Crea un nuevo handle de AAM. |
+| `void aam_free(AamHandle *handle)` | Libera un handle creado previamente. |
 
 ## Analizar y Cargar
 
 | Función | Descripción |
 |:---|:---|
-| `int aam_parse(AamlHandle *handle, const char *content)` | Analiza el contenido de AAM desde una string. |
-| `int aam_load(AamlHandle *handle, const char *path)` | Carga y analiza un fichero AAM desde el disco. |
-| `int aam_merge(AamlHandle *handle, const char *content)` | Fusiona nuevo contenido en un handle existente. |
-| `int aam_recover_simple(AamlHandle *handle, const char *content)` | Análisis de recuperación seguro para entradas corruptas. |
+| `int aam_parse(AamHandle *handle, const char *content)` | Analiza el contenido de AAM desde una string. |
+| `int aam_load(AamHandle *handle, const char *path)` | Carga y analiza un fichero AAM desde el disco. |
+| `int aam_merge(AamHandle *handle, const char *content)` | Fusiona nuevo contenido en un handle existente. |
+| `int aam_recover_simple(AamHandle *handle, const char *content)` | Análisis de recuperación seguro para entradas corruptas. |
 
 **Convención de retorno:** `0` en caso de éxito, distinto de cero en caso de error.
 
@@ -29,9 +29,9 @@ Fuente de verdad: `include/aam.h`. Esta API proporciona una interfaz C estable p
 
 | Función | Descripción |
 |:---|:---|
-| `char *aam_find_obj(const AamlHandle *handle, const char *key)` | Búsqueda directa por clave o búsqueda inversa por valor. |
-| `char *aam_find_key(const AamlHandle *handle, const char *value)` | Búsqueda inversa explícita. |
-| `char *aam_find_deep(const AamlHandle *handle, const char *key)` | Resolución de referencias recursiva. |
+| `char *aam_get(const AamHandle *handle, const char *key)` | Búsqueda directa por clave o búsqueda inversa por valor. |
+| `char *aam_reverse_search(const AamHandle *handle, const char *value)` | Búsqueda inversa explícita. |
+| `char *aam_deep_search(const AamHandle *handle, const char *key)` | Resolución de referencias recursiva. |
 
 :::important
 Las strings devueltas son propiedad de Rust y deben liberarse mediante `aam_string_free` para evitar fugas de memoria.
@@ -42,7 +42,7 @@ Las strings devueltas son propiedad de Rust y deben liberarse mediante `aam_stri
 | Función | Descripción |
 |:---|:---|
 | `void aam_string_free(char *s)` | Libera una string devuelta por cualquiera de las funciones de búsqueda. |
-| `const char *aam_last_error(const AamlHandle *handle)` | Devuelve el último mensaje de error como una string prestada (borrowed). |
+| `const char *aam_last_error(const AamHandle *handle)` | Devuelve el último mensaje de error como una string prestada (borrowed). |
 
 :::warning
 `aam_last_error` devuelve un puntero interno prestado. **No lo liberes.**

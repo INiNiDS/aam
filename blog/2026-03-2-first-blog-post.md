@@ -28,5 +28,5 @@ port = 8080
 ```
 
 it's all. If you say `localhost` you will get `host` from config.
-"What is localhost? It's a \{AAML::find_obj("localhost")\}"
+"What is localhost? It's a \{AAM::get("localhost")\}"
 Really easy, yes?

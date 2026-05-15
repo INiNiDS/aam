@@ -16,7 +16,7 @@ Los nombres de métodos en este documento usan `snake_case`. Adapta la capitaliz
 
 ## Puntos de Entrada Principales
 
-### `parse(source: string) → AAML`
+### `parse(source: string) → AAM`
 
 Analiza una string AAM bruta que ya está en memoria. **No** realiza ninguna I/O de fichero.
 
@@ -26,7 +26,7 @@ Analiza una string AAM bruta que ya está en memoria. **No** realiza ninguna I/O
 
 ---
 
-### `load(path: string) → AAML`
+### `load(path: string) → AAM`
 
 Lee un fichero `.aam` del disco y retorna un documento completamente resuelto y validado.
 
@@ -40,21 +40,21 @@ Este es el **método principal** para la mayoría de los usuarios de la bibliote
 
 ## Leer Valores vía Motor de Consulta
 
-### `find_obj(key: &str) → Option<FoundValue>`
+### `get(key: &str) → Option<FoundValue>`
 
 Búsqueda bidireccional inteligente. Retorna el `FoundValue` (un wrapper de string) para la clave dada. Si la clave no existe directamente, asume que el argumento era un valor y realiza una búsqueda inversa para encontrar la clave correspondiente.
 
 ---
 
-### `find_deep(key: &str) → Option<FoundValue>`
+### `find(key: &str) → Option<FoundValue>`
 
 Búsqueda profunda recursiva. Diseñada para seguir cadenas de alias AAM (p. ej., `current = base`, `base = /dir`). Debe implementar detección anti-ciclo.
 
 ---
 
-### `find_key(value: &str) → Option<String>`
+### `reverse_search(value: &str) → Option<String>`
 
-Búsqueda inversa estricta. Busca en los elementos AAML para encontrar la primera clave que contiene el valor designado exacto.
+Búsqueda inversa estricta. Busca en los elementos AAM para encontrar la primera clave que contiene el valor designado exacto.
 
 ---
 
@@ -102,9 +102,9 @@ Una biblioteca AAM compatible debe implementar al menos:
 |--------| ----------|
 | `parse(source)` | ✅ |
 | `load(path)` | ✅ |
-| `find_obj(key)` | ✅ |
-| `find_deep(key)` | ✅ |
-| `find_key(value)` | ✅ |
+| `get(key)` | ✅ |
+| `find(key)` | ✅ |
+| `reverse_search(value)` | ✅ |
 | `validate()` | ✅ |
 | `schema(name)` | Recomendado |
 | `load_from_reader(reader, base_dir)` | Recomendado |

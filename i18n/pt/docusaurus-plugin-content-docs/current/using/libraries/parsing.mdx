@@ -26,77 +26,115 @@ name = #NoSpaceHere # Isto NÃO é um comentário (inválido ou literal)
 
 ### Aspas
 
-Os valores de string podem ser opcionalmente envolvidos por aspas duplas (`"`) ou simples (`'`). A utilidade `unwrap_quotes` (disponível na maioria das bibliotecas) pode ser utilizada para removê-las manualmente, se necessário, embora sejam frequentemente tratadas automaticamente pelo parser.
+Os valores de string podem ser opcionalmente envolvidos por aspas duplas (`"`) ou simples (`'`). As aspas são removidas automaticamente durante a análise.
 
 ---
 
 ## A partir de um Ficheiro
 
-O ponto de entrada mais comum é `AAML::load`, que lê um ficheiro `.aam` do disco, processa todas as diretivas e retorna uma instância `AAML` pronta a usar.
+O ponto de entrada mais comum é `AAM::load`, que lê um ficheiro `.aam` do disco, processa todas as diretivas e retorna uma instância `AAM` pronta a usar.
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
-let cfg = AAML::load("config.aam").unwrap();
-println!("{}", cfg.find_obj("host").unwrap());
+let cfg = AAM::load("config.aam").unwrap();
+println!("{}", cfg.get("host").unwrap());
 ```
 
 ```python
-from aam_py import AAML
+from aam_py import AAM
 
-cfg = AAML.load("config.aam")
-print(cfg.find_obj("host"))
+cfg = AAM.load("config.aam")
+print(cfg.get("host"))
 ```
 
 ## A partir de uma String
 
-Use `AAML::parse` para analisar conteúdo AAM que já está em memória como uma string. Isto é útil para configurações inline, testes unitários ou conteúdo obtido de uma fonte remota.
+Use `AAM::parse` para analisar conteúdo AAM que já está em memória como uma string. Isto é útil para configurações inline, testes unitários ou conteúdo obtido de uma fonte remota.
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
 let source = "host = localhost\nport = 8080";
-let cfg = AAML::parse(source).unwrap();
+let cfg = AAM::parse(source).unwrap();
 
-assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+assert_eq!(cfg.get("host").unwrap().as_str(), "localhost");
 ```
 
 ```python
-from aam_py import AAML
+from aam_py import AAM
 
 source = "host = localhost\nport = 8080"
-cfg = AAML.parse(source)
+cfg = AAM.parse(source)
 
-assert cfg.find_obj("host") == "localhost"
+assert cfg.get("host") == "localhost"
 ```
 
-## Fundir Múltiplas Fontes
+## Pesquisas (Lookups)
 
-Por vezes, a configuração provém de mais do que um ficheiro ou string. Use `merge_content` e `merge_file` para carregar conteúdo adicional numa instância `AAML` existente. Quando uma chave aparece tanto na instância existente como na fonte fundida, o **valor recebido vence**.
+A forma principal de recuperar valores é através de `get(key)`, que faz uma pesquisa O(1):
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
-let mut cfg = AAML::new();
-cfg.merge_file("base.aam").unwrap();
-cfg.merge_content("debug = true").unwrap(); // adiciona ou substitui 'debug'
+let cfg = AAM::parse("host = localhost").unwrap();
+let host = cfg.get("host");          // Some("localhost")
+let missing = cfg.get("unknown");    // None
 ```
 
 ```python
-from aam_py import AAML
+from aam_py import AAM
 
-cfg = AAML()
-cfg.merge_file("base.aam")
-cfg.merge_content("debug = true")   # adiciona ou substitui 'debug'
+cfg = AAM.parse("host = localhost")
+host = cfg.get("host")      # "localhost"
+missing = cfg.get("unknown") # None
 ```
 
-Também pode fundir duas instâncias `AAML` com o operador `+`:
+### Pesquisa Inversa
+
+Para encontrar todas as chaves que contêm um valor específico:
 
 ```rust
-let base      = AAML::load("base.aam").unwrap();
-let overrides = AAML::load("env.aam").unwrap();
+let keys: Vec<&str> = cfg.reverse_search("localhost");
+```
 
-let cfg = base + overrides; // o lado direito vence em caso de conflito
+```python
+keys: list[str] = cfg.reverse_search("localhost")
+```
+
+### Pesquisa por Padrão
+
+Para encontrar todos os pares chave-valor onde a chave contém um padrão:
+
+```rust
+let pairs: Vec<(&str, &str)> = cfg.deep_search("host");
+```
+
+```python
+pairs: dict[str, str] = cfg.deep_search("host")
+```
+
+### Pesquisa Combinada
+
+Pesquisa primeiro por chave e depois por valor:
+
+```rust
+let pairs: Vec<(&str, &str)> = cfg.find("query");
+```
+
+## Iteração
+
+Pode iterar sobre todos os pares chave-valor sem alocar memória adicional:
+
+```rust
+for (key, value) in &cfg {
+    println!("{key} = {value}");
+}
+```
+
+```python
+for key, value in cfg.to_dict().items():
+    print(f"{key} = {value}")
 ```
 
 ## Diretivas Processadas em Tempo de Análise
@@ -112,15 +150,15 @@ Todas as diretivas AAM são resolvidas automaticamente durante a análise — n�
 
 ## Tratamento de Erros
 
-`AAML::load` e `AAML::parse` retornam ambos `Result<AAML, AamlError>`. Trate sempre os erros em código de produção:
+`AAM::load` e `AAM::parse` retornam ambos `Result<AAM, AamlError>`. Trate sempre os erros em código de produção:
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 use aam_rs::error::AamlError;
 
-match AAML::load("config.aam") {
+match AAM::load("config.aam") {
     Ok(cfg) => {
-        println!("host = {}", cfg.find_obj("host").unwrap());
+        println!("host = {}", cfg.get("host").unwrap());
     }
     Err(AamlError::IoError(e)) => {
         eprintln!("Não foi possível ler o ficheiro: {e}");
@@ -133,11 +171,11 @@ match AAML::load("config.aam") {
 ```
 
 ```python
-from aam_py import AAML, AamlError
+from aam_py import AAM, AamlError
 
 try:
-    cfg = AAML.load("config.aam")
-    print("host =", cfg.find_obj("host"))
+    cfg = AAM.load("config.aam")
+    print("host =", cfg.get("host"))
 except AamlError as e:
     print(f"Erro: {e}")
 ```

@@ -1,98 +1,728 @@
 ---
 sidebar_position: 3
-description: "AAML结构体、FoundValue和AamlError的完整API参考"
+description: "AAM 结构体的完整 API 参考"
 ---
 
-# aam-rs API参考
+# aam-rs API 参考
 
-`aam-rs` 是用于解析、验证和构建AAM配置文件的官方Rust库。Python库 `aam-py` 公开了相同的API——每个示例都展示了两种语言。
+`aam-rs` 是用于解析、验证和构建 AAM 配置文件的官方 Rust 库。它支持指令（`@import`、`@derive`、`@schema`、`@type`）、基于模式的类型验证、双向查找、深度模式搜索以及通过多阶段流水线实现的增量格式化。
+
+`AAM` 是用于所有操作（解析、加载、查找、格式化和模式内省）的统一结构体。
 
 ---
 
-## `AAML`
+## 架构
 
-所有AAM操作的主要入口点。`AAML` 保存解析后的键值映射、注册的类型定义和模式定义。所有指令（`@derive`、`@schema`、`@import`、`@type`）在解析时自动处理。
+该项目采用模块化架构设计：
+
+- **`aam/`**：所有操作统一入口点（`AAM` 结构体）。
+- **`pipeline/`**：五阶段流水线（词法分析器、解析器、验证器、执行器、格式化器）。
+- **`commands/`**：指令系统（`@import`、`@derive` 等）。
+- **`builder/`**：用于程序化生成 `.aam` 的流畅 API。
+- **`aot/`**：支持"预编译"二进制缓存（`.aam.bin`），实现快速启动。
+- **`error/`**：带有诊断指导的结构化错误类型。
+
+---
+
+## 特性标志
+
+| 标志 | 效果 |
+|:---|:---|
+| `hash-std` | 默认流水线哈希器（`std::collections::hash_map::RandomState`） |
+| `hash-fx` / `hash-ahash` / `hash-rapidhash` / `hash-ripemd` | 备用流水线哈希器（互斥） |
+| `perf-hash` | 将 `HashMap` 哈希器切换为 `ahash::RandomState` 以获得更高吞吐量 |
+| `aot` | 启用 `src/aot/` 预编译二进制缓存和 `AAM::load` 快速路径 |
+| `ffi` / `python` / `jni` / `csharp` | 启用语言绑定接口 |
+| `parallel` | 启用流水线中并行解析任务的预验证 |
+| `serde` | 在 `SchemaInfo`、`AAMBuilder` 等上派生 `Serialize`/`Deserialize` |
+
+---
+
+## `AAM`
+
+所有 AAM 操作的主要入口点。`AAM` 保存解析后的键值映射、注册的类型定义和模式定义。所有指令（`@derive`、`@schema`、`@import`、`@type`）在解析时自动处理。
 
 ### 构造函数
 
-#### `AAML::parse`
+#### `AAM::new`
 
-解析AAM字符串并返回新的完全填充的 `AAML` 实例。
+创建一个新的空 `AAM` 实例。
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
-let cfg = AAML::parse("host = localhost\nport = 8080").unwrap();
-assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+let cfg = AAM::new();
 ```
 
 ```python
-from aam import AAML
+from aam_py import AAM
 
-cfg = AAML.parse("host = localhost\nport = 8080")
-assert cfg.find_obj("host") == "localhost"
+cfg = AAM()
 ```
 
 ---
 
-#### `AAML::load`
+#### `AAM::parse`
 
-从磁盘读取AAM文件并返回新的 `AAML` 实例。
+解析 AAM 字符串并返回新的完全填充的 `AAM` 实例。如果字符串是现有文件的路径，则会读取并解析该文件，并支持完整的源目录支持。
+
+| 参数      | 类型    | 描述                              |
+|-----------|--------|-----------------------------------|
+| `content` | `&str` | 要解析的 AAM 源代码文本（或文件路径）。|
+
+**返回：** `Result<AAM, Vec<AamlError>>`
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
-let cfg = AAML::load("config.aam").unwrap();
-println!("{}", cfg.find_obj("host").unwrap());
+let cfg = AAM::parse("host = localhost\nport = 8080").unwrap();
+assert_eq!(cfg.get("host").unwrap(), "localhost");
 ```
 
 ```python
-from aam import AAML
+from aam_py import AAM
 
-cfg = AAML.load("config.aam")
-print(cfg.find_obj("host"))
+cfg = AAM.parse("host = localhost\nport = 8080")
+assert cfg.get("host") == "localhost"
+```
+
+---
+
+#### `AAM::load`
+
+从磁盘读取 AAM 文件并返回新的 `AAM` 实例。启用 `aot` 特性（默认）时，使用预编译的 `.aam.bin` 缓存作为主要路径，实现零拷贝内存映射加载。
+
+| 参数        | 类型                | 描述               |
+|-------------|--------------------|--------------------|
+| `file_path` | `impl AsRef<Path>` | `.aam` 文件的路径。 |
+
+**返回：** `Result<AAM, Vec<AamlError>>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::load("config.aam").unwrap();
+println!("{}", cfg.get("host").unwrap());
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.load("config.aam")
+print(cfg.get("host"))
+```
+
+---
+
+#### `AAM::from_pipeline`
+
+从自定义配置的 `Pipeline` 创建 `AAM` 实例。如果需要在解析前注册自定义命令、解析器或验证器，请使用此方法。
+
+| 参数       | 类型          | 描述                         |
+|------------|--------------|------------------------------|
+| `pipeline` | `&Pipeline`  | 配置好的流水线实例。          |
+| `text`     | `&str`       | AAM 源代码文本（或文件路径）。 |
+
+**返回：** `Result<AAM, Vec<AamlError>>`
+
+```rust
+use aam_rs::aam::AAM;
+use aam_rs::pipeline::{Pipeline, DefaultLexer, DefaultParser};
+
+let pipeline = Pipeline::new();
+let cfg = AAM::from_pipeline(&pipeline, "key = value").unwrap();
 ```
 
 ---
 
 ### 查找
 
-#### `find_obj`
+这些方法从解析后的键值映射中检索值。
 
-主要查找方法。在映射中搜索 `key`。如果没有找到匹配的键，它会执行自动**反向查找**——搜索*值*等于 `key` 的任何条目。
+#### `get`
+
+通过键检索值。执行简单的 O(1) 正向查找 — 无自动回退。
+
+| 参数  | 类型    | 描述       |
+|-------|--------|-----------|
+| `key` | `&str` | 要查找的键。|
+
+**返回：** `Option<&str>`
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
-let cfg = AAML::parse("a = b").unwrap();
+let cfg = AAM::parse("host = localhost").unwrap();
 
-// 正向查找
-assert_eq!(cfg.find_obj("a").unwrap().as_str(), "b");
+assert_eq!(cfg.get("host").unwrap(), "localhost");
+assert!(cfg.get("unknown").is_none());
+```
 
-// 反向查找（按值搜索）
-assert_eq!(cfg.find_obj("b").unwrap().as_str(), "a");
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("host = localhost")
+assert cfg.get("host") == "localhost"
+assert cfg.get("unknown") is None
 ```
 
 ---
 
-#### `find_deep`
+#### `reverse_search`
 
-跟随 `key → value → key` 查找链，直到达到终端值或检测到循环。
+查找所有映射值等于给定值的键。
+
+| 参数    | 类型    | 描述           |
+|---------|--------|----------------|
+| `value` | `&str` | 要搜索的值。    |
+
+**返回：** `Vec<&str>`
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
-let cfg = AAML::parse("a = b\nb = c").unwrap();
-// 跟随: a → b → c  (c 是终端 — 键 "c" 不存在)
-assert_eq!(cfg.find_deep("a").unwrap().as_str(), "c");
+let cfg = AAM::parse("a = x\nb = y\nc = x").unwrap();
+let keys = cfg.reverse_search("x");
+assert_eq!(keys, vec!["a", "c"]);
 ```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("a = x\nb = y\nc = x")
+keys = cfg.reverse_search("x")
+assert keys == ["a", "c"]
+```
+
+---
+
+#### `deep_search`
+
+查找所有键包含给定模式（子串匹配）的键值对。
+
+| 参数      | 类型    | 描述                    |
+|-----------|--------|-------------------------|
+| `pattern` | `&str` | 要在键中搜索的子串。    |
+
+**返回：** `Vec<(&str, &str)>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("app_host = localhost\napp_port = 8080\ndbg = true").unwrap();
+let pairs = cfg.deep_search("app_");
+assert_eq!(pairs.len(), 2);
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("app_host = localhost\napp_port = 8080\ndbg = true")
+pairs = cfg.deep_search("app_")
+assert len(pairs) == 2
+```
+
+---
+
+#### `find`
+
+组合键值搜索。首先尝试 O(1) 正向键查找；如果键不存在，则回退到 O(N) 值扫描。返回**所有**匹配的对。
+
+| 参数    | 类型    | 描述                      |
+|---------|--------|---------------------------|
+| `query` | `&str` | 要查找的键；回退为值匹配。|
+
+**返回：** `Vec<(&str, &str)>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("a = b\nx = y").unwrap();
+
+// 键存在 → O(1) 查找
+let result = cfg.find("a");
+assert_eq!(result, vec![("a", "b")]);
+
+// 键不存在 → 值扫描
+let result = cfg.find("y");
+assert_eq!(result, vec![("x", "y")]);
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("a = b\nx = y")
+
+# 键存在 → 直接查找
+result = cfg.find("a")
+assert result == {"a": "b"}
+
+# 键不存在 → 值扫描
+result = cfg.find("y")
+assert result == {"x": "y"}
+```
+
+---
+
+#### `find_by`
+
+使用自定义谓词函数进行高级搜索。遍历所有键值对，返回谓词返回 `true` 的对。
+
+| 参数        | 类型                              | 描述                 |
+|-------------|-----------------------------------|----------------------|
+| `predicate` | `impl Fn(&str, &str) -> bool`     | 自定义匹配函数。     |
+
+**返回：** `Vec<(&str, &str)>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("host = localhost\nport = 8080\nversion = 3").unwrap();
+
+// 找到所有值以 "8" 开头的对
+let pairs = cfg.find_by(|_key, value| value.starts_with('8'));
+assert_eq!(pairs, vec![("port", "8080")]);
+```
+
+---
+
+#### `iter`
+
+遍历所有键值对，无需额外分配。同时支持动态 `HashMap` 和内存映射的 AOT 后端。
+
+**返回：** `Box<dyn Iterator<Item = (&str, &str)>>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("a = 1\nb = 2").unwrap();
+for (key, value) in cfg.iter() {
+    println!("{key} = {value}");
+}
+```
+
+---
+
+#### `keys`
+
+返回当前存储的所有键。如果需要零分配的迭代，建议优先使用 `iter`。
+
+**返回：** `Vec<&str>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("a = 1\nb = 2").unwrap();
+for key in cfg.keys() {
+    println!("{key}");
+}
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("a = 1\nb = 2")
+for key in cfg.keys():
+    print(key)
+```
+
+---
+
+#### `to_map`
+
+将所有键值对作为标准分配映射返回。如果需要零分配的迭代，建议优先使用 `iter`。
+
+**返回：** `HashMap<String, String>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("a = 1\nb = 2").unwrap();
+let map = cfg.to_map();
+assert_eq!(map.get("a").unwrap(), "1");
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("a = 1\nb = 2")
+d = cfg.to_dict()
+assert d == {"a": "1", "b": "2"}
+```
+
+---
+
+### Schema 和 Type 访问器
+
+这些方法提供对解析期间发现的 schemas 和 types 的只读访问。当配置通过 AOT 内存映射（零拷贝模式）加载时，它们返回 `None`。
+
+#### `schemas`
+
+返回所有已注册 schemas 的引用。
+
+**返回：** `Option<&HashMap<SmolStr, SchemaInfo>>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("@schema Player { name: string, id: i32 }").unwrap();
+if let Some(schemas) = cfg.schemas() {
+    for (name, info) in schemas {
+        println!("Schema: {name}");
+    }
+}
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("@schema Player { name: string, id: i32 }")
+for name in cfg.schema_names():
+    print(name)
+```
+
+---
+
+#### `get_schema`
+
+返回注册在 `name` 下的 schema，或 `None`。
+
+| 参数   | 类型    | 描述              |
+|--------|--------|-------------------|
+| `name` | `&str` | 要查找的 schema 名称。|
+
+**返回：** `Option<&SchemaInfo>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("@schema Player { name: string, id: i32 }").unwrap();
+let schema = cfg.get_schema("Player").unwrap();
+println!("{:?}", schema.fields);
+```
+
+---
+
+#### `types`
+
+返回所有已注册 types 的引用。
+
+**返回：** `Option<&HashMap<SmolStr, TypeInfo>>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("@type pos = math::vector3").unwrap();
+if let Some(types) = cfg.types() {
+    for (name, info) in types {
+        println!("Type: {name} -> {}", info.spec);
+    }
+}
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM.parse("@type pos = math::vector3")
+for name in cfg.type_names():
+    print(name)
+```
+
+---
+
+#### `get_type`
+
+返回注册在 `name` 下的类型信息，或 `None`。
+
+| 参数   | 类型    | 描述                |
+|--------|--------|---------------------|
+| `name` | `&str` | 已注册的类型名称。   |
+
+**返回：** `Option<&TypeInfo>`
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::new();
+let info = cfg.get_type("i32");
+```
+
+---
+
+### 格式化
+
+这些方法使用解析器 + 流水线格式化器来格式化 AAM 内容。
+
+#### `format`
+
+解析并格式化任意 AAM 内容。成功时返回格式化后的字符串。
+
+| 参数      | 类型                                    | 描述                 |
+|-----------|-----------------------------------------|----------------------|
+| `content` | `&str`                                  | 要格式化的 AAM 源。  |
+| `options` | `&FormattingOptions`                    | 格式化规则。         |
+
+**返回：** `Result<String, AamlError>`
+
+```rust
+use aam_rs::aam::AAM;
+use aam_rs::pipeline::formatter::FormattingOptions;
+
+let cfg = AAM::new();
+let formatted = cfg.format("key=value", &FormattingOptions::default()).unwrap();
+assert_eq!(formatted, "key = value\n");
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM()
+formatted = cfg.format("key=value")
+assert formatted == "key = value\n"
+```
+
+---
+
+#### `format_range`
+
+仅格式化任意 AAM 内容的选定行范围。
+
+| 参数      | 类型                                    | 描述                    |
+|-----------|-----------------------------------------|-------------------------|
+| `content` | `&str`                                  | 要格式化的 AAM 源。     |
+| `range`   | `FormatRange`                           | 要格式化的行范围。      |
+| `options` | `&FormattingOptions`                    | 格式化规则。            |
+
+**返回：** `Result<String, AamlError>`
+
+```rust
+use aam_rs::aam::AAM;
+use aam_rs::pipeline::formatter::{FormatRange, FormattingOptions};
+
+let cfg = AAM::new();
+let range = FormatRange { start_line: 1, end_line: 2 };
+let result = cfg.format_range("a = 1\nb = 2\nc = 3", range, &FormattingOptions::default());
+```
+
+```python
+from aam_py import AAM
+
+cfg = AAM()
+result = cfg.format_range("a = 1\nb = 2\nc = 3", 1, 2)
+```
+
+---
+
+#### `lsp_assist`
+
+LSP 服务器的便捷方法：使用错误恢复进行解析，并可选择返回格式化结果。返回诊断信息以及格式化后的输出（如果没有错误）。
+
+| 参数      | 类型                                    | 描述                   |
+|-----------|-----------------------------------------|------------------------|
+| `content` | `&str`                                  | 要处理的 AAM 源。      |
+| `options` | `&FormattingOptions`                    | 格式化规则。           |
+
+**返回：** `AamLspAssist`
+
+```rust
+use aam_rs::aam::AAM;
+use aam_rs::pipeline::formatter::FormattingOptions;
+
+let result = AAM::lsp_assist("key=value", &FormattingOptions::default());
+for diag in &result.diagnostics {
+    eprintln!("{diag}");
+}
+if let Some(formatted) = &result.formatted {
+    println!("{formatted}");
+}
+```
+
+```python
+from aam_py import AAM
+
+diagnostics, formatted = AAM.lsp_assist("key=value")
+for d in diagnostics:
+    print(d)
+```
+
+---
+
+## `AamLspAssist`
+
+`AAM::lsp_assist` 的返回类型。包含诊断信息和可选的格式化输出。
+
+```rust
+pub struct AamLspAssist {
+    pub diagnostics: Vec<AamlError>,
+    pub formatted: Option<String>,
+}
+```
+
+---
+
+## `SchemaInfo`
+
+由 [`AAM::get_schema`](#get_schema) 返回的类型，包含在 [`AAM::schemas`](#schemas) 的映射中。表示解析后的 `@schema` 定义。
+
+### 字段
+
+| 字段     | 类型                                             | 描述                                        |
+|----------|--------------------------------------------------|---------------------------------------------|
+| `name`   | `SmolStr`                                        | Schema 名称。                                |
+| `fields` | `HashMap<SmolStr, (SmolStr, bool)>`              | 将字段名映射到 `(type_name, is_optional)`。 |
+| `line`   | `usize`                                          | 定义 schema 的源代码行号。                  |
+
+```rust
+use aam_rs::aam::AAM;
+
+let cfg = AAM::parse("@schema Player { name: string, id*: i32 }").unwrap();
+let schema = cfg.get_schema("Player").unwrap();
+
+for (field_name, (type_name, is_optional)) in &schema.fields {
+    println!("{field_name}: {type_name} (optional={is_optional})");
+}
+```
+
+---
+
+## `TypeInfo`
+
+由 [`AAM::get_type`](#get_type) 返回的类型。表示已注册的类型别名。
+
+### 字段
+
+| 字段        | 类型                 | 描述                                |
+|-------------|----------------------|-------------------------------------|
+| `name`      | `SmolStr`            | 类型名称。                          |
+| `spec`      | `SmolStr`            | 类型规范（例如 `"i32"`、`"math::vector3"`）。 |
+| `validator` | `Option<SmolStr>`    | 可选的自定义验证规则。              |
 
 ---
 
 ## `AamlError`
 
-| 变量 | 描述 |
+由解析和验证流水线产生的所有错误都实现了 `std::error::Error` 和 `Display`。
+
+### 变体
+
+| 变体 | 描述 |
 |------|------|
-| `IoError(io::Error)` | 读取文件时发生I/O错误。 |
-| `ParseError { line, content, details }` | 源行无法作为有效的AAML语句解析。 |
-| `SchemaValidationError { schema, field, type_name, details }` | 解析或验证期间违反了模式约束。 |
+| `IoError { details, diagnostics }` | 读取文件时的 I/O 错误。 |
+| `ParseError { line, content, details, diagnostics }` | 行无法作为有效的 AAM 语句解析。 |
+| `NotFound { key, context, diagnostics }` | 键或类型未找到。 |
+| `InvalidValue { details, expected, diagnostics }` | 值不符合基本类型约束。 |
+| `InvalidType { type_name, details, provided, diagnostics }` | 值未通过针对注册/内置类型的验证。 |
+| `DirectiveError { directive, message, diagnostics }` | 指令遇到无效参数。 |
+| `SchemaValidationError { schema, field, type_name, details, diagnostics }` | 解析期间违反了 Schema 约束。 |
+| `MissingRequiredField { schema, field, field_type, diagnostics }` | 缺少必需的模式字段。 |
+| `CircularDependency { path, diagnostics }` | 检测到循环导入或派生。 |
+| `TypeRegistrationConflict { type_name, existing, new, diagnostics }` | 类型名称注册时存在冲突定义。 |
+| `NestingDepthExceeded { depth, context, diagnostics }` | 超出递归深度限制。 |
+| `MalformedLiteral { literal_type, content, diagnostics }` | 格式错误的内联对象或数组字面量。 |
+| `DirectiveSyntaxError { directive, provided_syntax, expected_syntax, diagnostics }` | 指令语法错误。 |
+| `TypeConversionError { from_type, to_type, value, diagnostics }` | 类型转换失败。 |
+| `LexError` | 词法分析错误。 |
+
+### 错误处理示例
+
+```rust
+use aam_rs::aam::AAM;
+use aam_rs::error::AamlError;
+
+match AAM::load("config.aam") {
+    Ok(cfg) => println!("加载成功"),
+    Err(errors) => {
+        for err in &errors {
+            match err {
+                AamlError::IoError { details, .. } => {
+                    eprintln!("无法读取文件：{details}");
+                }
+                AamlError::ParseError { line, content, details, .. } => {
+                    eprintln!("第 {line} 行解析错误：'{content}' — {details}");
+                }
+                AamlError::SchemaValidationError { schema, field, type_name, details, .. } => {
+                    eprintln!("Schema '{schema}'：字段 '{field}' ({type_name}) — {details}");
+                }
+                _ => eprintln!("错误：{err}"),
+            }
+        }
+    }
+}
+```
+
+```python
+from aam_py import AAM, AamlError
+
+try:
+    cfg = AAM.load("config.aam")
+except AamlError as e:
+    print(f"错误：{e}")
+```
+
+---
+
+## `FoundValue`
+
+用于处理 AAM 字符串值的独立工具类型。**注意：** `AAM::get` 方法直接返回 `Option<&str>`，而不是 `FoundValue`。当需要对原始字符串进行列表/对象解析辅助时，请使用 `FoundValue`。
+
+### `FoundValue::new`
+
+| 参数    | 类型    | 描述          |
+|---------|--------|---------------|
+| `value` | `&str` | 原始字符串。  |
+
+**返回：** `FoundValue`
+
+```rust
+use aam_rs::found_value::FoundValue;
+
+let v = FoundValue::new("hello");
+assert_eq!(v.as_str(), "hello");
+```
+
+```python
+from aam_py import FoundValue  # 如果绑定中可用
+
+v = FoundValue("hello")
+assert str(v) == "hello"
+```
+
+### 方法
+
+| 方法 | 描述 |
+|------|------|
+| `as_str() -> &str` | 将内部值作为字符串切片返回。 |
+| `as_list() -> Option<Vec<String>>` | 解析为 `[item, item, ...]` 列表。 |
+| `as_object() -> Option<HashMap<String, String>>` | 解析为 `{ k = v, ... }` 内联对象。 |
+| `is_list() -> bool` | 如果值是列表字面量则返回 `true`。 |
+| `is_object() -> bool` | 如果值是内联对象字面量则返回 `true`。 |
+| `remove(target: &str) -> &mut Self` | 从值中移除所有 `target` 出现。 |
+
+```rust
+use aam_rs::found_value::FoundValue;
+
+let v = FoundValue::new("[rust, aam, config]");
+let items = v.as_list().unwrap();
+assert_eq!(items, vec!["rust", "aam", "config"]);
+
+let v = FoundValue::new("{ x = 1.0, y = 2.0 }");
+let map = v.as_object().unwrap();
+assert_eq!(map["x"], "1.0");
+```
+
+```python
+from aam_py import FoundValue
+
+v = FoundValue("[rust, aam, config]")
+items = v.as_list()
+assert items == ["rust", "aam", "config"]
+```
+
+### Trait 实现
+
+| Trait | 行为 |
+|-------|------|
+| `Display` | 打印内部原始字符串。 |
+| `Deref<Target=String>` | 解引用到内部 `String`。 |
+| `PartialEq<&str>` | 直接与 `&str` 比较。 |
+| `Clone` | 值的独立副本。 |

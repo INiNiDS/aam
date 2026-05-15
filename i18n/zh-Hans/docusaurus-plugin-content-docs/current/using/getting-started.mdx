@@ -70,3 +70,27 @@ a = b
     @type UserProfile = string
     ```
 
+### 内联对象
+值可以使用 `{ key = value }` 语法作为内联对象：
+```aam
+server = { host = "localhost", port = 8080, debug = true }
+```
+支持嵌套对象：
+```aam
+config = { database = { host = "db.local", port = 5432 }, cache = { ttl = 3600 } }
+```
+
+### 引号字符串
+值和列表项可以用双引号（`"`）或单引号（`'`）包裹。当值包含逗号或特殊字符时尤其有用：
+```aam
+title = "你好，世界！"
+items = ["rust, aam", 'single, quoted', plain_value]
+```
+引号在解析时自动去除，引号字符串内支持转义序列（`\\`）。
+
+### 格式化工具
+AAM 包含内置格式化工具，可自动格式化 AAM 文件。支持：
+- **智能模式格式化** — 小模式压缩为单行，大模式展开为多行
+- **指令提升** — 将 `@import` 和 `@derive` 指令移至文档顶部
+- **可配置缩进** — 制表符 vs 空格、缩进大小、行宽
+- **键排序和空行保留**

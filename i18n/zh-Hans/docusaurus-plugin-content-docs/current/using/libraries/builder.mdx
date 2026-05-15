@@ -25,7 +25,7 @@ assert!(content.contains("host = localhost"));
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 b = AAMBuilder()
 b.add_line("host", "localhost")
@@ -105,7 +105,7 @@ b.to_file("output.aam").unwrap();
 
 表示 `@schema` 块内的单个字段声明。
 
-| 方法 | AAML形式 | 描述 |
+| 方法 | AAM形式 | 描述 |
 |------|---------|------|
 | `SchemaField::required(name, type_name)` | `name: type` | 数据映射中**必须**存在的字段。 |
 | `SchemaField::optional(name, type_name)` | `name*: type` | **可以**不存在的字段；存在时验证。 |

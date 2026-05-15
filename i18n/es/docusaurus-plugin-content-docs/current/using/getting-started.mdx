@@ -73,3 +73,28 @@ Para mantener tu proyecto limpio y consistente, AAM usa convenciones de nomencla
     ```aam
     @schema PlayerData { ... } o @type UserProfile = string
     ```
+
+### Objetos en Línea
+Los valores pueden ser objetos en línea usando la sintaxis `{ key = value }`:
+```aam
+server = { host = "localhost", port = 8080, debug = true }
+```
+Los objetos anidados están soportados:
+```aam
+config = { database = { host = "db.local", port = 5432 }, cache = { ttl = 3600 } }
+```
+
+### Cadenas entre Comillas
+Los valores y elementos de lista se pueden envolver entre comillas dobles (`"`) o simples (`'`). Esto es especialmente útil cuando los valores contienen comas o caracteres especiales:
+```aam
+title = "¡Hola, Mundo!"
+items = ["rust, aam", 'single, quoted', plain_value]
+```
+Las comillas se eliminan automáticamente durante el análisis y las secuencias de escape (`\\`) son soportadas dentro de cadenas entre comillas.
+
+### Formateador
+AAM incluye un formateador integrado que puede formatear automáticamente tus archivos AAM. Soporta:
+- **Formateo inteligente de esquemas** — colapsa esquemas pequeños (`@schema Name { field: type }`) a una línea, expande los grandes en varias líneas
+- **Elevación de directivas** — mueve las directivas `@import` y `@derive` al principio del documento
+- **Indentación configurable** — tabs vs espacios, tamaño de indentación, ancho de línea
+- **Ordenación de claves y preservación de líneas en blanco**

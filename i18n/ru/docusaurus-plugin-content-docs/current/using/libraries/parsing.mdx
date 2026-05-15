@@ -26,88 +26,115 @@ name = #NoSpaceHere # Это НЕ комментарий (неверно или 
 
 ### Кавычки
 
-Строковые значения могут быть опционально заключены в двойные (`"`) или одинарные (`'`) кавычки. Утилита `unwrap_quotes` (доступная в большинстве библиотек) может быть использована для их удаления вручную, хотя парсер часто обрабатывает их автоматически.
+Строковые значения могут быть опционально заключены в двойные (`"`) или одинарные (`'`) кавычки. Кавычки удаляются автоматически во время разбора.
 
 ---
 
 ## Из файла
 
-Наиболее распространённая точка входа — `AAML::load`, которая читает файл `.aam` с диска, обрабатывает все директивы и возвращает готовый к использованию экземпляр `AAML`.
+Наиболее распространённая точка входа — `AAM::load`, которая читает файл `.aam` с диска, обрабатывает все директивы и возвращает готовый к использованию экземпляр `AAM`.
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
-let cfg = AAML::load("config.aam").unwrap();
-println!("{}", cfg.find_obj("host").unwrap());
+let cfg = AAM::load("config.aam").unwrap();
+println!("{}", cfg.get("host").unwrap());
 ```
 
 ```python
-from aam_py import AAML
+from aam_py import AAM
 
-cfg = AAML.load("config.aam")
-print(cfg.find_obj("host"))
+cfg = AAM.load("config.aam")
+print(cfg.get("host"))
 ```
 
 ## Из строки
 
-Используйте `AAML::parse` для разбора содержимого AAM, которое уже находится в памяти в виде строки. Это полезно для встроенных конфигураций, юнит-тестов или содержимого, полученного из удалённого источника.
+Используйте `AAM::parse` для разбора содержимого AAM, которое уже находится в памяти в виде строки. Это полезно для встроенных конфигураций, юнит-тестов или содержимого, полученного из удалённого источника.
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
 let source = "host = localhost\nport = 8080";
-let cfg = AAML::parse(source).unwrap();
+let cfg = AAM::parse(source).unwrap();
 
-assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+assert_eq!(cfg.get("host").unwrap().as_str(), "localhost");
 ```
 
 ```python
-from aam_py import AAML
+from aam_py import AAM
 
 source = "host = localhost\nport = 8080"
-cfg = AAML.parse(source)
+cfg = AAM.parse(source)
 
-assert cfg.find_obj("host") == "localhost"
+assert cfg.get("host") == "localhost"
 ```
 
-## Слияние нескольких источников
+## Поиск (Lookups)
 
-Иногда конфигурация поступает из нескольких файлов или строк. Используйте `merge_content` и `merge_file` для загрузки дополнительного содержимого в существующий экземпляр `AAML`. Когда ключ присутствует как в существующем экземпляре, так и в объединяемом источнике, **входящее значение побеждает**.
+Основной способ получения значений — `get(key)`, который выполняет поиск за O(1):
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
-let mut cfg = AAML::new();
-cfg.merge_file("base.aam").unwrap();
-cfg.merge_content("debug = true").unwrap(); // добавляет или перезаписывает 'debug'
+let cfg = AAM::parse("host = localhost").unwrap();
+let host = cfg.get("host");          // Some("localhost")
+let missing = cfg.get("unknown");    // None
 ```
 
 ```python
-from aam_py import AAML
+from aam_py import AAM
 
-cfg = AAML()
-cfg.merge_file("base.aam")
-cfg.merge_content("debug = true")   # добавляет или перезаписывает 'debug'
+cfg = AAM.parse("host = localhost")
+host = cfg.get("host")      # "localhost"
+missing = cfg.get("unknown") # None
 ```
 
-Также можно объединить два экземпляра `AAML` с помощью оператора `+`:
+### Обратный поиск
+
+Чтобы найти все ключи, содержащие определённое значение:
 
 ```rust
-use aam_rs::aaml::AAML;
-
-let base      = AAML::load("base.aam").unwrap();
-let overrides = AAML::load("env.aam").unwrap();
-
-let cfg = base + overrides; // правый операнд побеждает при конфликте
+let keys: Vec<&str> = cfg.reverse_search("localhost");
 ```
 
 ```python
-from aam_py import AAML
+keys: list[str] = cfg.reverse_search("localhost")
+```
 
-base      = AAML.load("base.aam")
-overrides = AAML.load("env.aam")
+### Поиск по шаблону
 
-cfg = base + overrides   # правый операнд побеждает при конфликте
+Чтобы найти все пары ключ-значение, где ключ содержит шаблон:
+
+```rust
+let pairs: Vec<(&str, &str)> = cfg.deep_search("host");
+```
+
+```python
+pairs: dict[str, str] = cfg.deep_search("host")
+```
+
+### Комбинированный поиск
+
+Сначала поиск по ключу, затем по значению:
+
+```rust
+let pairs: Vec<(&str, &str)> = cfg.find("query");
+```
+
+## Итерация
+
+Вы можете перебирать все пары ключ-значение без выделения дополнительной памяти:
+
+```rust
+for (key, value) in &cfg {
+    println!("{key} = {value}");
+}
+```
+
+```python
+for key, value in cfg.to_dict().items():
+    print(f"{key} = {value}")
 ```
 
 ## Директивы, обрабатываемые при разборе
@@ -123,15 +150,15 @@ cfg = base + overrides   # правый операнд побеждает при
 
 ## Обработка ошибок
 
-`AAML::load` и `AAML::parse` возвращают `Result<AAML, AamlError>`. Всегда обрабатывайте ошибки в производственном коде:
+`AAM::load` и `AAM::parse` возвращают `Result<AAM, AamlError>`. Всегда обрабатывайте ошибки в производственном коде:
 
 ```rust
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 use aam_rs::error::AamlError;
 
-match AAML::load("config.aam") {
+match AAM::load("config.aam") {
     Ok(cfg) => {
-        println!("host = {}", cfg.find_obj("host").unwrap());
+        println!("host = {}", cfg.get("host").unwrap());
     }
     Err(AamlError::IoError(e)) => {
         eprintln!("Не удалось прочитать файл: {e}");
@@ -147,11 +174,11 @@ match AAML::load("config.aam") {
 ```
 
 ```python
-from aam_py import AAML, AamlError
+from aam_py import AAM, AamlError
 
 try:
-    cfg = AAML.load("config.aam")
-    print("host =", cfg.find_obj("host"))
+    cfg = AAM.load("config.aam")
+    print("host =", cfg.get("host"))
 except AamlError as e:
     print(f"Ошибка: {e}")
 ```

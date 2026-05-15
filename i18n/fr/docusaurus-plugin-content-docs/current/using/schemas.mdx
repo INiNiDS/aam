@@ -30,7 +30,7 @@ Une fois que vous avez défini un schéma, vous pouvez utiliser la directive `@d
 ```aam
 # main.aam
 @derive fichier.aam::Player
-name = "Alice"
+name = "Luna"
 id = 1
 ```
 Dans cet exemple, nous dérivons le schéma `Player` de `fichier.aam` puis nous définissons les champs `name` et `id` pour une instance du schéma `Player`.
@@ -38,7 +38,7 @@ Dans cet exemple, nous dérivons le schéma `Player` de `fichier.aam` puis nous 
 Par défaut, tous les champs d'un schéma sont obligatoires. Cela signifie que lorsque vous créez une instance d'un schéma, vous devez fournir des valeurs pour tous les champs. Si vous essayez de créer une instance sans fournir de valeurs pour tous les champs obligatoires, AAM lèvera une erreur. Par exemple :
 ```aam
 @derive fichier.aam::Player
-name = "Alice"  # Cela lèvera une erreur car 'id' est obligatoire mais non fourni
+name = "Luna"  # Cela lèvera une erreur car 'id' est obligatoire mais non fourni
 ```
 Mais si nous ajoutons un `*` après le nom du champ, il devient optionnel :
 ```aam
@@ -50,7 +50,7 @@ Mais si nous ajoutons un `*` après le nom du champ, il devient optionnel :
 Dans ce cas, le champ `id` est optionnel, et vous pouvez créer une instance du schéma `Player` sans fournir de valeur pour `id` :
 ```aam
 @derive fichier.aam::Player
-name = "Alice"  # C'est valide car 'id' est optionnel
+name = "Luna"  # C'est valide car 'id' est optionnel
 ```
 ## Vérification
 ### Vérification des Types
@@ -64,5 +64,5 @@ id = "abc"  # Cela lèvera une erreur car 'id' est défini comme i32
 AAM vérifie également que tous les champs obligatoires sont fournis lors de la création d'une instance d'un schéma. Si vous omettez un champ obligatoire, AAM lèvera une erreur. Par exemple :
 ```aam
 @derive fichier.aam::NomSchema
-name = "Alice"  # Cela lèvera une erreur car 'id' est obligatoire mais non fourni
+name = "Luna"  # Cela lèvera une erreur car 'id' est obligatoire mais non fourni
 ```

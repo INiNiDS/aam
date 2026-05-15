@@ -11,17 +11,17 @@ description: "Справочник публичного API для интегр�
 
 | Функция | Описание |
 |:---|:---|
-| `AamlHandle *aam_new(void)` | Создает новый дескриптор AAML. |
-| `void aam_free(AamlHandle *handle)` | Освобождает ранее созданный дескриптор. |
+| `AamHandle *aam_new(void)` | Создает новый дескриптор AAM. |
+| `void aam_free(AamHandle *handle)` | Освобождает ранее созданный дескриптор. |
 
 ## Разбор и загрузка
 
 | Функция | Описание |
 |:---|:---|
-| `int aam_parse(AamlHandle *handle, const char *content)` | Разбирает содержимое AAM из строки. |
-| `int aam_load(AamlHandle *handle, const char *path)` | Загружает и разбирает файл AAM с диска. |
-| `int aam_merge(AamlHandle *handle, const char *content)` | Объединяет новое содержимое с существующим дескриптором. |
-| `int aam_recover_simple(AamlHandle *handle, const char *content)` | Безопасный разбор для восстановления поврежденных входных данных. |
+| `int aam_parse(AamHandle *handle, const char *content)` | Разбирает содержимое AAM из строки. |
+| `int aam_load(AamHandle *handle, const char *path)` | Загружает и разбирает файл AAM с диска. |
+| `int aam_merge(AamHandle *handle, const char *content)` | Объединяет новое содержимое с существующим дескриптором. |
+| `int aam_recover_simple(AamHandle *handle, const char *content)` | Безопасный разбор для восстановления поврежденных входных данных. |
 
 **Конвенция возврата:** `0` при успехе, ненулевое значение при ошибке.
 
@@ -29,9 +29,9 @@ description: "Справочник публичного API для интегр�
 
 | Функция | Описание |
 |:---|:---|
-| `char *aam_find_obj(const AamlHandle *handle, const char *key)` | Прямой поиск по ключу или обратный поиск по значению. |
-| `char *aam_find_key(const AamlHandle *handle, const char *value)` | Явный обратный поиск по значению. |
-| `char *aam_find_deep(const AamlHandle *handle, const char *key)` | Рекурсивное разрешение ссылок. |
+| `char *aam_get(const AamHandle *handle, const char *key)` | Прямой поиск по ключу или обратный поиск по значению. |
+| `char *aam_reverse_search(const AamHandle *handle, const char *value)` | Явный обратный поиск по значению. |
+| `char *aam_deep_search(const AamHandle *handle, const char *key)` | Рекурсивное разрешение ссылок. |
 
 :::important
 Возвращаемые строки принадлежат Rust и должны быть освобождены через `aam_string_free` во избежание утечек памяти.
@@ -42,7 +42,7 @@ description: "Справочник публичного API для интегр�
 | Функция | Описание |
 |:---|:---|
 | `void aam_string_free(char *s)` | Освобождает строку, возвращенную любой из функций поиска. |
-| `const char *aam_last_error(const AamlHandle *handle)` | Возвращает сообщение о последней ошибке в виде заимствованной строки. |
+| `const char *aam_last_error(const AamHandle *handle)` | Возвращает сообщение о последней ошибке в виде заимствованной строки. |
 
 :::warning
 `aam_last_error` возвращает внутренний заимствованный указатель. **Не освобождайте его.**

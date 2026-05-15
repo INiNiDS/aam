@@ -59,6 +59,25 @@ datetime 和 duration 使用 ISO 8601 格式：
 items = ["Hello", "World"]
 ```
 
+### 列表中的引号项
+列表项可以用双引号（`"`）或单引号（`'`）包裹。引号内的逗号会正确处理，不会被当作分隔符：
+```aam
+fruits = ["apple, banana", 'orange, grape', plain]
+```
+这将创建一个包含三项的列表：`apple, banana`、`orange, grape` 和 `plain`。
+引号会在解析时自动去除，您可以自由混合使用带引号和不带引号的项目。
+
+### 内联对象
+AAM 还支持使用 `{ key = value }` 语法将内联对象作为值。字段之间用逗号分隔：
+```aam
+config = { host = "localhost", port = 8080, debug = true }
+```
+内联对象可以嵌套：
+```aam
+server = { base = { host = "localhost", port = 8080 }, tls = true }
+```
+您可以通过 `as_object()` 访问内联对象的字段，该方法返回一个键值映射。
+
 ## 自定义类型
 
 ### 模式

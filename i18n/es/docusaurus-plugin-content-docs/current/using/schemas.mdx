@@ -30,7 +30,7 @@ Una vez que has definido un schema, puedes usar la directiva `@derive` para crea
 ```aam
 # main.aam
 @derive fichero.aam::Player
-name = "Alice"
+name = "Luna"
 id = 1
 ```
 En este ejemplo, derivamos el schema `Player` de `fichero.aam` y luego establecemos los campos `name` e `id` para una instancia del schema `Player`.
@@ -38,7 +38,7 @@ En este ejemplo, derivamos el schema `Player` de `fichero.aam` y luego establece
 Por defecto, todos los campos de un schema son obligatorios. Esto significa que cuando creas una instancia de un schema, debes proporcionar valores para todos los campos. Si intentas crear una instancia sin proporcionar valores para todos los campos obligatorios, AAM lanzará un error. Por ejemplo:
 ```aam
 @derive fichero.aam::Player
-name = "Alice"  # Esto lanzará un error porque 'id' es obligatorio pero no se ha proporcionado
+name = "Luna"  # Esto lanzará un error porque 'id' es obligatorio pero no se ha proporcionado
 ```
 Pero si añadimos un `*` después del nombre del campo, se convierte en opcional:
 ```aam
@@ -50,7 +50,7 @@ Pero si añadimos un `*` después del nombre del campo, se convierte en opcional
 En este caso, el campo `id` es opcional, y puedes crear una instancia del schema `Player` sin proporcionar un valor para `id`:
 ```aam
 @derive fichero.aam::Player
-name = "Alice"  # Esto es válido porque 'id' es opcional
+name = "Luna"  # Esto es válido porque 'id' es opcional
 ```
 ## Comprobación
 ### Comprobar Tipos
@@ -64,5 +64,5 @@ id = "abc"  # Esto lanzará un error porque 'id' está definido como i32
 AAM también comprueba que se proporcionen todos los campos obligatorios al crear una instancia de un schema. Si omites un campo obligatorio, AAM lanzará un error. Por ejemplo:
 ```aam
 @derive fichero.aam::NombreSchema
-name = "Alice"  # Esto lanzará un error porque 'id' es obligatorio pero no se ha proporcionado
+name = "Luna"  # Esto lanzará un error porque 'id' es obligatorio pero no se ha proporcionado
 ```

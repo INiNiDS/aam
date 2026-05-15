@@ -65,7 +65,7 @@ pub enum AamType {
     Alias { name: String, resolved: Box<AamType> },
 }
 
-// В AAML:
+// В AAM:
 pub type_registry: HashMap<String, String>,  // или эквивалентные представления
 ```
 
@@ -78,7 +78,7 @@ pub type_registry: HashMap<String, String>,  // или эквивалентны�
 ```rust
 fn parse_type_directive(
     tokens: &mut TokenStream,
-    doc: &mut AAML,
+    doc: &mut AAM,
 ) -> Result<(), AamlError> {
     let alias_name = tokens.expect_identifier()?; // например, "PlayerId"
     tokens.expect(Token::Equals)?;

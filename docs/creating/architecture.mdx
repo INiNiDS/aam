@@ -9,11 +9,11 @@ description: The core mechanics of every AAM library as a Configuration Engine.
 Every modern AAM library, regardless of the target language, is built as a **Configuration Engine**. Following the architecture of the reference implementation `aam-rs`, the engine is composed of three primary sub-systems. Understanding their responsibilities is the first step toward a correct implementation.
 
 ```
-┌─────────────┐     text      ┌─────────────┐   AAML Object   ┌─────────────┐
+┌─────────────┐     text      ┌─────────────┐   AAM Object   ┌─────────────┐
 │  .aam file  │  ──────────►  │   Loader    │  ─────────────► │Query Engine │
 └─────────────┘               └──────┬──────┘                 └─────────────┘
                                      │  ▲
-                               AAML Object (merged)
+                               AAM Object (merged)
                                      │  │
                                ┌─────▼───────┐
                                │   Builder   │
@@ -30,7 +30,7 @@ Every modern AAM library, regardless of the target language, is built as a **Con
 
 ## 1. Parser & Loader
 
-The loader is the **entry point** of your library. It reads raw AAM text (or a file path) and produces a unified in-memory representation—typically called `AAML` or an equivalent struct/map in your language.
+The loader is the **entry point** of your library. It reads raw AAM text (or a file path) and produces a unified in-memory representation—typically called `AAM` or an equivalent struct/map in your language.
 
 ### Responsibilities
 
@@ -40,11 +40,11 @@ The loader is the **entry point** of your library. It reads raw AAM text (or a f
 
 ### Internal Data Model
 
-A minimal `AAML` object in memory usually looks something like this (translated to Rust, Python, and Go):
+A minimal `AAM` object in memory usually looks something like this (translated to Rust, Python, and Go):
 
 **Rust (`struct`)**
 ```rust
-pub struct AAML {
+pub struct AAM {
     /// Preserves insertion order for deterministic serialization.
     pub elements: IndexMap<String, String>,
     pub schemas: HashMap<String, Schema>,
@@ -53,7 +53,7 @@ pub struct AAML {
 
 **Python (`dict`)**
 ```python
-class AAML:
+class AAM:
     def __init__(self):
         # Python dicts preserve insertion order in modern versions
         self.elements: dict[str, str] = {}
@@ -62,7 +62,7 @@ class AAML:
 
 **Go (`map` and slices)**
 ```go
-type AAML struct {
+type AAM struct {
     // Go maps don't preserve order, so a separate keys slice is often used
     Elements map[string]string
     Keys     []string
@@ -78,24 +78,18 @@ The query engine is what makes AAM powerful. Instead of just exposing a raw map,
 
 ### Responsibilities
 
-1. **Bidirectional Lookups (`find_obj`)** — Sometimes a developer knows the key; sometimes they know the value and need to find the key. Your engine should seamlessly try a direct key lookup first, and if that fails, perform a reverse lookup.
-2. **Recursive Resolution (`find_deep`)** — AAM users frequently use aliases (e.g., `current_path = base_path`). The query engine must follow the chain of values until it finds a terminal value that is not a key.
-3. **Loop Detection** — Since AAM is declarative, users might easily create circular references (e.g., `a = b` and `b = a`). The `find_deep` function must detect cycles and return the last unique value visited to prevent infinite recursions and stack overflows.
-4. **Abstract Value Wrapping (`FoundValue`)** — Instead of returning raw strings, wrap the result in a rich type (like a custom class or struct) that allows for easy casting to integers, booleans, or in-place string manipulation.
+1. **Forward Lookup (`get`)** — Simple O(1) key lookup that returns the value, or `None` if the key does not exist.
+2. **Reverse Search (`reverse_search`)** — Finds all keys that hold a specific value.
+3. **Combined Find (`find`)** — First tries a key lookup; if the key does not exist, falls back to searching by value.
+4. **Pattern Search (`deep_search`)** — Searches for all key-value pairs where the key contains a given pattern.
 
 ### Query Engine Flow
 
-When a user calls `config.find_deep(key)`:
+When a user calls `config.get(key)`:
 
 ```
 Phase 1: Direct Lookup
-  └── Try config[key] -> found value V
-
-Phase 2: Recursion
-  └── Loop detection: have we seen V? If yes, break and return.
-  └── Check if V exists as a key in config?
-      ├── If yes, V becomes the new key, go to Phase 1.
-      └── If no, return V as the final resolved value.
+  └── Try config[key] -> Some(value) or None
 ```
 
 ---
@@ -142,7 +136,7 @@ import aam
 config = aam.load("config.aam")
 
 # 2. Smart query (Deep resolution)
-terminal_path = config.find_deep("app_path")
+terminal_path = config.find("app_path")
 print(f"Resolved path: {terminal_path}")
 
 # 3. Create a new config programmatically

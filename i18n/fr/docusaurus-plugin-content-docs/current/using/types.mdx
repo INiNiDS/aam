@@ -60,6 +60,23 @@ et créer une liste :
 ```aam
 items = ["Hello", "World"]
 ```
+### Éléments Entre Guillemets dans les Listes
+Les éléments de liste peuvent être entourés de guillemets doubles (`"`) ou simples (`'`). Les virgules à l'intérieur d'éléments entre guillemets sont correctement traitées et ne sont pas considérées comme des séparateurs :
+```aam
+fruits = ["apple, banana", 'orange, grape', plain]
+```
+Cela crée une liste de trois éléments : `apple, banana`, `orange, grape` et `plain`.
+Les guillemets sont automatiquement supprimés et vous pouvez mélanger librement les éléments entre guillemets et sans guillemets.
+### Objets en Ligne
+AAM supporte également les objets en ligne comme valeurs avec la syntaxe `{ key = value }`. Les champs sont séparés par des virgules :
+```aam
+config = { host = "localhost", port = 8080, debug = true }
+```
+Les objets en ligne peuvent être imbriqués :
+```aam
+server = { base = { host = "localhost", port = 8080 }, tls = true }
+```
+Vous pouvez accéder aux champs d'un objet en ligne via `as_object()`, qui retourne une carte clé-valeur.
 ## Types Personnels
 ### Schémas
 Vous pouvez utiliser vos propres schémas comme types. Par exemple :

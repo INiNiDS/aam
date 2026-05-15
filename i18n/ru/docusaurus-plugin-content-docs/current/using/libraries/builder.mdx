@@ -7,7 +7,7 @@ description: "Справочник API для AAMBuilder и SchemaField — пр
 
 Модуль `builder` предоставляет гибкий API для программного создания содержимого конфигурации AAM — без написания сырых строк `.aam` вручную. Он полезен для генераторов кода, тестовых фиксстюр и приложений, которым нужно создавать конфигурационные файлы во время выполнения.
 
-> **Примечание:** Builder создаёт обычную `String` исходного текста AAM. Вы можете передать её напрямую в [`AAML::parse`](./aam-rs#aamlparse) или записать на диск с помощью [`to_file`](#to_file).
+> **Примечание:** Builder создаёт обычную `String` исходного текста AAM. Вы можете передать её напрямую в [`AAM::parse`](./aam-rs#aamparse) или записать на диск с помощью [`to_file`](#to_file).
 
 ---
 
@@ -33,7 +33,7 @@ assert!(content.contains("host = localhost"));
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 b = AAMBuilder()
 b.add_line("host", "localhost")
@@ -64,7 +64,7 @@ println!("{}", b.build());
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 b = AAMBuilder()
 b.add_line("host", "localhost") \
@@ -115,7 +115,7 @@ assert!(b.build().contains("@schema Player {"));
 ```
 
 ```python
-from aam import AAMBuilder, SchemaField
+from aam_py import AAMBuilder, SchemaField
 
 b = AAMBuilder()
 b.schema("Player", [
@@ -161,7 +161,7 @@ assert!(b.build().contains("@derive base.aam::Server::Database"));
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 b = AAMBuilder()
 b.derive("base.aam", ["Server", "Database"])
@@ -183,7 +183,7 @@ assert!(b.build().contains("@import shared.aam"));
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 b = AAMBuilder()
 b.import_("shared.aam")
@@ -239,7 +239,7 @@ b.to_file("output.aam").unwrap();
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 b = AAMBuilder()
 b.add_line("host", "localhost").add_line("port", "8080")
@@ -254,7 +254,7 @@ b.to_file("output.aam")
 
 ### `SchemaField::required` и `SchemaField::optional`
 
-| Метод | Форма AAML | Описание |
+| Метод | Форма AAM | Описание |
 |-------|-----------|----------|
 | `SchemaField::required(name, type_name)` | `name: type` | Поле, которое **должно** присутствовать в карте данных. |
 | `SchemaField::optional(name, type_name)` | `name*: type` | Поле, которое **может** отсутствовать; валидируется при наличии. |
@@ -285,7 +285,7 @@ assert opt.to_aaml() == "debug*: bool"
 
 ```rust
 use aam_rs::builder::{AAMBuilder, SchemaField};
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
 // Создаём конфигурацию
 let mut b = AAMBuilder::new();
@@ -303,16 +303,14 @@ b.comment("Конфигурация сервера")
 // Записываем на диск
 b.to_file("server.aam").unwrap();
 
-// Разбираем обратно и валидируем
-let cfg = AAML::load("server.aam").unwrap();
-cfg.validate_schemas_completeness().unwrap();
+let cfg = AAM::load("server.aam").unwrap();
 
-assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
-assert_eq!(cfg.find_obj("port").unwrap().as_str(), "8080");
+assert_eq!(cfg.get("host").unwrap(), "localhost");
+assert_eq!(cfg.get("port").unwrap(), "8080");
 ```
 
 ```python
-from aam import AAMBuilder, SchemaField, AAML
+from aam_py import AAMBuilder, SchemaField, AAM
 
 # Создаём конфигурацию
 b = AAMBuilder()
@@ -330,10 +328,9 @@ b.comment("Конфигурация сервера") \
 # Записываем на диск
 b.to_file("server.aam")
 
-# Разбираем обратно и валидируем
-cfg = AAML.load("server.aam")
-cfg.validate_schemas_completeness()
+# Разбираем обратно
+cfg = AAM.load("server.aam")
 
-assert cfg.find_obj("host") == "localhost"
-assert cfg.find_obj("port") == "8080"
+assert cfg.get("host") == "localhost"
+assert cfg.get("port") == "8080"
 ```

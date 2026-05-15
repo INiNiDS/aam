@@ -7,7 +7,7 @@ description: "Referencia de API para AAMBuilder y SchemaField — construye conf
 
 El módulo `builder` proporciona una API fluida para construir contenido de configuración AAM programáticamente — sin escribir strings `.aam` brutas a mano. Es útil para generadores de código, fixtures de prueba y aplicaciones que necesitan producir ficheros de configuración en tiempo de ejecución.
 
-> **Nota:** El constructor produce una `String` simple de texto de origen AAM. Puedes pasarla directamente a [`AAML::parse`](./aam-rs#aamlparse) o escribirla en disco con [`to_file`](#to_file).
+> **Nota:** El constructor produce una `String` simple de texto de origen AAM. Puedes pasarla directamente a [`AAM::parse`](./aam-rs#aamparse) o escribirla en disco con [`to_file`](#to_file).
 
 ---
 
@@ -33,7 +33,7 @@ assert!(content.contains("host = localhost"));
 ```
 
 ```python
-from aam import AAMBuilder
+from aam_py import AAMBuilder
 
 b = AAMBuilder()
 b.add_line("host", "localhost")
@@ -134,7 +134,7 @@ Escribe el contenido acumulado en el fichero en `path`.
 
 Representa una única declaración de campo dentro de un bloque `@schema`.
 
-| Método | Forma AAML renderizada | Descripción |
+| Método | Forma AAM renderizada | Descripción |
 |--------|----------------------|-------------|
 | `SchemaField::required(name, type_name)` | `name: type` | Campo que **debe** estar presente. |
 | `SchemaField::optional(name, type_name)` | `name*: type` | Campo que **puede** estar ausente; validado si presente. |
@@ -155,7 +155,7 @@ assert_eq!(opt.to_aaml(), "debug*: bool");
 
 ```rust
 use aam_rs::builder::{AAMBuilder, SchemaField};
-use aam_rs::aaml::AAML;
+use aam_rs::aam::AAM;
 
 let mut b = AAMBuilder::new();
 b.comment("Configuración del servidor")
@@ -171,7 +171,6 @@ b.comment("Configuración del servidor")
 
 b.to_file("server.aam").unwrap();
 
-let cfg = AAML::load("server.aam").unwrap();
-cfg.validate_schemas_completeness().unwrap();
-assert_eq!(cfg.find_obj("host").unwrap().as_str(), "localhost");
+let cfg = AAM::load("server.aam").unwrap();
+assert_eq!(cfg.get("host").unwrap(), "localhost");
 ```

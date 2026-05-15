@@ -16,14 +16,12 @@ Para proporcionar una experiencia consistente de "Motor de Configuración", las 
 
 ### 1. API de Loader Principal
 
-Estos métodos gestionan el análisis y la fusión de texto bruto en la estructura `AAML`:
+Estos métodos gestionan el análisis y la fusión de texto bruto en la estructura `AAM`:
 
 | Método Genérico | Descripción |
 |---|---|
 | `parse(content: String)` | Analiza una string bruta en el objeto en memoria. |
 | `load(file_path: Path)` | Carga y analiza un fichero del disco, resolviendo las directivas `@import` automáticamente. |
-| `merge_content(content: String)` | Analiza una string y la fusiona en el objeto *actual*, sobrescribiendo las claves existentes. |
-| `merge_file(file_path: Path)` | Carga un fichero y lo fusiona en el objeto actual. |
 
 ### 2. API de Consulta
 
@@ -31,9 +29,17 @@ Estos métodos controlan cómo los desarrolladores leen del árbol:
 
 | Método Genérico | Descripción |
 |---|---|
-| `find_obj(key: String)` | Búsqueda bidireccional inteligente. Si `key` existe, retorna su valor. Si no, retorna la clave cuyo valor es `key`. |
-| `find_deep(key: String)` | Búsqueda recursiva. Sigue la cadena de valores hasta llegar a un valor terminal que no es una clave. ¡Debe incluir detección de ciclos! |
-| `find_key(value: String)` | Búsqueda inversa estricta. Encuentra la primera clave que contiene el valor dado. |
+| `get(key: &str) -> Option<&str>` | Búsqueda directa simple. Retorna el valor de una clave dada, o `None` si no se encuentra. |
+| `reverse_search(value: &str) -> Vec<&str>` | Búsqueda inversa de valor. Encuentra todas las claves que contienen el valor dado. |
+| `find(query: &str) -> Vec<(&str, &str)>` | Búsqueda combinada de clave y valor. Busca tanto en claves como en valores contenido que coincida con la consulta. ¡Debe incluir detección de ciclos! |
+| `deep_search(pattern: &str) -> Vec<(&str, &str)>` | Busca recursivamente en toda la estructura del árbol un patrón. |
+| `iter() -> Iterator` | Retorna un iterador sobre todos los pares clave-valor. |
+| `keys() -> Vec<&str>` | Retorna una lista de todas las claves en el documento. |
+| `to_map() -> HashMap` | Convierte el documento a una representación plana de `HashMap`. |
+| `schemas() -> Option<&HashMap>` | Retorna las definiciones de esquema, si las hay. |
+| `types() -> Option<&HashMap>` | Retorna las definiciones de alias de tipo, si las hay. |
+| `format(content, options) -> Result<String>` | Formatea el contenido AAM según las reglas de formateo. |
+| `lsp_assist(content, options) -> LspAssist` | Proporciona asistencia LSP para contenido AAM. |
 
 ### 3. API de Constructor
 
@@ -112,7 +118,7 @@ Todos los ficheros `.aam` están codificados en **UTF-8**. Las bibliotecas deben
 
 ## Seguridad de Hilos
 
-Los objetos `AAML` analizados deben ser **seguros para lectura en hilos**. Si el lenguaje lo admite, marca el tipo como `Send + Sync` (Rust) o equivalente, para que los documentos puedan compartirse entre hilos sin bloqueo.
+Los objetos `AAM` analizados deben ser **seguros para lectura en hilos**. Si el lenguaje lo admite, marca el tipo como `Send + Sync` (Rust) o equivalente, para que los documentos puedan compartirse entre hilos sin bloqueo.
 
 Si tu biblioteca expone un constructor mutable (`AAMBuilder`), este **no** necesita ser seguro para hilos por defecto, pero documéntalo claramente.
 
@@ -125,6 +131,8 @@ Cada biblioteca debe incluir una suite de pruebas que cubra:
 - [ ] Análisis básico de `key = value` para cada tipo primitivo
 - [ ] Resolución de fichero `@import` y anexión
 - [ ] Corrección de formateo `@schema`
-- [ ] `find_obj` identifica correctamente las claves inversas
-- [ ] `find_deep` previene bucles infinitos en dependencias `A -> A`
+- [ ] `get` realiza una búsqueda directa simple de clave
+- [ ] `reverse_search` encuentra correctamente claves por valor
+- [ ] `find` realiza una búsqueda combinada de clave+valor sin bucles infinitos
+- [ ] `deep_search` recorre el árbol de forma segura
 - [ ] Viaje de ida y vuelta del serializador: `parse(builder.to_string()) == estado_analizado`

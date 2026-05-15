@@ -20,16 +20,22 @@ description: "所有AAM库必须遵循的跨语言标准，以确保互操作性
 |---------|------|
 | `parse(content: String)` | 将原始字符串解析为内存对象。 |
 | `load(file_path: Path)` | 从磁盘加载并解析文件，自动解析 `@import` 指令。 |
-| `merge_content(content: String)` | 解析字符串并将其合并到*当前*对象中，覆盖现有键。 |
-| `merge_file(file_path: Path)` | 加载文件并将其合并到当前对象中。 |
 
 ### 2. 查询API
 
 | 通用方法 | 描述 |
 |---------|------|
-| `find_obj(key: String)` | 智能双向查找。如果 `key` 存在，返回其值。如果不存在，返回值为 `key` 的键。 |
-| `find_deep(key: String)` | 递归搜索。跟随值链直到达到不是键的终端值。必须包含循环检测！ |
-| `find_key(value: String)` | 严格反向查找。查找保存给定值的第一个键。 |
+| `get(key: &str) -> Option<&str>` | 简单正向查找。返回给定键的值，如果未找到则返回`None`。 |
+| `reverse_search(value: &str) -> Vec<&str>` | 反向值查找。查找所有包含给定值的键。 |
+| `find(query: &str) -> Vec<(&str, &str)>` | 键+值组合搜索。在键和值中搜索与查询匹配的内容。必须包含循环检测！ |
+| `deep_search(pattern: &str) -> Vec<(&str, &str)>` | 递归搜索整个树结构中的模式。 |
+| `iter() -> Iterator` | 返回所有键值对的迭代器。 |
+| `keys() -> Vec<&str>` | 返回文档中所有键的列表。 |
+| `to_map() -> HashMap` | 将文档转换为扁平的`HashMap`表示。 |
+| `schemas() -> Option<&HashMap>` | 返回模式定义（如果有）。 |
+| `types() -> Option<&HashMap>` | 返回类型别名定义（如果有）。 |
+| `format(content, options) -> Result<String>` | 根据格式化规则格式化AAM内容。 |
+| `lsp_assist(content, options) -> LspAssist` | 为AAM内容提供LSP辅助。 |
 
 ### 3. 构建器API
 
@@ -76,6 +82,8 @@ description: "所有AAM库必须遵循的跨语言标准，以确保互操作性
 - [ ] 每种原始类型的基本 `key = value` 解析
 - [ ] `@import` 文件解析和追加
 - [ ] `@schema` 格式正确性
-- [ ] `find_obj` 正确识别反向键
-- [ ] `find_deep` 防止 `A -> A` 依赖关系上的无限循环
+- [ ] `get` 执行简单正向键查找
+- [ ] `reverse_search` 正确通过值查找键
+- [ ] `find` 执行键+值组合搜索，无无限循环
+- [ ] `deep_search` 安全遍历树
 - [ ] 序列化器往返：`parse(builder.to_string()) == parsed_state`

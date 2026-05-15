@@ -65,7 +65,7 @@ pub enum AamType {
     Alias { name: String, resolved: Box<AamType> },
 }
 
-// In AAML:
+// In AAM:
 pub type_registry: HashMap<String, String>,  // or equivalent representations
 ```
 
@@ -78,7 +78,7 @@ When a consumer asks "what is the type of field `x`?", the Query Engine must **u
 ```rust
 fn parse_type_directive(
     tokens: &mut TokenStream,
-    doc: &mut AAML,
+    doc: &mut AAM,
 ) -> Result<(), AamlError> {
     let alias_name = tokens.expect_identifier()?; // e.g. "PlayerId"
     tokens.expect(Token::Equals)?;

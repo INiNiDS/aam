@@ -126,13 +126,13 @@ Appends a `key = value` entry. The `IntoAamValue` trait is automatically impleme
 
 ```rust
 builder
-    .add("name", "Alice")
+    .add("name", "Luna")
     .add("level", 10i32)
     .add("active", true);
 ```
 
 ```aam
-name = "Alice"
+name = Luna
 level = 10
 active = true
 ```
@@ -286,7 +286,7 @@ Output:
 id = 7
 title = "Forest Crossing"
 spawn = {x: 0.0, y: 1.0, z: 0.0}
-tags = ["outdoor", "forest"]
+tags = [outdoor, forest]
 ```
 
 ---
@@ -299,7 +299,7 @@ tags = ["outdoor", "forest"]
 pub fn build(self) -> Result<String, AamlError> {
     let text = self.render();
     // Use the Loader to parse and validate the generated text as a final sanity check
-    AAML::parse(&text)?;
+    AAM::parse(&text)?;
     Ok(text)
 }
 ```

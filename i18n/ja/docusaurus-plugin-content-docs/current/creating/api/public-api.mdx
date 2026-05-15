@@ -16,17 +16,17 @@ description: "異なる実装が一貫して感じられるようにするため
 
 ## コアエントリーポイント
 
-### `parse(source: string) → AAML`
+### `parse(source: string) → AAM`
 
 すでにメモリ内にある生のAAM文字列をパースします。ファイルI/Oを**実行しません**。
 
 ```rust
 let source = r#"
-    name = "Alice"
+    name = "Luna"
     level = 42
 "#;
 
-let doc = AAML::parse(source)?;
+let doc = AAM::parse(source)?;
 ```
 
 - インライン `@schema` と `@type` ディレクティブを解決します。
@@ -35,12 +35,12 @@ let doc = AAML::parse(source)?;
 
 ---
 
-### `load(path: string) → AAML`
+### `load(path: string) → AAM`
 
 `.aam` ファイルをディスクから読み取り、完全に解決され検証されたドキュメントを返します。
 
 ```rust
-let doc = AAML::load("config/server.aam")?;
+let doc = AAM::load("config/server.aam")?;
 ```
 
 - ファイル独自のディレクトリに対して相対的にすべての `@import` および `@derive` ディレクティブを解決します。
@@ -51,37 +51,37 @@ let doc = AAML::load("config/server.aam")?;
 
 ---
 
-### `load_from_reader<R: Read>(reader: R) → AAML`
+### `load_from_reader<R: Read>(reader: R) → AAM`
 
 任意のバイトストリームから読み取ります。ネットワークリソース、インメモリバッファ、またはテストフィクスチャに便利です。ファイルパスがないため、`@import` と `@derive` は第2引数として渡される**ベースパス**に対して相対的に解決する必要があります（またはNoneの場合は無効化）：
 
 ```rust
 let file = File::open("config.aam")?;
-let doc = AAML::load_from_reader(file, Some(Path::new("config/")))?;
+let doc = AAM::load_from_reader(file, Some(Path::new("config/")))?;
 ```
 
 ---
 
 ## クエリエンジンによる値の読み取り
 
-### `find_obj(key: &str) → Option<FoundValue>`
+### `get(key: &str) → Option<FoundValue>`
 
 スマートな双方向ルックアップ。指定されたキーの `FoundValue`（文字列ラッパー）を返します。キーが直接存在しない場合、引数が値であると仮定して対応するキーを見つけるための逆引きルックアップを実行します。
 
 ```rust
-if let Some(val) = doc.find_obj("debug") {
+if let Some(val) = doc.get("debug") {
     println!("debug = {val}");
 }
 ```
 
 ---
 
-### `find_deep(key: &str) → Option<FoundValue>`
+### `find(key: &str) → Option<FoundValue>`
 
 再帰的な深いルックアップ。AAMエイリアスチェーン（例：`current = base`、`base = /dir`）をたどるように設計されています。アンチループ検出を実装する必要があります。
 
 ```rust
-let final_path = doc.find_deep("current_dir")?;
+let final_path = doc.find("current_dir")?;
 ```
 
 ---
@@ -117,9 +117,9 @@ pub enum AamlError {
 |---------|------|
 | `parse(source)` | ✅ |
 | `load(path)` | ✅ |
-| `find_obj(key)` | ✅ |
-| `find_deep(key)` | ✅ |
-| `find_key(value)` | ✅ |
+| `get(key)` | ✅ |
+| `find(key)` | ✅ |
+| `reverse_search(value)` | ✅ |
 | `validate()` | ✅ |
 | `schema(name)` | 推奨 |
 | `load_from_reader(reader, base_dir)` | 推奨 |
