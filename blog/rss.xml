@@ -4,10 +4,41 @@
         <title>AAM Blog</title>
         <link>https://aam.ininids.in.rs/blog</link>
         <description>AAM Blog</description>
-        <lastBuildDate>Wed, 04 Mar 2026 00:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Fri, 15 May 2026 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
+        <item>
+            <title><![CDATA[AAM v1.1 — Quotes in Lists, Multiline, and More]]></title>
+            <link>https://aam.ininids.in.rs/blog/aam-v1.1</link>
+            <guid>https://aam.ininids.in.rs/blog/aam-v1.1</guid>
+            <pubDate>Fri, 15 May 2026 00:00:00 GMT</pubDate>
+            <description><![CDATA[AAM v1.1 is here with a set of quality-of-life improvements, including quoted items in lists, inline objects, relative path resolution, and a built-in formatter.]]></description>
+            <content:encoded><![CDATA[<p>AAM v1.1 is here with a set of quality-of-life improvements, including quoted items in lists, inline objects, relative path resolution, and a built-in formatter.</p>
+<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="whats-new-in-v11">What's New in v1.1<a href="https://aam.ininids.in.rs/blog/aam-v1.1#whats-new-in-v11" class="hash-link" aria-label="Direct link to What's New in v1.1" title="Direct link to What's New in v1.1" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="quoted-items-in-lists">Quoted Items in Lists<a href="https://aam.ininids.in.rs/blog/aam-v1.1#quoted-items-in-lists" class="hash-link" aria-label="Direct link to Quoted Items in Lists" title="Direct link to Quoted Items in Lists" translate="no">​</a></h3>
+<p>List items can now be wrapped in double (<code>"</code>) or single (<code>'</code>) quotes. Commas inside quoted items are handled correctly — no more false separators:</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">items = ["rust, aam", 'single, quoted', plain_value]</span><br></span></code></pre></div></div>
+<p>This creates three items: <code>rust, aam</code>, <code>single, quoted</code>, and <code>plain_value</code>. Quotes are automatically stripped from the final values.</p>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="inline-objects">Inline Objects<a href="https://aam.ininids.in.rs/blog/aam-v1.1#inline-objects" class="hash-link" aria-label="Direct link to Inline Objects" title="Direct link to Inline Objects" translate="no">​</a></h3>
+<p>Values can now be inline objects, making nested configurations more natural:</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">server = { host = "localhost", port = 8080, debug = true }</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">config = { database = { host = "db.local", port = 5432 } }</span><br></span></code></pre></div></div>
+<p>Fields are comma-separated, and nesting <code>{}</code> is fully supported.</p>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="multiline-directives">Multiline Directives<a href="https://aam.ininids.in.rs/blog/aam-v1.1#multiline-directives" class="hash-link" aria-label="Direct link to Multiline Directives" title="Direct link to Multiline Directives" translate="no">​</a></h3>
+<p>Multiline support for <code>@schema</code>, <code>@type</code>, and other directive blocks has been improved. Blocks spanning multiple lines are accumulated and processed correctly, with proper brace-balance tracking:</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">@schema Player {</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    name: string</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    score: i32</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    tags: list&lt;string&gt;</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">}</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="relative-path-resolution">Relative Path Resolution<a href="https://aam.ininids.in.rs/blog/aam-v1.1#relative-path-resolution" class="hash-link" aria-label="Direct link to Relative Path Resolution" title="Direct link to Relative Path Resolution" translate="no">​</a></h3>
+<p><code>@import</code> and <code>@derive</code> paths are now resolved relative to the file they're written in:</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">@import ./schemas/base.aam</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">@derive ./types/player.aam::Player</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="built-in-formatter">Built-in Formatter<a href="https://aam.ininids.in.rs/blog/aam-v1.1#built-in-formatter" class="hash-link" aria-label="Direct link to Built-in Formatter" title="Direct link to Built-in Formatter" translate="no">​</a></h3>
+<p>AAM now includes a formatter that automatically formats your files. It supports smart schema formatting, directive hoisting, configurable indentation, and key sorting.</p>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="aot-compilation">AOT Compilation<a href="https://aam.ininids.in.rs/blog/aam-v1.1#aot-compilation" class="hash-link" aria-label="Direct link to AOT Compilation" title="Direct link to AOT Compilation" translate="no">​</a></h3>
+<p>The new AOT (Ahead-of-Time) compilation path detects simple files and uses a fast single-pass parse, falling back to the full pipeline only when needed for multiline blocks or directives.</p>
+<hr>
+<p>Check the <a class="" href="https://aam.ininids.in.rs/docs/using/types">updated documentation</a> for full details on all features.</p>]]></content:encoded>
+            <category>AAM</category>
+            <category>Feature</category>
+        </item>
         <item>
             <title><![CDATA[LLMs and Robots]]></title>
             <link>https://aam.ininids.in.rs/blog/llms-and-robots</link>
@@ -38,7 +69,7 @@ And added <a href="https://aam.ininids.in.rs/assets/files/examples-769f0fb7a5304
 <h2 class="anchor anchorTargetStickyNavbar_UCMm" id="example">Example<a href="https://aam.ininids.in.rs/blog/starting-aam#example" class="hash-link" aria-label="Direct link to Example" title="Direct link to Example" translate="no">​</a></h2>
 <div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">host = localhost</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">port = 8080</span><br></span></code></pre></div></div>
 <p>it's all. If you say <code>localhost</code> you will get <code>host</code> from config.
-"What is localhost? It's a {AAML::find_obj("localhost")}"
+"What is localhost? It's a {AAM::get("localhost")}"
 Really easy, yes?</p>]]></content:encoded>
             <category>AAM</category>
         </item>

@@ -4,10 +4,37 @@
         <title>AAM Blog</title>
         <link>https://aam.ininids.in.rs/ja/blog</link>
         <description>AAM Blog</description>
-        <lastBuildDate>Wed, 04 Mar 2026 00:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Fri, 15 May 2026 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>ja</language>
+        <item>
+            <title><![CDATA[AAM v1.1 — リスト内の引用符、複数行対応など]]></title>
+            <link>https://aam.ininids.in.rs/ja/blog/aam-v1.1</link>
+            <guid>https://aam.ininids.in.rs/ja/blog/aam-v1.1</guid>
+            <pubDate>Fri, 15 May 2026 00:00:00 GMT</pubDate>
+            <description><![CDATA[AAM v1.1 では、リスト内の引用符付きアイテム、インラインオブジェクト、相対パス解決、組み込みフォーマッターなど、品質向上の改善が多数含まれています。]]></description>
+            <content:encoded><![CDATA[<p>AAM v1.1 では、リスト内の引用符付きアイテム、インラインオブジェクト、相対パス解決、組み込みフォーマッターなど、品質向上の改善が多数含まれています。</p>
+<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="v11-の新機能">v1.1 の新機能<a href="https://aam.ininids.in.rs/ja/blog/aam-v1.1#v11-%E3%81%AE%E6%96%B0%E6%A9%9F%E8%83%BD" class="hash-link" aria-label="v1.1 の新機能 への直接リンク" title="v1.1 の新機能 への直接リンク" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="リスト内の引用符付きアイテム">リスト内の引用符付きアイテム<a href="https://aam.ininids.in.rs/ja/blog/aam-v1.1#%E3%83%AA%E3%82%B9%E3%83%88%E5%86%85%E3%81%AE%E5%BC%95%E7%94%A8%E7%AC%A6%E4%BB%98%E3%81%8D%E3%82%A2%E3%82%A4%E3%83%86%E3%83%A0" class="hash-link" aria-label="リスト内の引用符付きアイテム への直接リンク" title="リスト内の引用符付きアイテム への直接リンク" translate="no">​</a></h3>
+<p>リストアイテムを二重引用符（<code>"</code>）または一重引用符（<code>'</code>）で囲めるようになりました。引用符内のカンマは正しく処理されます：</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">items = ["rust, aam", 'single, quoted', plain_value]</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="インラインオブジェクト">インラインオブジェクト<a href="https://aam.ininids.in.rs/ja/blog/aam-v1.1#%E3%82%A4%E3%83%B3%E3%83%A9%E3%82%A4%E3%83%B3%E3%82%AA%E3%83%96%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88" class="hash-link" aria-label="インラインオブジェクト への直接リンク" title="インラインオブジェクト への直接リンク" translate="no">​</a></h3>
+<p>値としてインラインオブジェクトが使えるようになりました：</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">server = { host = "localhost", port = 8080, debug = true }</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">config = { database = { host = "db.local", port = 5432 } }</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="複数行ディレクティブ">複数行ディレクティブ<a href="https://aam.ininids.in.rs/ja/blog/aam-v1.1#%E8%A4%87%E6%95%B0%E8%A1%8C%E3%83%87%E3%82%A3%E3%83%AC%E3%82%AF%E3%83%86%E3%82%A3%E3%83%96" class="hash-link" aria-label="複数行ディレクティブ への直接リンク" title="複数行ディレクティブ への直接リンク" translate="no">​</a></h3>
+<p><code>@schema</code>、<code>@type</code> などの複数行ブロックの処理が改善されました：</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">@schema Player {</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    name: string</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    score: i32</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    tags: list&lt;string&gt;</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">}</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="相対パス解決">相対パス解決<a href="https://aam.ininids.in.rs/ja/blog/aam-v1.1#%E7%9B%B8%E5%AF%BE%E3%83%91%E3%82%B9%E8%A7%A3%E6%B1%BA" class="hash-link" aria-label="相対パス解決 への直接リンク" title="相対パス解決 への直接リンク" translate="no">​</a></h3>
+<p><code>@import</code> と <code>@derive</code> のパスがファイル相対で解決されるようになりました：</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">@import ./schemas/base.aam</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">@derive ./types/player.aam::Player</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="組み込みフォーマッター">組み込みフォーマッター<a href="https://aam.ininids.in.rs/ja/blog/aam-v1.1#%E7%B5%84%E3%81%BF%E8%BE%BC%E3%81%BF%E3%83%95%E3%82%A9%E3%83%BC%E3%83%9E%E3%83%83%E3%82%BF%E3%83%BC" class="hash-link" aria-label="組み込みフォーマッター への直接リンク" title="組み込みフォーマッター への直接リンク" translate="no">​</a></h3>
+<p>スマートスキーマフォーマット、ディレクティブの先頭移動、設定可能なインデントを備えたフォーマッターが搭載されました。</p>
+<hr>
+<p>詳細は<a class="" href="https://aam.ininids.in.rs/ja/docs/using/types">更新されたドキュメント</a>をご覧ください。</p>]]></content:encoded>
+            <category>AAM</category>
+            <category>Feature</category>
+        </item>
         <item>
             <title><![CDATA[LLMとロボット]]></title>
             <link>https://aam.ininids.in.rs/ja/blog/llms-and-robots</link>
@@ -38,7 +65,7 @@
 <h2 class="anchor anchorTargetStickyNavbar_UCMm" id="例">例<a href="https://aam.ininids.in.rs/ja/blog/starting-aam#%E4%BE%8B" class="hash-link" aria-label="例 への直接リンク" title="例 への直接リンク" translate="no">​</a></h2>
 <div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">host = localhost</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">port = 8080</span><br></span></code></pre></div></div>
 <p>これですべてです。<code>localhost</code>と言えば、設定から<code>host</code>を取得します。
-"localhostとは何ですか？それは {AAML::find_obj("localhost")} です"
+"localhostとは何ですか？それは {AAM::get("localhost")} です"
 本当に簡単ですよね？</p>]]></content:encoded>
             <category>AAM</category>
         </item>

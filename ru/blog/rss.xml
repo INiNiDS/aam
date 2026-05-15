@@ -4,10 +4,37 @@
         <title>AAM Blog</title>
         <link>https://aam.ininids.in.rs/ru/blog</link>
         <description>AAM Blog</description>
-        <lastBuildDate>Wed, 04 Mar 2026 00:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Fri, 15 May 2026 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>ru</language>
+        <item>
+            <title><![CDATA[AAM v1.1 — Кавычки в списках, Multiline и другие улучшения]]></title>
+            <link>https://aam.ininids.in.rs/ru/blog/aam-v1.1</link>
+            <guid>https://aam.ininids.in.rs/ru/blog/aam-v1.1</guid>
+            <pubDate>Fri, 15 May 2026 00:00:00 GMT</pubDate>
+            <description><![CDATA[AAM v1.1 приносит множество улучшений качества жизни: кавычки в списках, inline-объекты, относительные пути для импорта и встроенный форматтер.]]></description>
+            <content:encoded><![CDATA[<p>AAM v1.1 приносит множество улучшений качества жизни: кавычки в списках, inline-объекты, относительные пути для импорта и встроенный форматтер.</p>
+<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="что-нового-в-v11">Что нового в v1.1<a href="https://aam.ininids.in.rs/ru/blog/aam-v1.1#%D1%87%D1%82%D0%BE-%D0%BD%D0%BE%D0%B2%D0%BE%D0%B3%D0%BE-%D0%B2-v11" class="hash-link" aria-label="Прямая ссылка на Что нового в v1.1 AAM" title="Прямая ссылка на Что нового в v1.1 AAM" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="кавычки-в-списках">Кавычки в списках<a href="https://aam.ininids.in.rs/ru/blog/aam-v1.1#%D0%BA%D0%B0%D0%B2%D1%8B%D1%87%D0%BA%D0%B8-%D0%B2-%D1%81%D0%BF%D0%B8%D1%81%D0%BA%D0%B0%D1%85" class="hash-link" aria-label="Прямая ссылка на Кавычки в списках AAM" title="Прямая ссылка на Кавычки в списках AAM" translate="no">​</a></h3>
+<p>Элементы списков теперь можно оборачивать в двойные (<code>"</code>) или одинарные (<code>'</code>) кавычки. Запятые внутри кавычек обрабатываются корректно:</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">items = ["rust, aam", 'single, quoted', plain_value]</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="inline-объекты">Inline-объекты<a href="https://aam.ininids.in.rs/ru/blog/aam-v1.1#inline-%D0%BE%D0%B1%D1%8A%D0%B5%D0%BA%D1%82%D1%8B" class="hash-link" aria-label="Прямая ссылка на Inline-объекты AAM" title="Прямая ссылка на Inline-объекты AAM" translate="no">​</a></h3>
+<p>Значения теперь могут быть inline-объектами:</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">server = { host = "localhost", port = 8080, debug = true }</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">config = { database = { host = "db.local", port = 5432 } }</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="многострочные-директивы">Многострочные директивы<a href="https://aam.ininids.in.rs/ru/blog/aam-v1.1#%D0%BC%D0%BD%D0%BE%D0%B3%D0%BE%D1%81%D1%82%D1%80%D0%BE%D1%87%D0%BD%D1%8B%D0%B5-%D0%B4%D0%B8%D1%80%D0%B5%D0%BA%D1%82%D0%B8%D0%B2%D1%8B" class="hash-link" aria-label="Прямая ссылка на Многострочные директивы AAM" title="Прямая ссылка на Многострочные директивы AAM" translate="no">​</a></h3>
+<p>Улучшена обработка <code>@schema</code>, <code>@type</code> и других блоков, занимающих несколько строк:</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">@schema Player {</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    name: string</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    score: i32</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    tags: list&lt;string&gt;</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">}</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="относительные-пути">Относительные пути<a href="https://aam.ininids.in.rs/ru/blog/aam-v1.1#%D0%BE%D1%82%D0%BD%D0%BE%D1%81%D0%B8%D1%82%D0%B5%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5-%D0%BF%D1%83%D1%82%D0%B8" class="hash-link" aria-label="Прямая ссылка на Относительные пути AAM" title="Прямая ссылка на Относительные пути AAM" translate="no">​</a></h3>
+<p>Пути в <code>@import</code> и <code>@derive</code> теперь разрешаются относительно файла:</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">@import ./schemas/base.aam</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">@derive ./types/player.aam::Player</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="встроенный-форматтер">Встроенный форматтер<a href="https://aam.ininids.in.rs/ru/blog/aam-v1.1#%D0%B2%D1%81%D1%82%D1%80%D0%BE%D0%B5%D0%BD%D0%BD%D1%8B%D0%B9-%D1%84%D0%BE%D1%80%D0%BC%D0%B0%D1%82%D1%82%D0%B5%D1%80" class="hash-link" aria-label="Прямая ссылка на Встроенный форматтер AAM" title="Прямая ссылка на Встроенный форматтер AAM" translate="no">​</a></h3>
+<p>Форматтер автоматически форматирует файлы: умное сворачивание схем, поднятие директив, настраиваемые отступы.</p>
+<hr>
+<p>Подробнее — в <a class="" href="https://aam.ininids.in.rs/ru/docs/using/types">обновлённой документации</a>.</p>]]></content:encoded>
+            <category>AAM</category>
+            <category>Feature</category>
+        </item>
         <item>
             <title><![CDATA[LLM и Роботы]]></title>
             <link>https://aam.ininids.in.rs/ru/blog/llms-and-robots</link>
@@ -38,7 +65,7 @@
 <h2 class="anchor anchorTargetStickyNavbar_UCMm" id="пример">Пример<a href="https://aam.ininids.in.rs/ru/blog/starting-aam#%D0%BF%D1%80%D0%B8%D0%BC%D0%B5%D1%80" class="hash-link" aria-label="Прямая ссылка на Пример AAM" title="Прямая ссылка на Пример AAM" translate="no">​</a></h2>
 <div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">host = localhost</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">port = 8080</span><br></span></code></pre></div></div>
 <p>Вот и все. Если вы скажете <code>localhost</code>, вы получите <code>host</code> из конфига.
-"Что такое localhost? Это {AAML::find_obj("localhost")}"
+"Что такое localhost? Это {AAM::get("localhost")}"
 Действительно просто, да?</p>]]></content:encoded>
             <category>AAM</category>
         </item>

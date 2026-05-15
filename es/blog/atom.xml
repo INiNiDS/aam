@@ -2,11 +2,42 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://aam.ininids.in.rs/es/blog</id>
     <title>AAM Blog</title>
-    <updated>2026-03-04T00:00:00.000Z</updated>
+    <updated>2026-05-15T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://aam.ininids.in.rs/es/blog"/>
     <subtitle>AAM Blog</subtitle>
     <icon>https://aam.ininids.in.rs/es/img/favicon.ico</icon>
+    <entry>
+        <title type="html"><![CDATA[AAM v1.1 — Comillas en Listas, Multilínea y Más]]></title>
+        <id>https://aam.ininids.in.rs/es/blog/aam-v1.1</id>
+        <link href="https://aam.ininids.in.rs/es/blog/aam-v1.1"/>
+        <updated>2026-05-15T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[AAM v1.1 trae mejoras de calidad de vida: elementos entre comillas en listas, objetos en línea, resolución de rutas relativas y un formateador integrado.]]></summary>
+        <content type="html"><![CDATA[<p>AAM v1.1 trae mejoras de calidad de vida: elementos entre comillas en listas, objetos en línea, resolución de rutas relativas y un formateador integrado.</p>
+<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="novedades-en-v11">Novedades en v1.1<a href="https://aam.ininids.in.rs/es/blog/aam-v1.1#novedades-en-v11" class="hash-link" aria-label="Enlace directo a Novedades en v1.1" title="Enlace directo a Novedades en v1.1" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="elementos-entre-comillas-en-listas">Elementos entre Comillas en Listas<a href="https://aam.ininids.in.rs/es/blog/aam-v1.1#elementos-entre-comillas-en-listas" class="hash-link" aria-label="Enlace directo a Elementos entre Comillas en Listas" title="Enlace directo a Elementos entre Comillas en Listas" translate="no">​</a></h3>
+<p>Los elementos de lista ahora se pueden envolver entre comillas dobles (<code>"</code>) o simples (<code>'</code>). Las comas dentro de elementos entre comillas se manejan correctamente:</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">items = ["rust, aam", 'single, quoted', plain_value]</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="objetos-en-línea">Objetos en Línea<a href="https://aam.ininids.in.rs/es/blog/aam-v1.1#objetos-en-l%C3%ADnea" class="hash-link" aria-label="Enlace directo a Objetos en Línea" title="Enlace directo a Objetos en Línea" translate="no">​</a></h3>
+<p>Los valores ahora pueden ser objetos en línea:</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">server = { host = "localhost", port = 8080, debug = true }</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">config = { database = { host = "db.local", port = 5432 } }</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="directivas-multilínea">Directivas Multilínea<a href="https://aam.ininids.in.rs/es/blog/aam-v1.1#directivas-multil%C3%ADnea" class="hash-link" aria-label="Enlace directo a Directivas Multilínea" title="Enlace directo a Directivas Multilínea" translate="no">​</a></h3>
+<p>Se ha mejorado el manejo de bloques <code>@schema</code>, <code>@type</code> y otros que ocupan varias líneas:</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">@schema Player {</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    name: string</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    score: i32</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    tags: list&lt;string&gt;</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">}</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="rutas-relativas">Rutas Relativas<a href="https://aam.ininids.in.rs/es/blog/aam-v1.1#rutas-relativas" class="hash-link" aria-label="Enlace directo a Rutas Relativas" title="Enlace directo a Rutas Relativas" translate="no">​</a></h3>
+<p>Las rutas en <code>@import</code> y <code>@derive</code> ahora se resuelven relativas al archivo:</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">@import ./schemas/base.aam</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">@derive ./types/player.aam::Player</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="formateador-integrado">Formateador Integrado<a href="https://aam.ininids.in.rs/es/blog/aam-v1.1#formateador-integrado" class="hash-link" aria-label="Enlace directo a Formateador Integrado" title="Enlace directo a Formateador Integrado" translate="no">​</a></h3>
+<p>El formateador da formato automático a los archivos: colapsado inteligente de esquemas, elevación de directivas, sangría configurable.</p>
+<hr>
+<p>Más detalles en la <a class="" href="https://aam.ininids.in.rs/es/docs/using/types">documentación actualizada</a>.</p>]]></content>
+        <author>
+            <name>Nikita Goncharov</name>
+            <uri>https://www.ininids.in.rs</uri>
+        </author>
+        <category label="AAM" term="AAM"/>
+        <category label="Feature" term="Feature"/>
+    </entry>
     <entry>
         <title type="html"><![CDATA[LLMs y Robots]]></title>
         <id>https://aam.ininids.in.rs/es/blog/llms-and-robots</id>
@@ -41,7 +72,7 @@ Y se agregaron <a href="https://aam.ininids.in.rs/es/assets/files/examples-769f0
 <h2 class="anchor anchorTargetStickyNavbar_UCMm" id="ejemplo">Ejemplo<a href="https://aam.ininids.in.rs/es/blog/starting-aam#ejemplo" class="hash-link" aria-label="Enlace directo a Ejemplo" title="Enlace directo a Ejemplo" translate="no">​</a></h2>
 <div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">host = localhost</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">port = 8080</span><br></span></code></pre></div></div>
 <p>Eso es todo. Si dices <code>localhost</code> obtendrás <code>host</code> de la configuración.
-"¿Qué es localhost? Es un {AAML::find_obj("localhost")}"
+"¿Qué es localhost? Es un {AAM::get("localhost")}"
 Realmente fácil, ¿sí?</p>]]></content>
         <author>
             <name>Nikita Goncharov</name>

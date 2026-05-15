@@ -4,10 +4,37 @@
         <title>AAM Blog</title>
         <link>https://aam.ininids.in.rs/fr/blog</link>
         <description>AAM Blog</description>
-        <lastBuildDate>Wed, 04 Mar 2026 00:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Fri, 15 May 2026 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>fr</language>
+        <item>
+            <title><![CDATA[AAM v1.1 — Guillemets dans les Listes, Multiligne et Plus]]></title>
+            <link>https://aam.ininids.in.rs/fr/blog/aam-v1.1</link>
+            <guid>https://aam.ininids.in.rs/fr/blog/aam-v1.1</guid>
+            <pubDate>Fri, 15 May 2026 00:00:00 GMT</pubDate>
+            <description><![CDATA[AAM v1.1 apporte des améliorations de qualité de vie : éléments entre guillemets dans les listes, objets en ligne, résolution de chemins relatifs et un formateur intégré.]]></description>
+            <content:encoded><![CDATA[<p>AAM v1.1 apporte des améliorations de qualité de vie : éléments entre guillemets dans les listes, objets en ligne, résolution de chemins relatifs et un formateur intégré.</p>
+<h2 class="anchor anchorTargetStickyNavbar_UCMm" id="nouveautés-de-v11">Nouveautés de v1.1<a href="https://aam.ininids.in.rs/fr/blog/aam-v1.1#nouveaut%C3%A9s-de-v11" class="hash-link" aria-label="Lien direct vers Nouveautés de v1.1" title="Lien direct vers Nouveautés de v1.1" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="éléments-entre-guillemets-dans-les-listes">Éléments Entre Guillemets dans les Listes<a href="https://aam.ininids.in.rs/fr/blog/aam-v1.1#%C3%A9l%C3%A9ments-entre-guillemets-dans-les-listes" class="hash-link" aria-label="Lien direct vers Éléments Entre Guillemets dans les Listes" title="Lien direct vers Éléments Entre Guillemets dans les Listes" translate="no">​</a></h3>
+<p>Les éléments de liste peuvent désormais être entourés de guillemets doubles (<code>"</code>) ou simples (<code>'</code>). Les virgules à l'intérieur d'éléments entre guillemets sont correctement traitées :</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">items = ["rust, aam", 'single, quoted', plain_value]</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="objets-en-ligne">Objets en Ligne<a href="https://aam.ininids.in.rs/fr/blog/aam-v1.1#objets-en-ligne" class="hash-link" aria-label="Lien direct vers Objets en Ligne" title="Lien direct vers Objets en Ligne" translate="no">​</a></h3>
+<p>Les valeurs peuvent maintenant être des objets en ligne :</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">server = { host = "localhost", port = 8080, debug = true }</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">config = { database = { host = "db.local", port = 5432 } }</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="directives-multilignes">Directives Multilignes<a href="https://aam.ininids.in.rs/fr/blog/aam-v1.1#directives-multilignes" class="hash-link" aria-label="Lien direct vers Directives Multilignes" title="Lien direct vers Directives Multilignes" translate="no">​</a></h3>
+<p>La gestion des blocs <code>@schema</code>, <code>@type</code> et autres s'étendant sur plusieurs lignes a été améliorée :</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">@schema Player {</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    name: string</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    score: i32</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    tags: list&lt;string&gt;</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">}</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="chemins-relatifs">Chemins Relatifs<a href="https://aam.ininids.in.rs/fr/blog/aam-v1.1#chemins-relatifs" class="hash-link" aria-label="Lien direct vers Chemins Relatifs" title="Lien direct vers Chemins Relatifs" translate="no">​</a></h3>
+<p>Les chemins dans <code>@import</code> et <code>@derive</code> sont désormais résolus relativement au fichier :</p>
+<div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">@import ./schemas/base.aam</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">@derive ./types/player.aam::Player</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_UCMm" id="formateur-intégré">Formateur Intégré<a href="https://aam.ininids.in.rs/fr/blog/aam-v1.1#formateur-int%C3%A9gr%C3%A9" class="hash-link" aria-label="Lien direct vers Formateur Intégré" title="Lien direct vers Formateur Intégré" translate="no">​</a></h3>
+<p>Le formateur met automatiquement en forme les fichiers : collapse intelligent des schémas, remontée des directives, indentation configurable.</p>
+<hr>
+<p>Plus de détails dans la <a class="" href="https://aam.ininids.in.rs/fr/docs/using/types">documentation mise à jour</a>.</p>]]></content:encoded>
+            <category>AAM</category>
+            <category>Feature</category>
+        </item>
         <item>
             <title><![CDATA[LLMs et Robots]]></title>
             <link>https://aam.ininids.in.rs/fr/blog/llms-and-robots</link>
@@ -38,7 +65,7 @@ Et ajout d'<a href="https://aam.ininids.in.rs/fr/assets/files/examples-769f0fb7a
 <h2 class="anchor anchorTargetStickyNavbar_UCMm" id="exemple">Exemple<a href="https://aam.ininids.in.rs/fr/blog/starting-aam#exemple" class="hash-link" aria-label="Lien direct vers Exemple" title="Lien direct vers Exemple" translate="no">​</a></h2>
 <div class="language-aam codeBlockContainer_G9Q3 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_KPzx"><pre tabindex="0" class="prism-code language-aam codeBlock_X5zZ thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_IHTV"><span class="token-line" style="color:#393A34"><span class="token plain">host = localhost</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">port = 8080</span><br></span></code></pre></div></div>
 <p>C'est tout. Si vous dites <code>localhost</code> vous obtiendrez <code>host</code> de la configuration.
-"Qu'est-ce que localhost ? C'est un {AAML::find_obj("localhost")}"
+"Qu'est-ce que localhost ? C'est un {AAM::get("localhost")}"
 Vraiment facile, n'est-ce pas ?</p>]]></content:encoded>
             <category>AAM</category>
         </item>
